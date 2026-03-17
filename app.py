@@ -450,8 +450,8 @@ with col_run:
         text=yr_run["dist_km"].round().astype(int).astype(str)+" km",
         textposition="outside",
         textfont=dict(color="#888", size=10)))
-    fig_r.update_layout(**CHART_LAYOUT, height=300, yaxis_title="km",
-        margin=dict(t=10,b=30,l=40,r=10))
+    fig_r.update_layout(**{**CHART_LAYOUT, 'margin': dict(t=10,b=30,l=40,r=10)},
+        height=300, yaxis_title="km")
     fig_r.update_xaxes(**axis_style())
     fig_r.update_yaxes(**axis_style())
     st.plotly_chart(fig_r, use_container_width=True)
@@ -474,8 +474,8 @@ with col_ride:
         text=yr_cyc_tot["dist_km"].round().astype(int).astype(str)+" km",
         textposition="top center",
         textfont=dict(size=10, color="#666"), showlegend=False))
-    fig_c.update_layout(**CHART_LAYOUT, barmode="stack", height=300,
-        yaxis_title="km", margin=dict(t=10,b=30,l=40,r=10))
+    fig_c.update_layout(**{**CHART_LAYOUT, 'margin': dict(t=10,b=30,l=40,r=10)},
+        barmode="stack", height=300, yaxis_title="km")
     fig_c.update_xaxes(**axis_style())
     fig_c.update_yaxes(**axis_style())
     st.plotly_chart(fig_c, use_container_width=True)
