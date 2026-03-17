@@ -181,7 +181,7 @@ hr {
 """, unsafe_allow_html=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GDRIVE_FILE_ID = "1mgqa52ET2Ru7XIjUvMl4zgK1Zb1Idlmi"
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/komootti/strava-dashboard/main/activities.csv"
 
 ENDURANCE = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
              "Nordic Ski","Swim","Rowing","E-Bike Ride","Stand Up Paddling","Kayaking"}
@@ -221,10 +221,9 @@ def axis_style():
     )
 
 # ── Load data ─────────────────────────────────────────────────────────────────
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def load_data():
-    url = f"https://drive.google.com/uc?export=download&id={GDRIVE_FILE_ID}"
-    r = requests.get(url)
+    r = requests.get(GITHUB_RAW_URL)
     r.raise_for_status()
     raw = pd.read_csv(io.StringIO(r.text), low_memory=False)
 
@@ -522,8 +521,6 @@ st.markdown("## Recent Activities")
 
 n_rows = st.slider("Show", 10, 100, 20, step=10, key="recent_n")
 recent_acts = fdf.sort_values("date", ascending=False).head(n_rows).copy()
-if "avg_speed_kmh" not in recent_acts.columns:
-    recent_acts["avg_speed_kmh"] = 0.0
 
 def fmt_pace_row(row):
     if row["sport"] in ["Run","Walk","Virtual Run","Hike"] and row["dist_km"] > 0:
