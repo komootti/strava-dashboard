@@ -441,7 +441,7 @@ col_run, col_ride = st.columns(2)
 with col_run:
     st.markdown("### 🏃 Running")
     yr_run = fdf[fdf["sport"]=="Run"].groupby("year")["dist_km"].sum().reset_index()
-  fig_r = go.Figure(go.Bar(
+    fig_r = go.Figure(go.Bar(
         x=yr_run["year"], y=yr_run["dist_km"],
         marker=dict(
             color=yr_run["dist_km"],
