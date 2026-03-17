@@ -522,6 +522,8 @@ st.markdown("## Recent Activities")
 
 n_rows = st.slider("Show", 10, 100, 20, step=10, key="recent_n")
 recent_acts = fdf.sort_values("date", ascending=False).head(n_rows).copy()
+if "avg_speed_kmh" not in recent_acts.columns:
+    recent_acts["avg_speed_kmh"] = 0.0
 
 def fmt_pace_row(row):
     if row["sport"] in ["Run","Walk","Virtual Run","Hike"] and row["dist_km"] > 0:
