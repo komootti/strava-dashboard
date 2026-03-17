@@ -442,7 +442,7 @@ with col_run:
     st.markdown("### 🏃 Running")
     yr_run = fdf[fdf["sport"]=="Run"].groupby("year")["dist_km"].sum().reset_index()
     fig_r = go.Figure(go.Bar(
-        x=yr_run["year"], y=yr_run["km"] if "km" in yr_run else yr_run["dist_km"],
+        x=yr_run["year"], y=yr_run["dist_km"] if "km" in yr_run else yr_run["dist_km"],
         marker=dict(
             color=yr_run["dist_km"],
             colorscale=[[0,"#3a1a0a"],[0.5,"#c03000"],[1,"#fc4c02"]],
