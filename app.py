@@ -242,6 +242,7 @@ def load_data():
     df["max_hr"]       = raw["Max Heart Rate.1"]
     df["avg_watts"]    = raw["Average Watts"]
     df["avg_speed_ms"] = raw["Average Speed"]
+    df["avg_speed_kmh"] = df["avg_speed_ms"] * 3.6
     df["calories"]     = raw["Calories"]
     df["rel_effort"]   = raw["Relative Effort"]
     pace_mask = df["sport"].isin(["Run","Walk","Virtual Run","Hike"])
@@ -459,7 +460,10 @@ with col_run:
 with col_ride:
     st.markdown("### 🚴 Cycling")
     cycling_types = ["Ride","Virtual Ride","E-Bike Ride"]
-    cyc = fdf[fdf["sport"].isin(cycling_types)]
+    # Use full df filtered only by date so sport filter never hides cycling types
+    cyc = df[(df["sport"].isin(cycling_types)) &
+             (df["date"].dt.date >= start_date) &
+             (df["date"].dt.date <= end_date)]
     yr_cyc = cyc.groupby(["year","sport"])["dist_km"].sum().reset_index()
     cyc_colors = {"Ride":"#ffa500","Virtual Ride":"#ffcc44","E-Bike Ride":"#ce93d8"}
     # Pivot so every year gets a bar even if one type is missing that year
@@ -523,11 +527,21 @@ n_rows = st.slider("Show", 10, 100, 20, step=10, key="recent_n")
 recent_acts = fdf.sort_values("date", ascending=False).head(n_rows).copy()
 
 def fmt_pace_row(row):
-    if row["sport"] in ["Run","Walk","Virtual Run","Hike"] and row["dist_km"] > 0:
-        p = row["moving_min"] / row["dist_km"]
-        return f"{int(p)}:{int((p%1)*60):02d} /km"
-    elif row["sport"] in ["Ride","Virtual Ride","E-Bike Ride","Rowing"] and row["avg_speed_kmh"] > 0:
-        return f"{row['avg_speed_kmh']:.1f} km/h"
+    try:
+        sport = row["sport"]
+        if sport in ["Run","Walk","Virtual Run","Hike"] and row["dist_km"] > 0:
+            p = row["moving_min"] / row["dist_km"]
+            return f"{int(p)}:{int((p%1)*60):02d} /km"
+        elif sport in ["Ride","Virtual Ride","E-Bike Ride","Rowing"]:
+            kmh = row.get("avg_speed_kmh", 0)
+            if pd.isna(kmh) or kmh == 0:
+                # fallback: calculate from distance and time
+                if row["moving_min"] > 0 and row["dist_km"] > 0:
+                    kmh = row["dist_km"] / (row["moving_min"] / 60)
+            if kmh and kmh > 0:
+                return f"{kmh:.1f} km/h"
+    except Exception:
+        pass
     return "—"
 
 recent_acts["Pace"] = recent_acts.apply(fmt_pace_row, axis=1)
