@@ -410,11 +410,138 @@ daily["tsb"] = daily["ctl"] - daily["atl"]
 
 latest = daily.iloc[-1]
 t1, t2, t3 = st.columns(3)
-t1.metric("CTL — Fitness",   f"{latest['ctl']:.1f}", "42-day avg load")
-t2.metric("ATL — Fatigue",   f"{latest['atl']:.1f}", "7-day avg load")
 tsb = latest["tsb"]
-tsb_str = "Fresh 🟢" if tsb > 5 else ("Tired 🔴" if tsb < -20 else "Training 🟡")
-t3.metric("TSB — Freshness", f"{tsb:+.1f}", tsb_str)
+ctl_val = latest["ctl"]
+atl_val = latest["atl"]
+
+# ── TSB interpretation ────────────────────────────────────────────────────────
+if tsb > 15:
+    tsb_label = "Peak form 🟢"
+    tsb_advice = (
+        "You are at peak freshness. This is the ideal window for racing or testing "
+        "your fitness with a hard effort. Don't waste it on easy sessions."
+    )
+elif tsb > 5:
+    tsb_label = "Fresh 🟢"
+    tsb_advice = (
+        "You're fresh and recovered. Good day for a quality session — intervals, "
+        "tempo, or a long effort. Your body is ready to absorb hard training."
+    )
+elif tsb > -10:
+    tsb_label = "Productive zone 🟡"
+    tsb_advice = (
+        "Light fatigue — this is the normal training zone where fitness is built. "
+        "Continue your plan. Mix hard and easy days to keep progressing."
+    )
+elif tsb > -20:
+    tsb_label = "Tired 🟠"
+    tsb_advice = (
+        "Meaningful fatigue is accumulating. Consider an easy day or rest. "
+        "Avoid hard intervals until TSB recovers above -10. Sleep and nutrition matter now."
+    )
+elif tsb > -30:
+    tsb_label = "Very tired 🔴"
+    tsb_advice = (
+        "High fatigue load. Take 1–2 easy days or full rest. "
+        "Performance will suffer if you push hard here. Recovery is training too."
+    )
+else:
+    tsb_label = "Overreaching ⛔"
+    tsb_advice = (
+        "Danger zone. Extended high fatigue risks illness, injury, or burnout. "
+        "Take several easy days. Consider whether your training load is sustainable."
+    )
+
+# ── CTL interpretation ────────────────────────────────────────────────────────
+if ctl_val < 20:
+    ctl_advice = "Low fitness base. Build gradually — increase weekly load by no more than 10% per week."
+elif ctl_val < 40:
+    ctl_advice = "Moderate fitness. Consistent training is building your base. Keep the routine."
+elif ctl_val < 60:
+    ctl_advice = "Good fitness base. You can handle harder training blocks and longer events."
+elif ctl_val < 80:
+    ctl_advice = "Strong fitness. You are well-trained and capable of demanding races."
+else:
+    ctl_advice = "Elite-level fitness load. Maintain carefully — recovery becomes critical at this level."
+
+# ── ATL interpretation ────────────────────────────────────────────────────────
+if atl_val < 20:
+    atl_advice = "Very low recent load. You are well rested — consider if you are training enough."
+elif atl_val < 40:
+    atl_advice = "Moderate recent load. Normal training week. You are not overextending."
+elif atl_val < 60:
+    atl_advice = "High recent load. Make sure easy days are genuinely easy."
+else:
+    atl_advice = "Very high recent load. Your body needs recovery. Prioritise sleep and easy sessions."
+
+t1.metric("CTL — Fitness", f"{ctl_val:.1f}", "42-day fitness base")
+t2.metric("ATL — Fatigue", f"{atl_val:.1f}", "7-day fatigue load")
+t3.metric("TSB — Freshness", f"{tsb:+.1f}", tsb_label)
+
+# ── Expandable guidance cards ─────────────────────────────────────────────────
+with st.expander("📖 What do CTL · ATL · TSB mean? Click to read guidance", expanded=False):
+    ga, gb, gc = st.columns(3)
+    with ga:
+        st.markdown(f"""
+<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:1rem">
+<div style="color:#fc4c02;font-size:0.7rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.1em;margin-bottom:6px">CTL — Chronic Training Load</div>
+<div style="color:#f0ede8;font-size:1.4rem;font-weight:700;margin-bottom:8px">{ctl_val:.1f}</div>
+<div style="color:#aaa;font-size:0.8rem;line-height:1.6;margin-bottom:10px">
+Your <b style="color:#f0ede8">fitness</b>. A 42-day exponential average of your daily 
+training stress. Higher = more fit. Builds slowly, drops slowly.
+Takes 6+ weeks of consistent training to move significantly.
+</div>
+<div style="background:#111;border-left:3px solid #fc4c02;padding:8px 10px;
+            border-radius:0 6px 6px 0;font-size:0.78rem;color:#ccc">
+💡 {ctl_advice}
+</div>
+</div>""", unsafe_allow_html=True)
+
+    with gb:
+        st.markdown(f"""
+<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:1rem">
+<div style="color:#ffa500;font-size:0.7rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.1em;margin-bottom:6px">ATL — Acute Training Load</div>
+<div style="color:#f0ede8;font-size:1.4rem;font-weight:700;margin-bottom:8px">{atl_val:.1f}</div>
+<div style="color:#aaa;font-size:0.8rem;line-height:1.6;margin-bottom:10px">
+Your <b style="color:#f0ede8">fatigue</b>. A 7-day exponential average of your daily 
+training stress. Reacts quickly to what you did this week. 
+One hard week spikes it; a few easy days drops it fast.
+</div>
+<div style="background:#111;border-left:3px solid #ffa500;padding:8px 10px;
+            border-radius:0 6px 6px 0;font-size:0.78rem;color:#ccc">
+💡 {atl_advice}
+</div>
+</div>""", unsafe_allow_html=True)
+
+    with gc:
+        tsb_color = "#50c850" if tsb > 5 else ("#ff6b35" if tsb < -20 else "#ffa500")
+        st.markdown(f"""
+<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:1rem">
+<div style="color:{tsb_color};font-size:0.7rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.1em;margin-bottom:6px">TSB — Training Stress Balance</div>
+<div style="color:#f0ede8;font-size:1.4rem;font-weight:700;margin-bottom:8px">{tsb:+.1f} — {tsb_label}</div>
+<div style="color:#aaa;font-size:0.8rem;line-height:1.6;margin-bottom:10px">
+Your <b style="color:#f0ede8">freshness</b>. CTL minus ATL. 
+Positive = more fit than fatigued → race ready. 
+Negative = more fatigued than fit → building phase.
+</div>
+<div style="background:#111;border-left:3px solid {tsb_color};padding:8px 10px;
+            border-radius:0 6px 6px 0;font-size:0.78rem;color:#ccc">
+💡 {tsb_advice}
+</div>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown("""
+<div style="margin-top:1rem;padding:0.75rem 1rem;background:#111;border-radius:8px;
+            font-size:0.78rem;color:#666;line-height:1.7">
+<b style="color:#888">How to use these numbers together:</b><br>
+The goal is to raise CTL (fitness) over time while keeping TSB manageable. 
+A typical training cycle builds ATL for 3 weeks (TSB goes negative), 
+then eases for 1 week so TSB recovers to positive — then you race or test. 
+Repeat. Never let TSB drop below −30 for extended periods.
+</div>""", unsafe_allow_html=True)
 
 days_back = st.slider("Days to show", 90, 1825, 365, step=90, key="ctl_days")
 plot = daily[daily["date"] >= daily["date"].max() - pd.Timedelta(days=days_back)]
