@@ -450,7 +450,7 @@ with col_run:
         text=yr_run["dist_km"].round().astype(int).astype(str)+" km",
         textposition="outside",
         textfont=dict(color="#888", size=10)))
-    fig_r.update_layout(**CHART_LAYOUT, height=300, yaxis_title="dist_km",
+    fig_r.update_layout(**CHART_LAYOUT, height=300, yaxis_title="km",
         margin=dict(t=10,b=30,l=40,r=10))
     fig_r.update_xaxes(**axis_style())
     fig_r.update_yaxes(**axis_style())
