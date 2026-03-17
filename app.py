@@ -249,6 +249,21 @@ def load_data():
     df["pace_min_km"] = None
     valid = pace_mask & (df["dist_km"] > 0)
     df.loc[valid, "pace_min_km"] = df.loc[valid, "moving_min"] / df.loc[valid, "dist_km"]
+    # Normalise sport names — Strava API returns e.g. "VirtualRide",
+    # but the bulk export uses "Virtual Ride". Map all API variants to export format.
+    sport_map = {
+        "VirtualRide":    "Virtual Ride",
+        "VirtualRun":     "Virtual Run",
+        "EBikeRide":      "E-Bike Ride",
+        "WeightTraining": "Weight Training",
+        "NordicSki":      "Nordic Ski",
+        "RollerSki":      "Roller Ski",
+        "IceSkate":       "Ice Skate",
+        "StandUpPaddling":"Stand Up Paddling",
+        "HandCycle":      "Hand Cycle",
+        "RockClimbing":   "Rock Climbing",
+    }
+    df["sport"] = df["sport"].replace(sport_map)
     df["is_endurance"] = df["sport"].isin(ENDURANCE)
     return df
 
