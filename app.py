@@ -418,14 +418,15 @@ recent_w = fdf[fdf["date"] >= cutoff].copy()
 recent_w["week"] = recent_w["date"].dt.to_period("W").dt.start_time
 SHOW = [s for s in ["Run","Ride","Virtual Ride","Walk","E-Bike Ride","Rowing","Hike"]
         if s in selected_sports]
-weekly = (recent_w[recent_w["sport"].isin(SHOW)]
-          .groupby(["week","sport"])["dist_km"].sum().reset_index())
+weekly_raw = (recent_w[recent_w["sport"].isin(SHOW)]
+               .groupby(["week","sport"])["dist_km"].sum().reset_index())
+weekly_pivot = weekly_raw.pivot_table(index="week", columns="sport",
+                                       values="dist_km", aggfunc="sum", fill_value=0).reset_index()
 
 fig2 = go.Figure()
 for sport in SHOW:
-    s = weekly[weekly["sport"]==sport]
-    if len(s)==0: continue
-    fig2.add_trace(go.Bar(x=s["week"], y=s["dist_km"].round(1),
+    if sport not in weekly_pivot.columns: continue
+    fig2.add_trace(go.Bar(x=weekly_pivot["week"], y=weekly_pivot[sport].round(1),
         name=sport, marker_color=SPORT_COLORS.get(sport,"#666")))
 fig2.update_layout(**CHART_LAYOUT, barmode="stack", height=320, yaxis_title="km")
 fig2.update_xaxes(**axis_style())
@@ -462,11 +463,13 @@ with col_ride:
     cyc = fdf[fdf["sport"].isin(cycling_types)]
     yr_cyc = cyc.groupby(["year","sport"])["dist_km"].sum().reset_index()
     cyc_colors = {"Ride":"#ffa500","Virtual Ride":"#ffcc44","E-Bike Ride":"#ce93d8"}
+    # Pivot so every year gets a bar even if one type is missing that year
+    cyc_pivot = yr_cyc.pivot_table(index="year", columns="sport",
+                                    values="dist_km", aggfunc="sum", fill_value=0).reset_index()
     fig_c = go.Figure()
     for ctype in cycling_types:
-        s = yr_cyc[yr_cyc["sport"]==ctype]
-        if len(s)==0: continue
-        fig_c.add_trace(go.Bar(x=s["year"], y=s["dist_km"].round(),
+        if ctype not in cyc_pivot.columns: continue
+        fig_c.add_trace(go.Bar(x=cyc_pivot["year"], y=cyc_pivot[ctype].round(),
             name=ctype, marker_color=cyc_colors[ctype]))
     yr_cyc_tot = cyc.groupby("year")["dist_km"].sum().reset_index()
     fig_c.add_trace(go.Scatter(x=yr_cyc_tot["year"], y=yr_cyc_tot["dist_km"].round(),
@@ -521,10 +524,12 @@ n_rows = st.slider("Show", 10, 100, 20, step=10, key="recent_n")
 recent_acts = fdf.sort_values("date", ascending=False).head(n_rows).copy()
 
 def fmt_pace_row(row):
-    if row["sport"] not in ["Run","Walk","Virtual Run","Hike"] or row["dist_km"]==0:
-        return "—"
-    p = row["moving_min"] / row["dist_km"]
-    return f"{int(p)}:{int((p%1)*60):02d} /km"
+    if row["sport"] in ["Run","Walk","Virtual Run","Hike"] and row["dist_km"] > 0:
+        p = row["moving_min"] / row["dist_km"]
+        return f"{int(p)}:{int((p%1)*60):02d} /km"
+    elif row["sport"] in ["Ride","Virtual Ride","E-Bike Ride","Rowing"] and row["avg_speed_kmh"] > 0:
+        return f"{row['avg_speed_kmh']:.1f} km/h"
+    return "—"
 
 recent_acts["Pace"] = recent_acts.apply(fmt_pace_row, axis=1)
 recent_acts["Date"] = recent_acts["date"].dt.strftime("%d %b %Y")
