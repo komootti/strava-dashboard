@@ -270,25 +270,47 @@ def load_data():
 df = load_data()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
+# ── Year filter state ────────────────────────────────────────────────────────
+all_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
+if "selected_year" not in st.session_state:
+    st.session_state["selected_year"] = "All"
+
 with st.sidebar:
     st.markdown("## 🔥 Filters")
     st.markdown("---")
 
+    # ── Year pills ────────────────────────────────────────────────────────────
+    st.markdown("**Year**")
+    year_options = ["All"] + [str(y) for y in all_years]
+    cols_per_row = 3
+    for row_start in range(0, len(year_options), cols_per_row):
+        row_opts = year_options[row_start:row_start + cols_per_row]
+        row_cols = st.columns(len(row_opts))
+        for col, yr in zip(row_cols, row_opts):
+            is_active = st.session_state["selected_year"] == yr
+            if col.button(yr, key=f"yr_{yr}", use_container_width=True,
+                          type="primary" if is_active else "secondary"):
+                st.session_state["selected_year"] = yr
+                st.rerun()
+
+    st.markdown("---")
     all_sports = sorted(df["sport"].unique().tolist())
     selected_sports = st.multiselect("Sports", all_sports, default=all_sports)
 
-    min_date = df["date"].min().date()
-    max_date = df["date"].max().date()
-    date_range = st.date_input("Date range",
-        value=(min_date, max_date), min_value=min_date, max_value=max_date)
-
-    start_date, end_date = (date_range[0], date_range[1]) \
-        if len(date_range) == 2 else (min_date, max_date)
-
     st.markdown("---")
-    if st.button("🔄 Reload data"):
+    if st.button("🔄 Reload data", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
+
+# ── Apply year filter ─────────────────────────────────────────────────────────
+selected_year = st.session_state["selected_year"]
+if selected_year == "All":
+    start_date = df["date"].min().date()
+    end_date   = df["date"].max().date()
+else:
+    yr_int     = int(selected_year)
+    start_date = df[df["year"] == yr_int]["date"].min().date()
+    end_date   = df[df["year"] == yr_int]["date"].max().date()
 
 mask = (
     df["sport"].isin(selected_sports) &
@@ -309,8 +331,7 @@ st.markdown(f"""
     Your Athletic Journey
   </h1>
   <div style="color:#555;font-size:0.85rem;margin-top:4px">
-    {df['date'].min().strftime('%b %Y')} — {df['date'].max().strftime('%b %Y')} 
-    · {df['year'].nunique()} years
+    {'📅 ' + selected_year if selected_year != 'All' else df['date'].min().strftime('%b %Y') + ' — ' + df['date'].max().strftime('%b %Y') + ' · ' + str(df['year'].nunique()) + ' years'}
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -500,6 +521,70 @@ with col_ride:
     fig_c.update_xaxes(**axis_style())
     fig_c.update_yaxes(**axis_style())
     st.plotly_chart(fig_c, use_container_width=True)
+
+st.markdown("---")
+
+# ── Yearly Elevation ──────────────────────────────────────────────────────────
+st.markdown("## Yearly Elevation Gain")
+col_run_elev, col_ride_elev = st.columns(2)
+
+with col_run_elev:
+    st.markdown("### 🏃 Running")
+    yr_run_elev = (df[df["sport"] == "Run"]
+                   .groupby("year")["elev_gain_m"].sum().reset_index())
+    yr_run_elev = yr_run_elev[yr_run_elev["elev_gain_m"] > 0]
+    if len(yr_run_elev) > 0:
+        fig_re = go.Figure(go.Bar(
+            x=yr_run_elev["year"],
+            y=yr_run_elev["elev_gain_m"].round(),
+            marker=dict(
+                color=yr_run_elev["elev_gain_m"],
+                colorscale=[[0,"#1a2a1a"],[0.5,"#2d7a2d"],[1,"#50c850"]],
+                showscale=False),
+            text=yr_run_elev["elev_gain_m"].round().astype(int).astype(str) + " m",
+            textposition="outside",
+            textfont=dict(color="#888", size=10)))
+        if selected_year != "All":
+            fig_re.add_vline(x=int(selected_year), line_color="#fc4c02",
+                             line_width=2, line_dash="dot")
+        fig_re.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
+            height=300, yaxis_title="metres")
+        fig_re.update_xaxes(**axis_style())
+        fig_re.update_yaxes(**axis_style())
+        st.plotly_chart(fig_re, use_container_width=True)
+
+with col_ride_elev:
+    st.markdown("### 🚴 Cycling")
+    cycling_types_e = ["Ride", "Virtual Ride", "E-Bike Ride"]
+    yr_ride_elev = (df[df["sport"].isin(cycling_types_e)]
+                    .groupby(["year","sport"])["elev_gain_m"].sum().reset_index())
+    yr_ride_elev = yr_ride_elev[yr_ride_elev["elev_gain_m"] > 0]
+    if len(yr_ride_elev) > 0:
+        cyc_elev_colors = {"Ride":"#ffa500","Virtual Ride":"#ffcc44","E-Bike Ride":"#ce93d8"}
+        elev_pivot = yr_ride_elev.pivot_table(index="year", columns="sport",
+            values="elev_gain_m", aggfunc="sum", fill_value=0).reset_index()
+        fig_ce = go.Figure()
+        for ctype in cycling_types_e:
+            if ctype not in elev_pivot.columns: continue
+            fig_ce.add_trace(go.Bar(
+                x=elev_pivot["year"], y=elev_pivot[ctype].round(),
+                name=ctype, marker_color=cyc_elev_colors[ctype]))
+        yr_ride_tot = (df[df["sport"].isin(cycling_types_e)]
+                       .groupby("year")["elev_gain_m"].sum().reset_index())
+        fig_ce.add_trace(go.Scatter(
+            x=yr_ride_tot["year"], y=yr_ride_tot["elev_gain_m"].round(),
+            mode="text",
+            text=yr_ride_tot["elev_gain_m"].round().astype(int).astype(str) + " m",
+            textposition="top center",
+            textfont=dict(size=10, color="#666"), showlegend=False))
+        if selected_year != "All":
+            fig_ce.add_vline(x=int(selected_year), line_color="#fc4c02",
+                             line_width=2, line_dash="dot")
+        fig_ce.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
+            barmode="stack", height=300, yaxis_title="metres")
+        fig_ce.update_xaxes(**axis_style())
+        fig_ce.update_yaxes(**axis_style())
+        st.plotly_chart(fig_ce, use_container_width=True)
 
 st.markdown("---")
 
