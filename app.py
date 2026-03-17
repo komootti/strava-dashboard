@@ -3,19 +3,26 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import requests
+import io
 
 st.set_page_config(page_title="Strava Dashboard", page_icon="🏃", layout="wide")
 
-# ── Data path — update this if running locally ────────────────────────────────
-ACTIVITIES_CSV = "activities.csv"
+# ── Load data from Google Drive public CSV link ───────────────────────────────
+# Replace this with your own Google Drive shareable link (instructions below)
+GDRIVE_FILE_ID = "1mgqa52ET2Ru7XIjUvMl4zgK1Zb1Idlmi"
 # ─────────────────────────────────────────────────────────────────────────────
 
 ENDURANCE = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
              "Nordic Ski","Swim","Rowing","E-Bike Ride","Stand Up Paddling","Kayaking"}
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_data():
-    raw = pd.read_csv(ACTIVITIES_CSV, low_memory=False)
+    url = f"https://drive.google.com/uc?export=download&id={GDRIVE_FILE_ID}"
+    r = requests.get(url)
+    r.raise_for_status()
+    raw = pd.read_csv(io.StringIO(r.text), low_memory=False)
+
     df = pd.DataFrame()
     df["activity_id"]  = raw["Activity ID"]
     df["date"]         = pd.to_datetime(raw["Activity Date"],
@@ -233,11 +240,9 @@ if len(yearly_cyc) > 0:
             name=ctype, marker_color=cyc_colors[ctype],
             text=s["dist_km"].round().astype(int).astype(str) + " km",
             textposition="inside"))
-    # Total label on top
     yearly_cyc_total = cycling.groupby("year")["dist_km"].sum().reset_index()
     fig5.add_trace(go.Scatter(
-        x=yearly_cyc_total["year"],
-        y=yearly_cyc_total["dist_km"].round(),
+        x=yearly_cyc_total["year"], y=yearly_cyc_total["dist_km"].round(),
         mode="text",
         text=yearly_cyc_total["dist_km"].round().astype(int).astype(str) + " km",
         textposition="top center",
