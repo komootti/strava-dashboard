@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-Strava Auto Sync
-Runs on GitHub Actions schedule — pulls new activities from Strava,
-appends to activities.csv, commits back to GitHub.
+Strava Auto Sync — GitHub Actions
+Pulls new activities from Strava, appends to activities.csv, commits to GitHub.
 """
 
-import os, json, time, requests, base64
+import os, time, requests, base64, io
 import pandas as pd
 from datetime import datetime
 
@@ -17,7 +16,7 @@ GITHUB_TOKEN  = os.environ["GITHUB_TOKEN"]
 GITHUB_REPO   = os.environ.get("GITHUB_REPO", "komootti/strava-dashboard")
 CSV_PATH      = "activities.csv"
 
-# ── Step 1: Get fresh access token ───────────────────────────────────────────
+# ── Step 1: Get fresh Strava access token ─────────────────────────────────────
 print("Refreshing Strava access token...")
 r = requests.post("https://www.strava.com/oauth/token", data={
     "client_id":     CLIENT_ID,
@@ -26,32 +25,35 @@ r = requests.post("https://www.strava.com/oauth/token", data={
     "refresh_token": REFRESH_TOKEN,
 })
 r.raise_for_status()
-tokens        = r.json()
-ACCESS_TOKEN  = tokens["access_token"]
-NEW_REFRESH   = tokens.get("refresh_token", REFRESH_TOKEN)
-print("Authenticated with Strava")
+tokens       = r.json()
+ACCESS_TOKEN = tokens["access_token"]
+print("✅ Authenticated with Strava")
 
-# ── Step 2: Load existing CSV from GitHub ────────────────────────────────────
+# ── Step 2: Load existing CSV via raw URL (handles large files correctly) ──────
 print("Loading activities.csv from GitHub...")
 headers_gh = {
     "Authorization": f"token {GITHUB_TOKEN}",
     "Accept":        "application/vnd.github.v3+json",
 }
+
+# Get file SHA via contents API (needed later for the commit)
 api_url  = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{CSV_PATH}"
 r        = requests.get(api_url, headers=headers_gh)
 r.raise_for_status()
-file_info = r.json()
-sha       = file_info["sha"]
-csv_bytes = base64.b64decode(file_info["content"])
+sha = r.json()["sha"]
 
-import io
-existing  = pd.read_csv(io.BytesIO(csv_bytes), low_memory=False)
+# Download actual content via raw URL — works for any file size
+raw_url  = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/{CSV_PATH}"
+r        = requests.get(raw_url, headers={"Authorization": f"token {GITHUB_TOKEN}"})
+r.raise_for_status()
+existing = pd.read_csv(io.StringIO(r.text), low_memory=False)
+
 existing["_date"] = pd.to_datetime(
     existing["Activity Date"],
     format="%b %d, %Y, %I:%M:%S %p", errors="coerce")
 last_date = existing["_date"].max()
 after_ts  = int(last_date.timestamp())
-print(f"Loaded {len(existing):,} existing activities — last: {last_date.strftime('%d %b %Y')}")
+print(f"✅ {len(existing):,} existing activities — last: {last_date.strftime('%d %b %Y')}")
 
 # ── Step 3: Fetch new activities from Strava ──────────────────────────────────
 print("Fetching new activities from Strava...")
@@ -73,13 +75,13 @@ while True:
     page += 1
     time.sleep(0.5)
 
-print(f"Fetched {len(all_new)} new activities")
+print(f"✅ {len(all_new)} new activities fetched")
 
 if len(all_new) == 0:
     print("Nothing new to sync — done.")
     exit(0)
 
-# ── Step 4: Convert to CSV format ────────────────────────────────────────────
+# ── Step 4: Convert to CSV format ─────────────────────────────────────────────
 rows = []
 for a in all_new:
     start = datetime.fromisoformat(a["start_date_local"].replace("Z", ""))
@@ -121,7 +123,7 @@ new_df   = new_df.reindex(columns=existing.columns)
 combined = pd.concat([existing, new_df], ignore_index=True)
 combined = combined.drop_duplicates(subset=["Activity ID"], keep="last")
 combined = combined.sort_values("Activity Date").reset_index(drop=True)
-print(f"Total after merge: {len(combined):,} activities")
+print(f"✅ {len(combined):,} total activities after merge")
 
 # ── Step 6: Push updated CSV back to GitHub ───────────────────────────────────
 print("Pushing to GitHub...")
@@ -135,6 +137,6 @@ payload = {
 }
 r = requests.put(api_url, headers=headers_gh, json=payload)
 r.raise_for_status()
-print(f"Pushed — commit: {r.json()['commit']['sha'][:7]}")
-print("Dashboard will update within 5 minutes.")
-print("Sync complete!")
+print(f"✅ Pushed — commit: {r.json()['commit']['sha'][:7]}")
+print("✅ Dashboard will update within 5 minutes.")
+print("\n🏁 Sync complete!")
