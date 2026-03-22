@@ -228,17 +228,16 @@ def axis_style():
 
 def lollipop(x, y, color="#fc4c02", name="", unit="km"):
     r,g,b = int(color[1:3],16), int(color[3:5],16), int(color[5:7],16)
-    tip = "<b>%{x}</b><br>%{y:,.0f} " + unit + "<extra></extra>"
+    tip = "<b>%{x}</b><br>" + (name if name else "Value") + ": <b>%{y:,.0f} " + unit + "</b><extra></extra>"
     stem = go.Bar(
-        x=x, y=y, name="",
+        x=x, y=y, name=name,
         marker=dict(color="rgba({},{},{},0.18)".format(r,g,b), line=dict(width=0)),
         width=[0.28]*len(list(x)),
-        showlegend=False,
-        hoverinfo="skip",
+        showlegend=bool(name),
+        hovertemplate=tip,
     )
     dot = go.Scatter(
-        x=x, y=y, mode="markers",
-        name=name if name else "",
+        x=x, y=y, mode="markers", name=name,
         marker=dict(color=color, size=8, line=dict(color="#0f0f0f", width=2)),
         showlegend=False,
         hovertemplate=tip,
@@ -358,44 +357,24 @@ st.markdown(f"""
 
 # ── Year pill strip ──────────────────────────────────────────────────────────
 year_options_main = ["All"] + [str(y) for y in all_years]
-# ── Clickable year pills using st.columns buttons ────────────────────────────
-st.markdown("""<style>
-div[data-testid="column"] .stButton>button {
-    background: transparent !important;
-    border: 1px solid #2a2a2a !important;
-    border-radius: 999px !important;
-    color: #999 !important;
-    font-size: 0.74rem !important;
-    font-weight: 500 !important;
-    padding: 3px 8px !important;
-    min-height: 0px !important;
-    height: 28px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-    width: 100% !important;
-    transition: all 0.15s !important;
+pill_html = """<style>
+.pill-strip{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 1.2rem 0}
+.pill-yr{
+  padding:4px 14px;border-radius:999px;font-size:0.76rem;font-weight:500;
+  cursor:pointer;border:1px solid #2a2a2a;background:transparent;
+  color:#999;letter-spacing:0.03em;white-space:nowrap;
+  font-family:'DM Sans',sans-serif;transition:border-color 0.15s,color 0.15s;
 }
-div[data-testid="column"] .stButton>button:hover {
-    border-color: #fc4c02 !important;
-    color: #fc4c02 !important;
-    background: transparent !important;
-}
-div[data-testid="column"] .stButton>button[kind='primary'] {
-    background: #fc4c02 !important;
-    border-color: #fc4c02 !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-}
-</style>""", unsafe_allow_html=True)
-
-pill_cols = st.columns(len(year_options_main))
-for col, yr in zip(pill_cols, year_options_main):
-    is_active = st.session_state["selected_year"] == yr
-    if col.button(yr, key=f"pill_{yr}", type="primary" if is_active else "secondary"):
-        st.session_state["selected_year"] = yr
-        # Sync sidebar selectbox
-        st.session_state["year_select"] = yr
-        st.rerun()
+.pill-yr:hover{border-color:#555;color:#d4d0ca}
+.pill-yr.on{background:#fc4c02;border-color:#fc4c02;color:#fff;font-weight:600}
+</style><div class='pill-strip'>"""
+for yr in year_options_main:
+    active = " on" if yr == st.session_state["selected_year"] else ""
+    pill_html += f"<span class='pill-yr{active}'>{yr}</span>"
+pill_html += "</div>"
+st.markdown(pill_html, unsafe_allow_html=True)
+st.markdown("""<div style='font-size:0.72rem;color:#555;margin:-0.8rem 0 1.2rem'>
+Use the sidebar dropdown to filter by year</div>""", unsafe_allow_html=True)
 
 # ── Headline metrics ──────────────────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -687,15 +666,10 @@ with col_run:
     if selected_year == "All":
         yr_run = df[df["sport"]=="Run"].groupby("year")["dist_km"].sum().reset_index()
         if len(yr_run) > 0:
-            peak_idx = yr_run["dist_km"].idxmax()
-            bar_colors = ["#fc4c02" if i==peak_idx else "#8b3000" for i in yr_run.index]
-            fig_r = go.Figure(go.Bar(
-                x=yr_run["year"].astype(int), y=yr_run["dist_km"].round(),
-                marker=dict(color=bar_colors),
-                text=yr_run["dist_km"].round().astype(int).astype(str)+" km",
-                textposition="outside", textfont=dict(color="#888", size=10)))
+            stem, dot = lollipop(yr_run["year"].astype(int), yr_run["dist_km"].round(), unit="km")
+            fig_r = go.Figure([stem, dot])
             fig_r.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
-                height=300, yaxis_title="km")
+                height=300, yaxis_title="km", barmode="overlay")
             fig_r.update_xaxes(**axis_style(), dtick=1, tickformat="d")
             fig_r.update_yaxes(**axis_style())
             st.plotly_chart(fig_r, use_container_width=True)
@@ -734,14 +708,6 @@ with col_ride:
                 marker=dict(color=cyc_colors[ctype], line=dict(width=0)),
                 width=0.35,
                 hovertemplate="<b>%{x}</b><br>" + ctype + ": <b>%{y:,.0f} km</b><extra></extra>"))
-        yr_cyc_tot = cyc.groupby("year")["dist_km"].sum().reset_index()
-        fig_c.add_trace(go.Scatter(
-            x=yr_cyc_tot["year"].astype(int), y=yr_cyc_tot["dist_km"].round(),
-            mode="text",
-            text=yr_cyc_tot["dist_km"].round().astype(int).astype(str)+" km",
-            textposition="top center",
-            textfont=dict(size=10, color="#666"), showlegend=False,
-            hoverinfo="skip"))
         fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
             barmode="stack", height=300, yaxis_title="km")
         fig_c.update_xaxes(**axis_style(), dtick=1, tickformat="d")
@@ -760,10 +726,7 @@ with col_ride:
                 if len(s)==0: continue
                 fig_c.add_trace(go.Bar(
                     x=s["month_name"], y=s["dist_km"].round(1),
-                    name=ctype,
-                    marker=dict(color=cyc_colors[ctype], line=dict(width=0)),
-                    width=0.45,
-                    hovertemplate="<b>%{x}</b><br>" + ctype + ": <b>%{y:.1f} km</b><extra></extra>"))
+                    name=ctype, marker_color=cyc_colors[ctype]))
             fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
                 barmode="stack", height=300, yaxis_title="km")
             fig_c.update_xaxes(**axis_style())
@@ -820,31 +783,21 @@ with col_ride_elev:
     st.markdown("### 🚴 Cycling")
     cycling_types_e = ["Ride", "Virtual Ride", "E-Bike Ride"]
     cyc_elev_colors = {"Ride":"#ffa500","Virtual Ride":"#ffcc44","E-Bike Ride":"#ce93d8"}
-
     if selected_year == "All":
-        # Yearly stacked bars — all time
-        yr_ride_elev = (df[df["sport"].isin(cycling_types_e)]
-                        .groupby(["year","sport"])["elev_gain_m"].sum().reset_index())
-        yr_ride_elev = yr_ride_elev[yr_ride_elev["elev_gain_m"] > 0]
-        if len(yr_ride_elev) > 0:
-            elev_pivot = yr_ride_elev.pivot_table(index="year", columns="sport",
-                values="elev_gain_m", aggfunc="sum", fill_value=0).reset_index()
-            fig_ce = go.Figure()
-            for ctype in cycling_types_e:
-                if ctype not in elev_pivot.columns: continue
-                fig_ce.add_trace(go.Bar(
-                    x=elev_pivot["year"].astype(int), y=elev_pivot[ctype].round(),
-                    name=ctype, marker_color=cyc_elev_colors[ctype],
-                    hovertemplate="<b>%{x}</b><br>" + ctype + ": <b>%{y:,.0f} m</b><extra></extra>"))
-            yr_ride_tot = (df[df["sport"].isin(cycling_types_e)]
-                           .groupby("year")["elev_gain_m"].sum().reset_index())
+        yr_ride_tot = (df[df["sport"].isin(cycling_types_e)]
+                       .groupby("year")["elev_gain_m"].sum().reset_index())
+        yr_ride_tot = yr_ride_tot[yr_ride_tot["elev_gain_m"] > 0]
+        if len(yr_ride_tot) > 0:
+            stem, dot = lollipop(yr_ride_tot["year"].astype(int),
+                                  yr_ride_tot["elev_gain_m"].round(),
+                                  color="#ffa500", unit="m")
+            fig_ce = go.Figure([stem, dot])
             fig_ce.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
-                barmode="stack", height=300, yaxis_title="metres")
+                height=300, yaxis_title="metres", barmode="overlay")
             fig_ce.update_xaxes(**axis_style(), dtick=1, tickformat="d")
             fig_ce.update_yaxes(**axis_style())
             st.plotly_chart(fig_ce, use_container_width=True)
     else:
-        # Monthly stacked bars — selected year
         ride_elev_m = (fdf[fdf["sport"].isin(cycling_types_e)]
                        .groupby(["month","sport"])["elev_gain_m"].sum().reset_index())
         month_names = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",
@@ -857,7 +810,9 @@ with col_ride_elev:
                 if len(s) == 0: continue
                 fig_ce.add_trace(go.Bar(
                     x=s["month_name"], y=s["elev_gain_m"].round(),
-                    name=ctype, marker_color=cyc_elev_colors[ctype],
+                    name=ctype,
+                    marker=dict(color=cyc_elev_colors[ctype], line=dict(width=0)),
+                    width=0.45,
                     hovertemplate="<b>%{x}</b><br>" + ctype + ": <b>%{y:,.0f} m</b><extra></extra>"))
             fig_ce.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
                 barmode="stack", height=300, yaxis_title="metres")
@@ -955,4 +910,47 @@ st.markdown("""
             color:#444;font-size:0.75rem;text-align:center">
   Built on Strava data · Powered by Streamlit
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)# ── Year pills — horizontal radio ───────────────────────────────────────────
+st.markdown("""<style>
+div[data-testid="stRadio"] > div[role="radiogroup"] {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+}
+div[data-testid="stRadio"] label {
+    padding: 3px 12px !important;
+    border-radius: 999px !important;
+    border: 1px solid #2a2a2a !important;
+    background: transparent !important;
+    color: #999 !important;
+    font-size: 0.73rem !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+div[data-testid="stRadio"] label:hover {
+    border-color: #555 !important;
+    color: #d4d0ca !important;
+}
+div[data-testid="stRadio"] label:has(input:checked) {
+    background: #fc4c02 !important;
+    border-color: #fc4c02 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+div[data-testid="stRadio"] label > div:first-child { display: none !important; }
+</style>""", unsafe_allow_html=True)
+
+pill_choice = st.radio(
+    "yr", year_options_main,
+    index=year_options_main.index(st.session_state["selected_year"]),
+    horizontal=True,
+    label_visibility="collapsed",
+    key="yr_radio_top",
+)
+if pill_choice != st.session_state["selected_year"]:
+    st.session_state["selected_year"] = pill_choice
+    st.rerun()
+
