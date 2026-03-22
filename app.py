@@ -281,7 +281,7 @@ with st.sidebar:
 
     # ── Year pills ────────────────────────────────────────────────────────────
     st.markdown("**Year**")
-st.markdown("""<style>
+    st.markdown("""<style>
 div[data-testid='stSidebar'] .stButton>button {
     background: transparent !important;
     border: 1px solid #2a2a2a !important;
@@ -309,7 +309,7 @@ div[data-testid='stSidebar'] .stButton>button[kind='primary'] {
 }
 </style>""", unsafe_allow_html=True)
     year_options = ["All"] + [str(y) for y in all_years]
-        cols_per_row = 4
+    cols_per_row = 4
     for row_start in range(0, len(year_options), cols_per_row):
         row_opts = year_options[row_start:row_start + cols_per_row]
         row_cols = st.columns(len(row_opts))
