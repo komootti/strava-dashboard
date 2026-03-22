@@ -376,6 +376,43 @@ st.markdown(pill_html, unsafe_allow_html=True)
 st.markdown("""<div style='font-size:0.72rem;color:#555;margin:-0.8rem 0 1.2rem'>
 Use the sidebar dropdown to filter by year</div>""", unsafe_allow_html=True)
 
+# ── Year filter — segmented control ──────────────────────────────────────────
+st.markdown("""<style>
+div[data-testid="stSegmentedControl"] {
+    background: #1a1a1a !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 999px !important;
+    padding: 3px !important;
+    gap: 3px !important;
+    flex-wrap: wrap !important;
+}
+div[data-testid="stSegmentedControl"] button {
+    border-radius: 999px !important;
+    color: #888 !important;
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    padding: 3px 11px !important;
+    border: none !important;
+    background: transparent !important;
+}
+div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
+    background: #fc4c02 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+</style>""", unsafe_allow_html=True)
+
+seg_choice = st.segmented_control(
+    "Year", year_options_main,
+    default=st.session_state["selected_year"],
+    label_visibility="collapsed",
+    key="seg_year",
+)
+if seg_choice and seg_choice != st.session_state["selected_year"]:
+    st.session_state["selected_year"] = seg_choice
+    st.rerun()
+
+
 # ── Headline metrics ──────────────────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Activities",   f"{len(fdf):,}")
@@ -976,49 +1013,4 @@ st.markdown("""
             color:#444;font-size:0.75rem;text-align:center">
   Built on Strava data · Powered by Streamlit
 </div>
-""", unsafe_allow_html=True)# ── Year filter pills (native st.pills) ──────────────────────────────────────
-st.markdown("""<style>
-div[data-testid="stPills"] button {
-    border-radius: 999px !important;
-    border: 1px solid #2a2a2a !important;
-    background: transparent !important;
-    color: #999 !important;
-    font-size: 0.73rem !important;
-    font-weight: 500 !important;
-    padding: 3px 12px !important;
-    transition: all 0.15s !important;
-}
-div[data-testid="stPills"] button:hover {
-    border-color: #555 !important;
-    color: #d4d0ca !important;
-}
-div[data-testid="stPills"] button[aria-selected="true"] {
-    background: #fc4c02 !important;
-    border-color: #fc4c02 !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-}
-</style>""", unsafe_allow_html=True)
-
-try:
-    pill_choice = st.pills(
-        "Year", year_options_main,
-        default=st.session_state["selected_year"],
-        label_visibility="collapsed",
-        selection_mode="single",
-    )
-    if pill_choice and pill_choice != st.session_state["selected_year"]:
-        st.session_state["selected_year"] = pill_choice
-        st.rerun()
-except AttributeError:
-    # Fallback for older Streamlit versions
-    pill_choice = st.radio(
-        "yr", year_options_main,
-        index=year_options_main.index(st.session_state["selected_year"]),
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-    if pill_choice != st.session_state["selected_year"]:
-        st.session_state["selected_year"] = pill_choice
-        st.rerun()
-
+""", unsafe_allow_html=True)
