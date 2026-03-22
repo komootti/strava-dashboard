@@ -564,10 +564,45 @@ daily_data = build_heatmap_data(df)
 
 # Year selector for heatmap
 hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
-col_hm, _ = st.columns([2, 5])
-with col_hm:
-    hm_year = st.selectbox("Select year", hm_years, index=0,
-                           label_visibility="collapsed", key="hm_year")
+st.markdown("""<style>
+.hm-year-wrap div[data-testid="stRadio"] > div {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    background: transparent;
+}
+.hm-year-wrap div[data-testid="stRadio"] label {
+    padding: 2px 10px !important;
+    border-radius: 6px !important;
+    border: 1px solid #252525 !important;
+    background: transparent !important;
+    color: #666 !important;
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    font-family: "DM Mono", monospace !important;
+}
+.hm-year-wrap div[data-testid="stRadio"] label:hover {
+    border-color: #444 !important;
+    color: #aaa !important;
+}
+.hm-year-wrap div[data-testid="stRadio"] label:has(input:checked) {
+    background: rgba(252,76,2,0.15) !important;
+    border-color: #fc4c02 !important;
+    color: #fc4c02 !important;
+    font-weight: 600 !important;
+}
+.hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; }
+</style>""", unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="hm-year-wrap">', unsafe_allow_html=True)
+    hm_year = st.radio("hm", hm_years,
+        index=0, horizontal=True,
+        label_visibility="collapsed", key="hm_year")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Build calendar grid for selected year
 import calendar
@@ -1305,10 +1340,45 @@ daily_data = build_heatmap_data(df)
 
 # Year selector for heatmap
 hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
-col_hm, _ = st.columns([2, 5])
-with col_hm:
-    hm_year = st.selectbox("Select year", hm_years, index=0,
-                           label_visibility="collapsed", key="hm_year")
+st.markdown("""<style>
+.hm-year-wrap div[data-testid="stRadio"] > div {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    background: transparent;
+}
+.hm-year-wrap div[data-testid="stRadio"] label {
+    padding: 2px 10px !important;
+    border-radius: 6px !important;
+    border: 1px solid #252525 !important;
+    background: transparent !important;
+    color: #666 !important;
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    font-family: "DM Mono", monospace !important;
+}
+.hm-year-wrap div[data-testid="stRadio"] label:hover {
+    border-color: #444 !important;
+    color: #aaa !important;
+}
+.hm-year-wrap div[data-testid="stRadio"] label:has(input:checked) {
+    background: rgba(252,76,2,0.15) !important;
+    border-color: #fc4c02 !important;
+    color: #fc4c02 !important;
+    font-weight: 600 !important;
+}
+.hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; }
+</style>""", unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="hm-year-wrap">', unsafe_allow_html=True)
+    hm_year = st.radio("hm", hm_years,
+        index=0, horizontal=True,
+        label_visibility="collapsed", key="hm_year")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Build calendar grid for selected year
 import calendar
