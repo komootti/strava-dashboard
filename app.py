@@ -678,24 +678,24 @@ if len(weekly_hrs) >= 2:
     delta_pct = (delta_h / last_week * 100) if last_week > 0 else 0
     arrow     = "▲" if delta_h >= 0 else "▼"
     delta_col = "#50c850" if delta_h >= 0 else "#ff5555"
+    this_h = int(this_week)
+    this_m = int((this_week % 1) * 60)
+    dlt_h  = int(abs(delta_h))
+    dlt_m  = int((abs(delta_h) % 1) * 60)
     trend_html = f"""
-    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:1rem">
-      <div>
-        <div style="color:#666;font-size:0.7rem;font-weight:600;text-transform:uppercase;
-                    letter-spacing:0.1em;margin-bottom:2px">This week</div>
-        <div style="color:#e8e4de;font-size:1.6rem;font-weight:700;
-                    font-family:'DM Mono',monospace;line-height:1">
-          {int(this_week)}h {int((this_week % 1) * 60):02d}m
+    <div style="margin-bottom:1.2rem">
+      <div style="color:#666;font-size:0.68rem;font-weight:600;text-transform:uppercase;
+                  letter-spacing:0.12em;margin-bottom:6px">This week</div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="color:#e8e4de;font-size:2rem;font-weight:700;
+                    font-family:'DM Mono',monospace;line-height:1;min-width:120px">
+          {this_h}h&nbsp;{this_m:02d}m
         </div>
-      </div>
-      <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;
-                  padding:6px 14px;margin-left:8px">
-        <span style="color:{delta_col};font-size:1rem;font-weight:700">
-          {arrow} {abs(delta_h):.1f}h
-        </span>
-        <span style="color:#555;font-size:0.8rem;margin-left:6px">
-          ({abs(delta_pct):.0f}%) vs last week
-        </span>
+        <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;
+                    padding:6px 14px;display:inline-flex;align-items:center;gap:8px">
+          <span style="color:{delta_col};font-size:0.95rem;font-weight:700">{arrow} {dlt_h}h {dlt_m:02d}m</span>
+          <span style="color:#555;font-size:0.78rem">({abs(delta_pct):.0f}%) vs last week</span>
+        </div>
       </div>
     </div>"""
     st.markdown(trend_html, unsafe_allow_html=True)
@@ -1005,7 +1005,7 @@ try:
         "Year", year_options_main,
         default=st.session_state["selected_year"],
         label_visibility="collapsed",
-        key="yr_pills_top",
+        selection_mode="single",
     )
     if pill_choice and pill_choice != st.session_state["selected_year"]:
         st.session_state["selected_year"] = pill_choice
