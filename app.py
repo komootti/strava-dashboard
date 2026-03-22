@@ -209,6 +209,12 @@ CHART_LAYOUT = dict(
         font=dict(color="#c8c4be", size=11),
         bgcolor="rgba(0,0,0,0)"
     ),
+    hoverlabel=dict(
+        bgcolor="#1e1e1e",
+        bordercolor="#fc4c02",
+        font=dict(color="#e8e4de", size=12, family="DM Sans"),
+    ),
+    hovermode="x unified",
 )
 
 def axis_style():
@@ -219,6 +225,24 @@ def axis_style():
         tickfont=dict(color="#666", size=10),
         zerolinecolor="#333",
     )
+
+def lollipop(x, y, color="#fc4c02", name="", unit="km"):
+    r,g,b = int(color[1:3],16), int(color[3:5],16), int(color[5:7],16)
+    tip = "<b>%{x}</b><br>" + (name if name else "Value") + ": <b>%{y:,.0f} " + unit + "</b><extra></extra>"
+    stem = go.Bar(
+        x=x, y=y, name=name,
+        marker=dict(color="rgba({},{},{},0.18)".format(r,g,b), line=dict(width=0)),
+        width=[0.28]*len(list(x)),
+        showlegend=bool(name),
+        hovertemplate=tip,
+    )
+    dot = go.Scatter(
+        x=x, y=y, mode="markers", name=name,
+        marker=dict(color=color, size=8, line=dict(color="#0f0f0f", width=2)),
+        showlegend=False,
+        hovertemplate=tip,
+    )
+    return stem, dot
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300)
@@ -658,13 +682,10 @@ with col_run:
         mo_grp = mo_run.groupby(["month_num","month_name"])["dist_km"].sum().reset_index()
         mo_grp = mo_grp.sort_values("month_num")
         if len(mo_grp) > 0:
-            fig_r = go.Figure(go.Bar(
-                x=mo_grp["month_name"], y=mo_grp["dist_km"].round(1),
-                marker_color="#fc4c02",
-                text=mo_grp["dist_km"].round(1).astype(str)+" km",
-                textposition="outside", textfont=dict(color="#888", size=10)))
+            stem, dot = lollipop(mo_grp["month_name"], mo_grp["dist_km"].round(1), unit="km")
+            fig_r = go.Figure([stem, dot])
             fig_r.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
-                height=300, yaxis_title="km")
+                height=300, yaxis_title="km", barmode="overlay")
             fig_r.update_xaxes(**axis_style())
             fig_r.update_yaxes(**axis_style())
             st.plotly_chart(fig_r, use_container_width=True)
@@ -737,15 +758,11 @@ with col_run_elev:
                     .groupby("year")["elev_gain_m"].sum().reset_index())
         run_elev = run_elev[run_elev["elev_gain_m"] > 0]
         if len(run_elev) > 0:
-            fig_re = go.Figure(go.Bar(
-                x=run_elev["year"].astype(int),
-                y=run_elev["elev_gain_m"].round(),
-                marker_color="#50c850",
-                text=run_elev["elev_gain_m"].round().astype(int).astype(str) + " m",
-                textposition="outside",
-                textfont=dict(color="#888", size=10)))
+            stem, dot = lollipop(run_elev["year"].astype(int), run_elev["elev_gain_m"].round(),
+                                  color="#50c850", unit="m")
+            fig_re = go.Figure([stem, dot])
             fig_re.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
-                height=300, yaxis_title="metres")
+                height=300, yaxis_title="metres", barmode="overlay")
             fig_re.update_xaxes(**axis_style(), dtick=1, tickformat="d")
             fig_re.update_yaxes(**axis_style())
             st.plotly_chart(fig_re, use_container_width=True)
@@ -757,15 +774,11 @@ with col_run_elev:
                        7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
         run_elev_m["month_name"] = run_elev_m["month"].map(month_names)
         if len(run_elev_m) > 0:
-            fig_re = go.Figure(go.Bar(
-                x=run_elev_m["month_name"],
-                y=run_elev_m["elev_gain_m"].round(),
-                marker_color="#50c850",
-                text=run_elev_m["elev_gain_m"].round().astype(int).astype(str) + " m",
-                textposition="outside",
-                textfont=dict(color="#888", size=10)))
+            stem, dot = lollipop(run_elev_m["month_name"], run_elev_m["elev_gain_m"].round(),
+                                  color="#50c850", unit="m")
+            fig_re = go.Figure([stem, dot])
             fig_re.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
-                height=300, yaxis_title="metres")
+                height=300, yaxis_title="metres", barmode="overlay")
             fig_re.update_xaxes(**axis_style())
             fig_re.update_yaxes(**axis_style())
             st.plotly_chart(fig_re, use_container_width=True)
