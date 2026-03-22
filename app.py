@@ -279,46 +279,61 @@ with st.sidebar:
     st.markdown("## 🔥 Filters")
     st.markdown("---")
 
-    # ── Year pills ────────────────────────────────────────────────────────────
-    st.markdown("**Year**")
+    # ── Year pills via styled radio ──────────────────────────────────────────
     st.markdown("""<style>
-div[data-testid='stSidebar'] .stButton>button {
-    background: transparent !important;
-    border: 1px solid #2a2a2a !important;
+div[data-testid='stSidebar'] div[role='radiogroup'] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+div[data-testid='stSidebar'] div[role='radiogroup'] label {
+    display: flex !important;
+    align-items: center;
+    padding: 3px 11px !important;
     border-radius: 999px !important;
-    color: #aaa !important;
-    font-size: 0.72rem !important;
-    font-weight: 500 !important;
-    padding: 2px 10px !important;
-    min-height: 0px !important;
-    height: 26px !important;
-    line-height: 1 !important;
-    letter-spacing: 0.03em !important;
-    transition: border-color 0.15s, color 0.15s !important;
-}
-div[data-testid='stSidebar'] .stButton>button:hover {
-    border-color: #555 !important;
-    color: #d0cdc8 !important;
+    border: 1px solid #2a2a2a !important;
     background: transparent !important;
+    color: #aaa !important;
+    font-size: 0.73rem !important;
+    font-weight: 500 !important;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    min-width: 0 !important;
 }
-div[data-testid='stSidebar'] .stButton>button[kind='primary'] {
+div[data-testid='stSidebar'] div[role='radiogroup'] label:hover {
+    border-color: #555 !important;
+    color: #d4d0ca !important;
+}
+div[data-testid='stSidebar'] div[role='radiogroup'] label[data-checked='true'],
+div[data-testid='stSidebar'] div[role='radiogroup'] label:has(input:checked) {
     background: #fc4c02 !important;
     border-color: #fc4c02 !important;
     color: #fff !important;
     font-weight: 600 !important;
 }
+div[data-testid='stSidebar'] div[role='radiogroup'] input[type='radio'] {
+    display: none !important;
+}
+div[data-testid='stSidebar'] div[role='radiogroup'] div[data-testid='stMarkdownContainer'] {
+    display: none !important;
+}
 </style>""", unsafe_allow_html=True)
+
     year_options = ["All"] + [str(y) for y in all_years]
-    cols_per_row = 4
-    for row_start in range(0, len(year_options), cols_per_row):
-        row_opts = year_options[row_start:row_start + cols_per_row]
-        row_cols = st.columns(len(row_opts))
-        for col, yr in zip(row_cols, row_opts):
-            is_active = st.session_state["selected_year"] == yr
-            if col.button(yr, key=f"yr_{yr}", use_container_width=True,
-                          type="primary" if is_active else "secondary"):
-                st.session_state["selected_year"] = yr
-                st.rerun()
+    selected_year_radio = st.radio(
+        "Year",
+        year_options,
+        index=year_options.index(st.session_state["selected_year"]),
+        label_visibility="collapsed",
+        key="year_radio"
+    )
+    if selected_year_radio != st.session_state["selected_year"]:
+        st.session_state["selected_year"] = selected_year_radio
+        st.rerun()
 
     st.markdown("---")
     all_sports = sorted(df["sport"].unique().tolist())
