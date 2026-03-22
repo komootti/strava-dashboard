@@ -944,38 +944,6 @@ with col_ride_elev:
             st.info("No cycling data for this year.")
 st.markdown("---")
 
-# ── Aerobic efficiency ────────────────────────────────────────────────────────
-st.markdown("## Aerobic Efficiency")
-
-run_eff = fdf[(fdf["sport"]=="Run") & (fdf["dist_km"]>3)].copy()
-run_eff["pace_min_km"] = pd.to_numeric(run_eff["pace_min_km"], errors="coerce")
-run_eff = run_eff[run_eff["pace_min_km"].between(4,12) & run_eff["avg_hr"].notna()]
-
-if len(run_eff) > 0:
-    yr_eff = run_eff.groupby("year").agg(
-        avg_hr=("avg_hr","mean"), avg_pace=("pace_min_km","mean")).reset_index()
-    fig3 = make_subplots(rows=1, cols=2, horizontal_spacing=0.1,
-        subplot_titles=["Avg HR per year (lower = fitter)",
-                        "Avg pace per year (lower = faster)"])
-    fig3.add_trace(go.Scatter(x=yr_eff["year"], y=yr_eff["avg_hr"].round(1),
-        mode="lines+markers", line=dict(color="#fc4c02", width=2.5),
-        marker=dict(size=7, color="#fc4c02",
-                    line=dict(color="#0f0f0f", width=2))), row=1, col=1)
-    fig3.add_trace(go.Scatter(x=yr_eff["year"], y=yr_eff["avg_pace"].round(2),
-        mode="lines+markers", line=dict(color="#ffa500", width=2.5),
-        marker=dict(size=7, color="#ffa500",
-                    line=dict(color="#0f0f0f", width=2))), row=1, col=2)
-    fig3.update_layout(**CHART_LAYOUT, height=300, showlegend=False)
-    for r in [1,2]:
-        fig3.update_xaxes(**axis_style(), row=r, col=1)
-        fig3.update_yaxes(**axis_style(), row=r, col=1)
-    fig3.update_yaxes(autorange="reversed", row=1, col=2)
-    for ann in fig3.layout.annotations:
-        ann.font.color = "#555"; ann.font.size = 11
-    st.plotly_chart(fig3, use_container_width=True)
-
-st.markdown("---")
-
 # ── Recent activities ─────────────────────────────────────────────────────────
 st.markdown("## Recent Activities")
 
@@ -1535,38 +1503,6 @@ with col_ride_elev:
             st.plotly_chart(fig_ce, use_container_width=True)
         else:
             st.info("No cycling data for this year.")
-st.markdown("---")
-
-# ── Aerobic efficiency ────────────────────────────────────────────────────────
-st.markdown("## Aerobic Efficiency")
-
-run_eff = fdf[(fdf["sport"]=="Run") & (fdf["dist_km"]>3)].copy()
-run_eff["pace_min_km"] = pd.to_numeric(run_eff["pace_min_km"], errors="coerce")
-run_eff = run_eff[run_eff["pace_min_km"].between(4,12) & run_eff["avg_hr"].notna()]
-
-if len(run_eff) > 0:
-    yr_eff = run_eff.groupby("year").agg(
-        avg_hr=("avg_hr","mean"), avg_pace=("pace_min_km","mean")).reset_index()
-    fig3 = make_subplots(rows=1, cols=2, horizontal_spacing=0.1,
-        subplot_titles=["Avg HR per year (lower = fitter)",
-                        "Avg pace per year (lower = faster)"])
-    fig3.add_trace(go.Scatter(x=yr_eff["year"], y=yr_eff["avg_hr"].round(1),
-        mode="lines+markers", line=dict(color="#fc4c02", width=2.5),
-        marker=dict(size=7, color="#fc4c02",
-                    line=dict(color="#0f0f0f", width=2))), row=1, col=1)
-    fig3.add_trace(go.Scatter(x=yr_eff["year"], y=yr_eff["avg_pace"].round(2),
-        mode="lines+markers", line=dict(color="#ffa500", width=2.5),
-        marker=dict(size=7, color="#ffa500",
-                    line=dict(color="#0f0f0f", width=2))), row=1, col=2)
-    fig3.update_layout(**CHART_LAYOUT, height=300, showlegend=False)
-    for r in [1,2]:
-        fig3.update_xaxes(**axis_style(), row=r, col=1)
-        fig3.update_yaxes(**axis_style(), row=r, col=1)
-    fig3.update_yaxes(autorange="reversed", row=1, col=2)
-    for ann in fig3.layout.annotations:
-        ann.font.color = "#555"; ann.font.size = 11
-    st.plotly_chart(fig3, use_container_width=True)
-
 st.markdown("---")
 
 # ── Recent activities ─────────────────────────────────────────────────────────
