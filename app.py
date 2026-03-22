@@ -685,7 +685,7 @@ if len(weekly_hrs) >= 2:
                     letter-spacing:0.1em;margin-bottom:2px">This week</div>
         <div style="color:#e8e4de;font-size:1.6rem;font-weight:700;
                     font-family:'DM Mono',monospace;line-height:1">
-          {this_week:.1f}h
+          {int(this_week)}h {int((this_week % 1) * 60):02d}m
         </div>
       </div>
       <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;
@@ -716,8 +716,7 @@ fig_h.add_trace(go.Scatter(
     line=dict(color="#a78bfa", width=2.5),
     hovertemplate="Avg: <b>%{y:.1f}h</b><extra></extra>",
 ))
-fig_h.update_layout(**CHART_LAYOUT, height=300, yaxis_title="hours",
-    hovermode="closest")
+fig_h.update_layout(**CHART_LAYOUT, height=300, yaxis_title="hours")
 fig_h.update_xaxes(**axis_style())
 fig_h.update_yaxes(**axis_style())
 st.plotly_chart(fig_h, use_container_width=True)
@@ -977,46 +976,49 @@ st.markdown("""
             color:#444;font-size:0.75rem;text-align:center">
   Built on Strava data · Powered by Streamlit
 </div>
-""", unsafe_allow_html=True)# ── Year pills — horizontal radio ───────────────────────────────────────────
+""", unsafe_allow_html=True)# ── Year filter pills (native st.pills) ──────────────────────────────────────
 st.markdown("""<style>
-div[data-testid="stRadio"] > div[role="radiogroup"] {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 5px !important;
-}
-div[data-testid="stRadio"] label {
-    padding: 3px 12px !important;
+div[data-testid="stPills"] button {
     border-radius: 999px !important;
     border: 1px solid #2a2a2a !important;
     background: transparent !important;
     color: #999 !important;
     font-size: 0.73rem !important;
     font-weight: 500 !important;
-    margin: 0 !important;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
+    padding: 3px 12px !important;
+    transition: all 0.15s !important;
 }
-div[data-testid="stRadio"] label:hover {
+div[data-testid="stPills"] button:hover {
     border-color: #555 !important;
     color: #d4d0ca !important;
 }
-div[data-testid="stRadio"] label:has(input:checked) {
+div[data-testid="stPills"] button[aria-selected="true"] {
     background: #fc4c02 !important;
     border-color: #fc4c02 !important;
     color: #fff !important;
     font-weight: 600 !important;
 }
-div[data-testid="stRadio"] label > div:first-child { display: none !important; }
 </style>""", unsafe_allow_html=True)
 
-pill_choice = st.radio(
-    "yr", year_options_main,
-    index=year_options_main.index(st.session_state["selected_year"]),
-    horizontal=True,
-    label_visibility="collapsed",
-)
-if pill_choice != st.session_state["selected_year"]:
-    st.session_state["selected_year"] = pill_choice
-    st.rerun()
+try:
+    pill_choice = st.pills(
+        "Year", year_options_main,
+        default=st.session_state["selected_year"],
+        label_visibility="collapsed",
+        key="yr_pills_top",
+    )
+    if pill_choice and pill_choice != st.session_state["selected_year"]:
+        st.session_state["selected_year"] = pill_choice
+        st.rerun()
+except AttributeError:
+    # Fallback for older Streamlit versions
+    pill_choice = st.radio(
+        "yr", year_options_main,
+        index=year_options_main.index(st.session_state["selected_year"]),
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    if pill_choice != st.session_state["selected_year"]:
+        st.session_state["selected_year"] = pill_choice
+        st.rerun()
 
