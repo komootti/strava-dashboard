@@ -355,26 +355,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Year pill strip ──────────────────────────────────────────────────────────
+
 year_options_main = ["All"] + [str(y) for y in all_years]
-pill_html = """<style>
-.pill-strip{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 1.2rem 0}
-.pill-yr{
-  padding:4px 14px;border-radius:999px;font-size:0.76rem;font-weight:500;
-  cursor:pointer;border:1px solid #2a2a2a;background:transparent;
-  color:#999;letter-spacing:0.03em;white-space:nowrap;
-  font-family:'DM Sans',sans-serif;transition:border-color 0.15s,color 0.15s;
-}
-.pill-yr:hover{border-color:#555;color:#d4d0ca}
-.pill-yr.on{background:#fc4c02;border-color:#fc4c02;color:#fff;font-weight:600}
-</style><div class='pill-strip'>"""
-for yr in year_options_main:
-    active = " on" if yr == st.session_state["selected_year"] else ""
-    pill_html += f"<span class='pill-yr{active}'>{yr}</span>"
-pill_html += "</div>"
-st.markdown(pill_html, unsafe_allow_html=True)
-st.markdown("""<div style='font-size:0.72rem;color:#555;margin:-0.8rem 0 1.2rem'>
-Use the sidebar dropdown to filter by year</div>""", unsafe_allow_html=True)
 
 # ── Year filter — segmented control ──────────────────────────────────────────
 st.markdown("""<style>
