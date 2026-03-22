@@ -27,7 +27,7 @@ html, body, [class*="css"] {
 /* Dark background */
 .stApp {
     background-color: #0f0f0f;
-    color: #f0ede8;
+    color: #e8e4de;
 }
 
 /* Sidebar */
@@ -36,7 +36,7 @@ html, body, [class*="css"] {
     border-right: 1px solid #2a2a2a;
 }
 [data-testid="stSidebar"] * {
-    color: #c8c4be !important;
+    color: #d4d0ca !important;
 }
 
 /* Main content padding */
@@ -57,14 +57,14 @@ html, body, [class*="css"] {
     border-color: #fc4c02;
 }
 [data-testid="stMetricLabel"] {
-    color: #888 !important;
+    color: #aaa !important;
     font-size: 0.75rem !important;
     font-weight: 500 !important;
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
 [data-testid="stMetricValue"] {
-    color: #f0ede8 !important;
+    color: #eceae5 !important;
     font-size: 1.9rem !important;
     font-weight: 600 !important;
     line-height: 1.2;
@@ -202,7 +202,7 @@ SPORT_COLORS = {
 CHART_LAYOUT = dict(
     plot_bgcolor="#161616",
     paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(family="DM Sans", color="#888", size=11),
+    font=dict(family="DM Sans", color="#aaa", size=11),
     margin=dict(t=30, b=30, l=50, r=20),
     legend=dict(
         orientation="h", y=1.08,
@@ -281,8 +281,35 @@ with st.sidebar:
 
     # ── Year pills ────────────────────────────────────────────────────────────
     st.markdown("**Year**")
+st.markdown("""<style>
+div[data-testid='stSidebar'] .stButton>button {
+    background: transparent !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 999px !important;
+    color: #aaa !important;
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    padding: 2px 10px !important;
+    min-height: 0px !important;
+    height: 26px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.03em !important;
+    transition: border-color 0.15s, color 0.15s !important;
+}
+div[data-testid='stSidebar'] .stButton>button:hover {
+    border-color: #555 !important;
+    color: #d0cdc8 !important;
+    background: transparent !important;
+}
+div[data-testid='stSidebar'] .stButton>button[kind='primary'] {
+    background: #fc4c02 !important;
+    border-color: #fc4c02 !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+</style>""", unsafe_allow_html=True)
     year_options = ["All"] + [str(y) for y in all_years]
-    cols_per_row = 3
+        cols_per_row = 4
     for row_start in range(0, len(year_options), cols_per_row):
         row_opts = year_options[row_start:row_start + cols_per_row]
         row_cols = st.columns(len(row_opts))
@@ -330,7 +357,7 @@ st.markdown(f"""
   <h1 style="margin:0;font-size:2rem;font-weight:800;letter-spacing:-0.03em">
     Your Athletic Journey
   </h1>
-  <div style="color:#555;font-size:0.85rem;margin-top:4px">
+  <div style="color:#888;font-size:0.85rem;margin-top:4px">
     {'📅 ' + selected_year if selected_year != 'All' else df['date'].min().strftime('%b %Y') + ' — ' + df['date'].max().strftime('%b %Y') + ' · ' + str(df['year'].nunique()) + ' years'}
   </div>
 </div>
