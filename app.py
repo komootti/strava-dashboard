@@ -487,6 +487,127 @@ with r6:
 
 st.markdown("---")
 
+# ── Training Consistency Heatmap ─────────────────────────────────────────────
+st.markdown("## Training Consistency")
+
+ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
+               "Nordic Ski","Swim","Rowing","E-Bike Ride"}
+
+@st.cache_data
+def build_heatmap_data(_df):
+    end = _df[_df["sport"].isin(ENDURANCE_H)].copy()
+    end["tss"] = end["rel_effort"].fillna(
+        end["moving_min"] * (end["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
+    daily = end.groupby(end["date"].dt.normalize()).agg(
+        tss=("tss","sum"), acts=("moving_min","count")).reset_index()
+    daily.columns = ["date","tss","acts"]
+    return daily
+
+daily_data = build_heatmap_data(df)
+
+# Year selector for heatmap
+hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
+hm_year  = st.select_slider("", options=hm_years,
+    value=hm_years[0], label_visibility="collapsed", key="hm_year")
+
+# Build calendar grid for selected year
+import calendar
+year_start = pd.Timestamp(f"{hm_year}-01-01")
+year_end   = pd.Timestamp(f"{hm_year}-12-31")
+all_days   = pd.date_range(year_start, year_end, freq="D")
+
+# Merge with activity data
+day_df = pd.DataFrame({"date": all_days})
+day_df = day_df.merge(daily_data, on="date", how="left").fillna({"tss":0,"acts":0})
+day_df["level"] = pd.cut(day_df["tss"],
+    bins=[-0.1, 0, 25, 75, 150, 9999],
+    labels=[0,1,2,3,4]).astype(int)
+day_df["dow"]   = day_df["date"].dt.dayofweek  # 0=Mon
+day_df["week"]  = (day_df["date"] - year_start).dt.days // 7
+
+# Colours: dark bg → light orange gradient
+COLOURS = ["#1a1a1a","#7a2800","#c03000","#e85500","#fc4c02"]
+LABELS  = ["Rest","Light","Moderate","Hard","Very hard"]
+DOW_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+
+# Build SVG heatmap
+total_weeks = day_df["week"].max() + 1
+cell_size   = 13
+gap         = 2
+pad_left    = 30  # space for day labels
+pad_top     = 28  # space for month labels
+svg_w       = pad_left + total_weeks * (cell_size + gap)
+svg_h       = pad_top + 7 * (cell_size + gap) + 40  # +40 for legend
+
+cells = []
+for _, row in day_df.iterrows():
+    x = pad_left + row["week"] * (cell_size + gap)
+    y = pad_top  + row["dow"]  * (cell_size + gap)
+    col = COLOURS[int(row["level"])]
+    tss_v = f"{row['tss']:.0f}" if row["tss"] > 0 else "Rest"
+    title = f"{row['date'].strftime('%a %d %b')} · {tss_v}"
+    if row["tss"] > 0:
+        title += " load"
+    cells.append(f'<rect x="{x}" y="{y}" width="{cell_size}" height="{cell_size}" '                 f'rx="2" fill="{col}"><title>{title}</title></rect>')
+
+# Month labels
+month_labels = []
+for month in range(1, 13):
+    first_day = pd.Timestamp(f"{hm_year}-{month:02d}-01")
+    if first_day > year_end: break
+    week_num  = (first_day - year_start).days // 7
+    mx = pad_left + week_num * (cell_size + gap)
+    month_labels.append(f'<text x="{mx}" y="{pad_top-6}" fill="#555" '                        f'font-size="10" font-family="DM Sans">'                        f'{first_day.strftime("%b")}</text>')
+
+# Day of week labels
+dow_label_svg = []
+for i, d in enumerate(DOW_LABELS):
+    if i % 2 == 0:  # only Mon, Wed, Fri, Sun
+        y = pad_top + i * (cell_size + gap) + cell_size - 2
+        dow_label_svg.append(f'<text x="{pad_left-4}" y="{y}" fill="#444" '                             f'font-size="9" font-family="DM Sans" text-anchor="end">{d}</text>')
+
+# Legend
+legend_x = pad_left
+legend_y  = pad_top + 7*(cell_size+gap) + 12
+legend_svg = [f'<text x="{legend_x}" y="{legend_y+11}" fill="#444" font-size="9" font-family="DM Sans">Less</text>']
+for i, col in enumerate(COLOURS):
+    lx = legend_x + 32 + i*(cell_size+gap)
+    legend_svg.append(f'<rect x="{lx}" y="{legend_y}" width="{cell_size}" height="{cell_size}" rx="2" fill="{col}"><title>{LABELS[i]}</title></rect>')
+legend_svg.append(f'<text x="{legend_x+32+len(COLOURS)*(cell_size+gap)+4}" y="{legend_y+11}" fill="#444" font-size="9" font-family="DM Sans">More</text>')
+
+svg = f"""<svg width="100%" viewBox="0 0 {svg_w} {svg_h}" xmlns="http://www.w3.org/2000/svg">
+{"".join(month_labels)}
+{"".join(dow_label_svg)}
+{"".join(cells)}
+{"".join(legend_svg)}
+</svg>"""
+
+# Stats for this year
+yr_data  = daily_data[daily_data["date"].dt.year == hm_year]
+active_days = (yr_data["tss"] > 0).sum()
+total_days  = len(all_days)
+streak      = 0
+max_streak  = 0
+cur_streak  = 0
+for _, row in day_df.iterrows():
+    if row["tss"] > 0:
+        cur_streak += 1
+        max_streak  = max(max_streak, cur_streak)
+    else:
+        cur_streak = 0
+
+s1, s2, s3, s4 = st.columns(4)
+s1.metric("Active days",   f"{active_days}")
+s2.metric("Rest days",     f"{total_days - active_days}")
+s3.metric("Longest streak", f"{max_streak} days")
+s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
+
+st.markdown(f'<div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1rem 1.2rem;overflow-x:auto">{svg}</div>', unsafe_allow_html=True)
+
+st.markdown("<div style='font-size:0.72rem;color:#444;margin-top:4px'>Hover over any square to see the training load. Colour = training stress: dark = rest, orange = hard session.</div>", unsafe_allow_html=True)
+
+st.markdown("---")
+
 # ── CTL / ATL / TSB ───────────────────────────────────────────────────────────
 st.markdown("## Training Load — CTL · ATL · TSB")
 
@@ -1045,6 +1166,127 @@ with r6:
     st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'
                 f'<div class="record-value">{v:,.0f}</div>'
                 f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+
+st.markdown("---")
+
+# ── Training Consistency Heatmap ─────────────────────────────────────────────
+st.markdown("## Training Consistency")
+
+ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
+               "Nordic Ski","Swim","Rowing","E-Bike Ride"}
+
+@st.cache_data
+def build_heatmap_data(_df):
+    end = _df[_df["sport"].isin(ENDURANCE_H)].copy()
+    end["tss"] = end["rel_effort"].fillna(
+        end["moving_min"] * (end["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
+    daily = end.groupby(end["date"].dt.normalize()).agg(
+        tss=("tss","sum"), acts=("moving_min","count")).reset_index()
+    daily.columns = ["date","tss","acts"]
+    return daily
+
+daily_data = build_heatmap_data(df)
+
+# Year selector for heatmap
+hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
+hm_year  = st.select_slider("", options=hm_years,
+    value=hm_years[0], label_visibility="collapsed", key="hm_year")
+
+# Build calendar grid for selected year
+import calendar
+year_start = pd.Timestamp(f"{hm_year}-01-01")
+year_end   = pd.Timestamp(f"{hm_year}-12-31")
+all_days   = pd.date_range(year_start, year_end, freq="D")
+
+# Merge with activity data
+day_df = pd.DataFrame({"date": all_days})
+day_df = day_df.merge(daily_data, on="date", how="left").fillna({"tss":0,"acts":0})
+day_df["level"] = pd.cut(day_df["tss"],
+    bins=[-0.1, 0, 25, 75, 150, 9999],
+    labels=[0,1,2,3,4]).astype(int)
+day_df["dow"]   = day_df["date"].dt.dayofweek  # 0=Mon
+day_df["week"]  = (day_df["date"] - year_start).dt.days // 7
+
+# Colours: dark bg → light orange gradient
+COLOURS = ["#1a1a1a","#7a2800","#c03000","#e85500","#fc4c02"]
+LABELS  = ["Rest","Light","Moderate","Hard","Very hard"]
+DOW_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+
+# Build SVG heatmap
+total_weeks = day_df["week"].max() + 1
+cell_size   = 13
+gap         = 2
+pad_left    = 30  # space for day labels
+pad_top     = 28  # space for month labels
+svg_w       = pad_left + total_weeks * (cell_size + gap)
+svg_h       = pad_top + 7 * (cell_size + gap) + 40  # +40 for legend
+
+cells = []
+for _, row in day_df.iterrows():
+    x = pad_left + row["week"] * (cell_size + gap)
+    y = pad_top  + row["dow"]  * (cell_size + gap)
+    col = COLOURS[int(row["level"])]
+    tss_v = f"{row['tss']:.0f}" if row["tss"] > 0 else "Rest"
+    title = f"{row['date'].strftime('%a %d %b')} · {tss_v}"
+    if row["tss"] > 0:
+        title += " load"
+    cells.append(f'<rect x="{x}" y="{y}" width="{cell_size}" height="{cell_size}" '                 f'rx="2" fill="{col}"><title>{title}</title></rect>')
+
+# Month labels
+month_labels = []
+for month in range(1, 13):
+    first_day = pd.Timestamp(f"{hm_year}-{month:02d}-01")
+    if first_day > year_end: break
+    week_num  = (first_day - year_start).days // 7
+    mx = pad_left + week_num * (cell_size + gap)
+    month_labels.append(f'<text x="{mx}" y="{pad_top-6}" fill="#555" '                        f'font-size="10" font-family="DM Sans">'                        f'{first_day.strftime("%b")}</text>')
+
+# Day of week labels
+dow_label_svg = []
+for i, d in enumerate(DOW_LABELS):
+    if i % 2 == 0:  # only Mon, Wed, Fri, Sun
+        y = pad_top + i * (cell_size + gap) + cell_size - 2
+        dow_label_svg.append(f'<text x="{pad_left-4}" y="{y}" fill="#444" '                             f'font-size="9" font-family="DM Sans" text-anchor="end">{d}</text>')
+
+# Legend
+legend_x = pad_left
+legend_y  = pad_top + 7*(cell_size+gap) + 12
+legend_svg = [f'<text x="{legend_x}" y="{legend_y+11}" fill="#444" font-size="9" font-family="DM Sans">Less</text>']
+for i, col in enumerate(COLOURS):
+    lx = legend_x + 32 + i*(cell_size+gap)
+    legend_svg.append(f'<rect x="{lx}" y="{legend_y}" width="{cell_size}" height="{cell_size}" rx="2" fill="{col}"><title>{LABELS[i]}</title></rect>')
+legend_svg.append(f'<text x="{legend_x+32+len(COLOURS)*(cell_size+gap)+4}" y="{legend_y+11}" fill="#444" font-size="9" font-family="DM Sans">More</text>')
+
+svg = f"""<svg width="100%" viewBox="0 0 {svg_w} {svg_h}" xmlns="http://www.w3.org/2000/svg">
+{"".join(month_labels)}
+{"".join(dow_label_svg)}
+{"".join(cells)}
+{"".join(legend_svg)}
+</svg>"""
+
+# Stats for this year
+yr_data  = daily_data[daily_data["date"].dt.year == hm_year]
+active_days = (yr_data["tss"] > 0).sum()
+total_days  = len(all_days)
+streak      = 0
+max_streak  = 0
+cur_streak  = 0
+for _, row in day_df.iterrows():
+    if row["tss"] > 0:
+        cur_streak += 1
+        max_streak  = max(max_streak, cur_streak)
+    else:
+        cur_streak = 0
+
+s1, s2, s3, s4 = st.columns(4)
+s1.metric("Active days",   f"{active_days}")
+s2.metric("Rest days",     f"{total_days - active_days}")
+s3.metric("Longest streak", f"{max_streak} days")
+s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
+
+st.markdown(f'<div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1rem 1.2rem;overflow-x:auto">{svg}</div>', unsafe_allow_html=True)
+
+st.markdown("<div style='font-size:0.72rem;color:#444;margin-top:4px'>Hover over any square to see the training load. Colour = training stress: dark = rest, orange = hard session.</div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
