@@ -384,14 +384,21 @@ div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
 }
 </style>""", unsafe_allow_html=True)
 
-seg_choice = st.segmented_control(
+# Initialise widget key to match selected_year
+if "seg_year" not in st.session_state:
+    st.session_state["seg_year"] = st.session_state["selected_year"]
+elif st.session_state["seg_year"] != st.session_state["selected_year"]:
+    # Sidebar changed — sync to widget
+    st.session_state["seg_year"] = st.session_state["selected_year"]
+
+st.segmented_control(
     "Year", year_options_main,
-    default=st.session_state["selected_year"],
     label_visibility="collapsed",
     key="seg_year",
 )
-if seg_choice and seg_choice != st.session_state["selected_year"]:
-    st.session_state["selected_year"] = seg_choice
+# Widget drives the filter — read directly from its key
+if st.session_state["seg_year"] != st.session_state["selected_year"]:
+    st.session_state["selected_year"] = st.session_state["seg_year"]
     st.rerun()
 
 
