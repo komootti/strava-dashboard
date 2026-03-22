@@ -310,7 +310,6 @@ with st.sidebar:
                           key="year_select")
     if chosen != st.session_state["selected_year"]:
         st.session_state["selected_year"] = chosen
-        st.session_state["yr_radio_top"] = chosen
         st.rerun()
 
     st.markdown("---")
@@ -656,6 +655,73 @@ fig2.update_xaxes(**axis_style())
 fig2.update_yaxes(**axis_style())
 st.plotly_chart(fig2, use_container_width=True)
 
+# ── Weekly Volume — Hours ─────────────────────────────────────────────────────
+st.markdown("## Weekly Training Hours")
+
+# All endurance sports for hours
+ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
+               "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training","Workout"}
+
+hr_w = fdf[fdf["sport"].isin(ENDURANCE_H)].copy()
+hr_w["week"] = hr_w["date"].dt.to_period("W").dt.start_time
+hr_w["hours"] = hr_w["moving_min"] / 60
+
+weekly_hrs = (hr_w.groupby("week")["hours"].sum().reset_index()
+              .sort_values("week"))
+weekly_hrs = weekly_hrs[weekly_hrs["week"] >= (fdf["date"].max() - pd.Timedelta(weeks=weeks_back))]
+
+# Week-over-week delta
+if len(weekly_hrs) >= 2:
+    this_week = weekly_hrs["hours"].iloc[-1]
+    last_week = weekly_hrs["hours"].iloc[-2]
+    delta_h   = this_week - last_week
+    delta_pct = (delta_h / last_week * 100) if last_week > 0 else 0
+    arrow     = "▲" if delta_h >= 0 else "▼"
+    delta_col = "#50c850" if delta_h >= 0 else "#ff5555"
+    trend_html = f"""
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:1rem">
+      <div>
+        <div style="color:#666;font-size:0.7rem;font-weight:600;text-transform:uppercase;
+                    letter-spacing:0.1em;margin-bottom:2px">This week</div>
+        <div style="color:#e8e4de;font-size:1.6rem;font-weight:700;
+                    font-family:'DM Mono',monospace;line-height:1">
+          {this_week:.1f}h
+        </div>
+      </div>
+      <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;
+                  padding:6px 14px;margin-left:8px">
+        <span style="color:{delta_col};font-size:1rem;font-weight:700">
+          {arrow} {abs(delta_h):.1f}h
+        </span>
+        <span style="color:#555;font-size:0.8rem;margin-left:6px">
+          ({abs(delta_pct):.0f}%) vs last week
+        </span>
+      </div>
+    </div>"""
+    st.markdown(trend_html, unsafe_allow_html=True)
+
+# Rolling 8-week average line
+weekly_hrs["rolling"] = weekly_hrs["hours"].rolling(8, min_periods=1).mean()
+
+fig_h = go.Figure()
+fig_h.add_trace(go.Bar(
+    x=weekly_hrs["week"], y=weekly_hrs["hours"].round(2),
+    name="Hours",
+    marker=dict(color="rgba(167,139,250,0.35)", line=dict(width=0)),
+    hovertemplate="<b>%{y:.1f}h</b><extra></extra>",
+))
+fig_h.add_trace(go.Scatter(
+    x=weekly_hrs["week"], y=weekly_hrs["rolling"].round(2),
+    mode="lines", name="8-week avg",
+    line=dict(color="#a78bfa", width=2.5),
+    hovertemplate="Avg: <b>%{y:.1f}h</b><extra></extra>",
+))
+fig_h.update_layout(**CHART_LAYOUT, height=300, yaxis_title="hours",
+    hovermode="closest")
+fig_h.update_xaxes(**axis_style())
+fig_h.update_yaxes(**axis_style())
+st.plotly_chart(fig_h, use_container_width=True)
+
 st.markdown("---")
 
 # ── Yearly volumes side by side ───────────────────────────────────────────────
@@ -949,10 +1015,8 @@ pill_choice = st.radio(
     index=year_options_main.index(st.session_state["selected_year"]),
     horizontal=True,
     label_visibility="collapsed",
-    key="yr_radio_top",
 )
 if pill_choice != st.session_state["selected_year"]:
     st.session_state["selected_year"] = pill_choice
-    st.session_state["year_select"] = pill_choice
     st.rerun()
 
