@@ -564,8 +564,10 @@ daily_data = build_heatmap_data(df)
 
 # Year selector for heatmap
 hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
-hm_year  = st.select_slider("", options=hm_years,
-    value=hm_years[0], label_visibility="collapsed", key="hm_year")
+col_hm, _ = st.columns([2, 5])
+with col_hm:
+    hm_year = st.selectbox("Select year", hm_years, index=0,
+                           label_visibility="collapsed", key="hm_year")
 
 # Build calendar grid for selected year
 import calendar
@@ -1303,8 +1305,10 @@ daily_data = build_heatmap_data(df)
 
 # Year selector for heatmap
 hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
-hm_year  = st.select_slider("", options=hm_years,
-    value=hm_years[0], label_visibility="collapsed", key="hm_year")
+col_hm, _ = st.columns([2, 5])
+with col_hm:
+    hm_year = st.selectbox("Select year", hm_years, index=0,
+                           label_visibility="collapsed", key="hm_year")
 
 # Build calendar grid for selected year
 import calendar
