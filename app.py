@@ -214,7 +214,7 @@ CHART_LAYOUT = dict(
         bordercolor="#fc4c02",
         font=dict(color="#e8e4de", size=12, family="DM Sans"),
     ),
-    hovermode="x unified",
+    hovermode="closest",
 )
 
 def axis_style():
@@ -228,16 +228,16 @@ def axis_style():
 
 def lollipop(x, y, color="#fc4c02", name="", unit="km"):
     r,g,b = int(color[1:3],16), int(color[3:5],16), int(color[5:7],16)
-    tip = "<b>%{x}</b><br>" + (name if name else "Value") + ": <b>%{y:,.0f} " + unit + "</b><extra></extra>"
+    tip = "%{y:,.0f} " + unit + "<extra></extra>"
     stem = go.Bar(
-        x=x, y=y, name=name,
+        x=x, y=y, name="",
         marker=dict(color="rgba({},{},{},0.18)".format(r,g,b), line=dict(width=0)),
         width=[0.28]*len(list(x)),
-        showlegend=bool(name),
-        hovertemplate=tip,
+        showlegend=False,
+        hoverinfo="skip",
     )
     dot = go.Scatter(
-        x=x, y=y, mode="markers", name=name,
+        x=x, y=y, mode="markers", name="",
         marker=dict(color=color, size=8, line=dict(color="#0f0f0f", width=2)),
         showlegend=False,
         hovertemplate=tip,
@@ -310,6 +310,7 @@ with st.sidebar:
                           key="year_select")
     if chosen != st.session_state["selected_year"]:
         st.session_state["selected_year"] = chosen
+        st.session_state["yr_radio_top"] = chosen
         st.rerun()
 
     st.markdown("---")
@@ -649,7 +650,7 @@ for sport in SHOW:
         x=weekly_pivot["week"], y=weekly_pivot[sport].round(1),
         name=sport,
         marker=dict(color=SPORT_COLORS.get(sport,"#666"), line=dict(width=0)),
-        hovertemplate="<b>%{x|%d %b %Y}</b><br>" + sport + ": <b>%{y:.1f} km</b><extra></extra>"))
+        hovertemplate=sport + ": <b>%{y:.1f} km</b><extra></extra>"))
 fig2.update_layout(**CHART_LAYOUT, barmode="stack", height=320, yaxis_title="km")
 fig2.update_xaxes(**axis_style())
 fig2.update_yaxes(**axis_style())
@@ -707,7 +708,7 @@ with col_ride:
                 name=ctype,
                 marker=dict(color=cyc_colors[ctype], line=dict(width=0)),
                 width=0.35,
-                hovertemplate="<b>%{x}</b><br>" + ctype + ": <b>%{y:,.0f} km</b><extra></extra>"))
+                hovertemplate=ctype + ": <b>%{y:,.0f} km</b><extra></extra>"))
         fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
             barmode="stack", height=300, yaxis_title="km")
         fig_c.update_xaxes(**axis_style(), dtick=1, tickformat="d")
@@ -813,7 +814,7 @@ with col_ride_elev:
                     name=ctype,
                     marker=dict(color=cyc_elev_colors[ctype], line=dict(width=0)),
                     width=0.45,
-                    hovertemplate="<b>%{x}</b><br>" + ctype + ": <b>%{y:,.0f} m</b><extra></extra>"))
+                    hovertemplate=ctype + ": <b>%{y:,.0f} m</b><extra></extra>"))
             fig_ce.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=10)},
                 barmode="stack", height=300, yaxis_title="metres")
             fig_ce.update_xaxes(**axis_style())
@@ -952,5 +953,6 @@ pill_choice = st.radio(
 )
 if pill_choice != st.session_state["selected_year"]:
     st.session_state["selected_year"] = pill_choice
+    st.session_state["year_select"] = pill_choice
     st.rerun()
 
