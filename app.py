@@ -411,6 +411,8 @@ st.markdown("---")
 # ── CTL / ATL / TSB ───────────────────────────────────────────────────────────
 st.markdown("## Training Load — CTL · ATL · TSB")
 
+# CTL/ATL/TSB always computed on full history (needs all data for accuracy)
+# but we show the snapshot at end of selected year/period
 end2 = df[df["is_endurance"]].copy()
 end2["tss"] = end2["rel_effort"].fillna(
     end2["moving_min"] * (end2["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
@@ -424,7 +426,14 @@ daily["ctl"] = daily["tss"].ewm(span=42, adjust=False).mean()
 daily["atl"] = daily["tss"].ewm(span=7,  adjust=False).mean()
 daily["tsb"] = daily["ctl"] - daily["atl"]
 
-latest = daily.iloc[-1]
+# Show values at end of selected period, not always today
+if selected_year == "All":
+    latest = daily.iloc[-1]
+    ctl_period_label = "Current"
+else:
+    yr_end = daily[daily["date"].dt.year == int(selected_year)]
+    latest = yr_end.iloc[-1] if len(yr_end) > 0 else daily.iloc[-1]
+    ctl_period_label = f"End of {selected_year}"
 t1, t2, t3 = st.columns(3)
 tsb = latest["tsb"]
 ctl_val = latest["ctl"]
@@ -559,8 +568,15 @@ then eases for 1 week so TSB recovers to positive — then you race or test.
 Repeat. Never let TSB drop below −30 for extended periods.
 </div>""", unsafe_allow_html=True)
 
-days_back = st.slider("Days to show", 90, 1825, 365, step=90, key="ctl_days")
-plot = daily[daily["date"] >= daily["date"].max() - pd.Timedelta(days=days_back)]
+if selected_year == "All":
+    days_back = st.slider("Days to show", 90, 1825, 365, step=90, key="ctl_days")
+    plot = daily[daily["date"] >= daily["date"].max() - pd.Timedelta(days=days_back)]
+else:
+    yr_int_ctl = int(selected_year)
+    plot = daily[
+        (daily["date"] >= pd.Timestamp(f"{yr_int_ctl-1}-10-01")) &
+        (daily["date"] <= pd.Timestamp(f"{yr_int_ctl}-12-31"))
+    ]
 
 fig1 = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.65,0.35],
     vertical_spacing=0.06,
@@ -673,7 +689,7 @@ col_run_elev, col_ride_elev = st.columns(2)
 
 with col_run_elev:
     st.markdown("### 🏃 Running")
-    yr_run_elev = (df[df["sport"] == "Run"]
+    yr_run_elev = (fdf[fdf["sport"] == "Run"]
                    .groupby("year")["elev_gain_m"].sum().reset_index())
     yr_run_elev = yr_run_elev[yr_run_elev["elev_gain_m"] > 0]
     if len(yr_run_elev) > 0:
@@ -699,7 +715,7 @@ with col_run_elev:
 with col_ride_elev:
     st.markdown("### 🚴 Cycling")
     cycling_types_e = ["Ride", "Virtual Ride", "E-Bike Ride"]
-    yr_ride_elev = (df[df["sport"].isin(cycling_types_e)]
+    yr_ride_elev = (fdf[fdf["sport"].isin(cycling_types_e)]
                     .groupby(["year","sport"])["elev_gain_m"].sum().reset_index())
     yr_ride_elev = yr_ride_elev[yr_ride_elev["elev_gain_m"] > 0]
     if len(yr_ride_elev) > 0:
@@ -712,7 +728,7 @@ with col_ride_elev:
             fig_ce.add_trace(go.Bar(
                 x=elev_pivot["year"], y=elev_pivot[ctype].round(),
                 name=ctype, marker_color=cyc_elev_colors[ctype]))
-        yr_ride_tot = (df[df["sport"].isin(cycling_types_e)]
+        yr_ride_tot = (fdf[fdf["sport"].isin(cycling_types_e)]
                        .groupby("year")["elev_gain_m"].sum().reset_index())
         fig_ce.add_trace(go.Scatter(
             x=yr_ride_tot["year"], y=yr_ride_tot["elev_gain_m"].round(),
