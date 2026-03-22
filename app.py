@@ -279,60 +279,13 @@ with st.sidebar:
     st.markdown("## 🔥 Filters")
     st.markdown("---")
 
-    # ── Year pills via styled radio ──────────────────────────────────────────
-    st.markdown("""<style>
-div[data-testid='stSidebar'] div[role='radiogroup'] {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 4px;
-    margin-bottom: 8px;
-}
-div[data-testid='stSidebar'] div[role='radiogroup'] label {
-    display: flex !important;
-    align-items: center;
-    padding: 3px 11px !important;
-    border-radius: 999px !important;
-    border: 1px solid #2a2a2a !important;
-    background: transparent !important;
-    color: #aaa !important;
-    font-size: 0.73rem !important;
-    font-weight: 500 !important;
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-    min-width: 0 !important;
-}
-div[data-testid='stSidebar'] div[role='radiogroup'] label:hover {
-    border-color: #555 !important;
-    color: #d4d0ca !important;
-}
-div[data-testid='stSidebar'] div[role='radiogroup'] label[data-checked='true'],
-div[data-testid='stSidebar'] div[role='radiogroup'] label:has(input:checked) {
-    background: #fc4c02 !important;
-    border-color: #fc4c02 !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-}
-div[data-testid='stSidebar'] div[role='radiogroup'] input[type='radio'] {
-    display: none !important;
-}
-div[data-testid='stSidebar'] div[role='radiogroup'] div[data-testid='stMarkdownContainer'] {
-    display: none !important;
-}
-</style>""", unsafe_allow_html=True)
-
+    # ── Year filter ──────────────────────────────────────────────────────────
     year_options = ["All"] + [str(y) for y in all_years]
-    selected_year_radio = st.radio(
-        "Year",
-        year_options,
-        index=year_options.index(st.session_state["selected_year"]),
-        label_visibility="collapsed",
-        key="year_radio"
-    )
-    if selected_year_radio != st.session_state["selected_year"]:
-        st.session_state["selected_year"] = selected_year_radio
+    current_idx  = year_options.index(st.session_state["selected_year"])
+    chosen = st.selectbox("📅 Filter by year", year_options, index=current_idx,
+                          key="year_select")
+    if chosen != st.session_state["selected_year"]:
+        st.session_state["selected_year"] = chosen
         st.rerun()
 
     st.markdown("---")
@@ -377,6 +330,27 @@ st.markdown(f"""
   </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ── Year pill strip ──────────────────────────────────────────────────────────
+year_options_main = ["All"] + [str(y) for y in all_years]
+pill_html = """<style>
+.pill-strip{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 1.2rem 0}
+.pill-yr{
+  padding:4px 14px;border-radius:999px;font-size:0.76rem;font-weight:500;
+  cursor:pointer;border:1px solid #2a2a2a;background:transparent;
+  color:#999;letter-spacing:0.03em;white-space:nowrap;
+  font-family:'DM Sans',sans-serif;transition:border-color 0.15s,color 0.15s;
+}
+.pill-yr:hover{border-color:#555;color:#d4d0ca}
+.pill-yr.on{background:#fc4c02;border-color:#fc4c02;color:#fff;font-weight:600}
+</style><div class='pill-strip'>"""
+for yr in year_options_main:
+    active = " on" if yr == st.session_state["selected_year"] else ""
+    pill_html += f"<span class='pill-yr{active}'>{yr}</span>"
+pill_html += "</div>"
+st.markdown(pill_html, unsafe_allow_html=True)
+st.markdown("""<div style='font-size:0.72rem;color:#555;margin:-0.8rem 0 1.2rem'>
+Use the sidebar dropdown to filter by year</div>""", unsafe_allow_html=True)
 
 # ── Headline metrics ──────────────────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5)
