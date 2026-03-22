@@ -636,51 +636,89 @@ col_run, col_ride = st.columns(2)
 
 with col_run:
     st.markdown("### 🏃 Running")
-    yr_run = fdf[fdf["sport"]=="Run"].groupby("year")["dist_km"].sum().reset_index()
-    fig_r = go.Figure(go.Bar(
-        x=yr_run["year"], y=yr_run["dist_km"],
-        marker=dict(
-            color=yr_run["dist_km"],
-            colorscale=[[0,"#3a1a0a"],[0.5,"#c03000"],[1,"#fc4c02"]],
-            showscale=False),
-        text=yr_run["dist_km"].round().astype(int).astype(str)+" km",
-        textposition="outside",
-        textfont=dict(color="#888", size=10)))
-    fig_r.update_layout(**{**CHART_LAYOUT, 'margin': dict(t=10,b=30,l=40,r=10)},
-        height=300, yaxis_title="km")
-    fig_r.update_xaxes(**axis_style())
-    fig_r.update_yaxes(**axis_style())
-    st.plotly_chart(fig_r, use_container_width=True)
+    if selected_year == "All":
+        yr_run = df[df["sport"]=="Run"].groupby("year")["dist_km"].sum().reset_index()
+        if len(yr_run) > 0:
+            peak_idx = yr_run["dist_km"].idxmax()
+            bar_colors = ["#fc4c02" if i==peak_idx else "#8b3000" for i in yr_run.index]
+            fig_r = go.Figure(go.Bar(
+                x=yr_run["year"].astype(int), y=yr_run["dist_km"].round(),
+                marker=dict(color=bar_colors),
+                text=yr_run["dist_km"].round().astype(int).astype(str)+" km",
+                textposition="outside", textfont=dict(color="#888", size=10)))
+            fig_r.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
+                height=300, yaxis_title="km")
+            fig_r.update_xaxes(**axis_style(), dtick=1, tickformat="d")
+            fig_r.update_yaxes(**axis_style())
+            st.plotly_chart(fig_r, use_container_width=True)
+    else:
+        mo_run = fdf[fdf["sport"]=="Run"].copy()
+        mo_run["month_num"]  = mo_run["date"].dt.month
+        mo_run["month_name"] = mo_run["date"].dt.strftime("%b")
+        mo_grp = mo_run.groupby(["month_num","month_name"])["dist_km"].sum().reset_index()
+        mo_grp = mo_grp.sort_values("month_num")
+        if len(mo_grp) > 0:
+            fig_r = go.Figure(go.Bar(
+                x=mo_grp["month_name"], y=mo_grp["dist_km"].round(1),
+                marker_color="#fc4c02",
+                text=mo_grp["dist_km"].round(1).astype(str)+" km",
+                textposition="outside", textfont=dict(color="#888", size=10)))
+            fig_r.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
+                height=300, yaxis_title="km")
+            fig_r.update_xaxes(**axis_style())
+            fig_r.update_yaxes(**axis_style())
+            st.plotly_chart(fig_r, use_container_width=True)
+        else:
+            st.info("No running data for this year.")
 
 with col_ride:
     st.markdown("### 🚴 Cycling")
     cycling_types = ["Ride","Virtual Ride","E-Bike Ride"]
-    # Use full df filtered only by date so sport filter never hides cycling types
-    cyc = df[(df["sport"].isin(cycling_types)) &
-             (df["date"].dt.date >= start_date) &
-             (df["date"].dt.date <= end_date)]
-    yr_cyc = cyc.groupby(["year","sport"])["dist_km"].sum().reset_index()
     cyc_colors = {"Ride":"#ffa500","Virtual Ride":"#ffcc44","E-Bike Ride":"#ce93d8"}
-    # Pivot so every year gets a bar even if one type is missing that year
-    cyc_pivot = yr_cyc.pivot_table(index="year", columns="sport",
-                                    values="dist_km", aggfunc="sum", fill_value=0).reset_index()
-    fig_c = go.Figure()
-    for ctype in cycling_types:
-        if ctype not in cyc_pivot.columns: continue
-        fig_c.add_trace(go.Bar(x=cyc_pivot["year"], y=cyc_pivot[ctype].round(),
-            name=ctype, marker_color=cyc_colors[ctype]))
-    yr_cyc_tot = cyc.groupby("year")["dist_km"].sum().reset_index()
-    fig_c.add_trace(go.Scatter(x=yr_cyc_tot["year"], y=yr_cyc_tot["dist_km"].round(),
-        mode="text",
-        text=yr_cyc_tot["dist_km"].round().astype(int).astype(str)+" km",
-        textposition="top center",
-        textfont=dict(size=10, color="#666"), showlegend=False))
-    fig_c.update_layout(**{**CHART_LAYOUT, 'margin': dict(t=10,b=30,l=40,r=10)},
-        barmode="stack", height=300, yaxis_title="km")
-    fig_c.update_xaxes(**axis_style())
-    fig_c.update_yaxes(**axis_style())
-    st.plotly_chart(fig_c, use_container_width=True)
-
+    if selected_year == "All":
+        cyc = df[df["sport"].isin(cycling_types)].copy()
+        yr_cyc = cyc.groupby(["year","sport"])["dist_km"].sum().reset_index()
+        cyc_pivot = yr_cyc.pivot_table(index="year", columns="sport",
+            values="dist_km", aggfunc="sum", fill_value=0).reset_index()
+        fig_c = go.Figure()
+        for ctype in cycling_types:
+            if ctype not in cyc_pivot.columns: continue
+            fig_c.add_trace(go.Bar(
+                x=cyc_pivot["year"].astype(int), y=cyc_pivot[ctype].round(),
+                name=ctype, marker_color=cyc_colors[ctype]))
+        yr_cyc_tot = cyc.groupby("year")["dist_km"].sum().reset_index()
+        fig_c.add_trace(go.Scatter(
+            x=yr_cyc_tot["year"].astype(int), y=yr_cyc_tot["dist_km"].round(),
+            mode="text",
+            text=yr_cyc_tot["dist_km"].round().astype(int).astype(str)+" km",
+            textposition="top center",
+            textfont=dict(size=10, color="#666"), showlegend=False))
+        fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
+            barmode="stack", height=300, yaxis_title="km")
+        fig_c.update_xaxes(**axis_style(), dtick=1, tickformat="d")
+        fig_c.update_yaxes(**axis_style())
+        st.plotly_chart(fig_c, use_container_width=True)
+    else:
+        cyc_m = fdf[fdf["sport"].isin(cycling_types)].copy()
+        cyc_m["month_num"]  = cyc_m["date"].dt.month
+        cyc_m["month_name"] = cyc_m["date"].dt.strftime("%b")
+        mo_cyc = cyc_m.groupby(["month_num","month_name","sport"])["dist_km"].sum().reset_index()
+        mo_cyc = mo_cyc.sort_values("month_num")
+        if len(mo_cyc) > 0:
+            fig_c = go.Figure()
+            for ctype in cycling_types:
+                s = mo_cyc[mo_cyc["sport"]==ctype]
+                if len(s)==0: continue
+                fig_c.add_trace(go.Bar(
+                    x=s["month_name"], y=s["dist_km"].round(1),
+                    name=ctype, marker_color=cyc_colors[ctype]))
+            fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
+                barmode="stack", height=300, yaxis_title="km")
+            fig_c.update_xaxes(**axis_style())
+            fig_c.update_yaxes(**axis_style())
+            st.plotly_chart(fig_c, use_container_width=True)
+        else:
+            st.info("No cycling data for this year.")
 st.markdown("---")
 
 # ── Elevation Gain ───────────────────────────────────────────────────────────
