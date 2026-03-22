@@ -453,38 +453,95 @@ def fmt_pace(v):
     if pd.isna(v): return "—"
     return f"{int(v)}:{int((v%1)*60):02d}"
 
+def activity_detail_html(row, extra_stat="", extra_label=""):
+    """Render a compact detail card for a record activity."""
+    if row is None: return ""
+    act_id   = int(row["activity_id"])
+    strava   = f"https://www.strava.com/activities/{act_id}"
+    date_str = row["date"].strftime("%d %b %Y")
+    name     = str(row["name"])[:40] if pd.notna(row["name"]) else row["sport"]
+    dist     = f"{row['dist_km']:.1f} km" if row["dist_km"] > 0 else ""
+    hrs      = int(row["moving_min"]//60)
+    mins     = int(row["moving_min"]%60)
+    time_s   = f"{hrs}h {mins:02d}m" if hrs > 0 else f"{mins}m"
+    elev     = f"{int(row['elev_gain_m'])} m↑" if pd.notna(row["elev_gain_m"]) and row["elev_gain_m"] > 0 else ""
+    hr_s     = f"{int(row['avg_hr'])} bpm avg" if pd.notna(row["avg_hr"]) and row["avg_hr"] > 0 else ""
+    cal_s    = f"{int(row['calories'])} kcal" if pd.notna(row["calories"]) and row["calories"] > 0 else ""
+    stats    = " · ".join(filter(None, [dist, time_s, elev, hr_s, cal_s]))
+    if extra_stat:
+        stats = f"<b style='color:#fc4c02'>{extra_label}: {extra_stat}</b> · " + stats
+    return f"""
+<div style="background:#111;border:1px solid #222;border-radius:8px;
+            padding:0.75rem 1rem;margin-top:8px;font-size:0.78rem">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="color:#666;font-size:0.65rem;margin-bottom:2px">{date_str}</div>
+      <div style="color:#d4d0ca;font-weight:600;margin-bottom:4px">{name}</div>
+      <div style="color:#888">{stats}</div>
+    </div>
+    <a href="{strava}" target="_blank"
+       style="background:#fc4c02;color:#fff;font-size:0.65rem;font-weight:700;
+              text-decoration:none;padding:4px 10px;border-radius:6px;
+              text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;
+              margin-left:12px;flex-shrink:0">
+      View on Strava ↗
+    </a>
+  </div>
+</div>"""
+
+# Compute record rows
+lr_row  = runs_valid.loc[runs_valid["dist_km"].idxmax()]        if len(runs_valid) else None
+bp_row  = runs_valid.loc[runs_valid["pace_min_km"].idxmin()]    if len(runs_valid) else None
+mc_row  = runs_valid.loc[runs_valid["elev_gain_m"].idxmax()]    if len(runs_valid) else None
+lride_r = rides_all.loc[rides_all["dist_km"].idxmax()]          if len(rides_all) else None
+
 r1, r2, r3, r4, r5, r6 = st.columns(6)
 with r1:
-    v = runs_valid["dist_km"].max() if len(runs_valid) else 0
-    st.markdown(f'<div class="record-card"><div class="record-label">Longest Run</div>'
-                f'<div class="record-value">{v:.1f}</div>'
-                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    v = lr_row["dist_km"] if lr_row is not None else 0
+    st.markdown(f'<div class="record-card"><div class="record-label">Longest Run</div>'                f'<div class="record-value">{v:.1f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
 with r2:
-    v = runs_valid["pace_min_km"].min() if len(runs_valid) else None
-    st.markdown(f'<div class="record-card"><div class="record-label">Best Pace</div>'
-                f'<div class="record-value">{fmt_pace(v)}</div>'
-                f'<div class="record-sub">min/km</div></div>', unsafe_allow_html=True)
+    v = bp_row["pace_min_km"] if bp_row is not None else None
+    st.markdown(f'<div class="record-card"><div class="record-label">Best Pace</div>'                f'<div class="record-value">{fmt_pace(v)}</div>'                f'<div class="record-sub">min/km</div></div>', unsafe_allow_html=True)
 with r3:
-    v = runs_valid["elev_gain_m"].max() if len(runs_valid) else 0
-    st.markdown(f'<div class="record-card"><div class="record-label">Most Climbing</div>'
-                f'<div class="record-value">{v:,.0f}</div>'
-                f'<div class="record-sub">metres</div></div>', unsafe_allow_html=True)
+    v = mc_row["elev_gain_m"] if mc_row is not None else 0
+    st.markdown(f'<div class="record-card"><div class="record-label">Most Climbing</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">metres</div></div>', unsafe_allow_html=True)
 with r4:
-    v = rides_all["dist_km"].max() if len(rides_all) else 0
-    st.markdown(f'<div class="record-card"><div class="record-label">Longest Ride</div>'
-                f'<div class="record-value">{v:.0f}</div>'
-                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    v = lride_r["dist_km"] if lride_r is not None else 0
+    st.markdown(f'<div class="record-card"><div class="record-label">Longest Ride</div>'                f'<div class="record-value">{v:.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
 with r5:
     v = len(df[df["sport"]=="Run"])
-    st.markdown(f'<div class="record-card"><div class="record-label">Total Runs</div>'
-                f'<div class="record-value">{v:,}</div>'
-                f'<div class="record-sub">activities</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="record-card"><div class="record-label">Total Runs</div>'                f'<div class="record-value">{v:,}</div>'                f'<div class="record-sub">activities</div></div>', unsafe_allow_html=True)
 with r6:
     v = df[df["sport"].isin(["Ride","Virtual Ride"])]["dist_km"].sum()
-    st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'
-                f'<div class="record-value">{v:,.0f}</div>'
-                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
 
+# ── Expandable record details ─────────────────────────────────────────────────
+with st.expander("📋 View record activity details", expanded=False):
+    d1, d2 = st.columns(2)
+    with d1:
+        st.markdown("**🏃 Longest Run**")
+        if lr_row is not None:
+            p = lr_row["moving_min"] / lr_row["dist_km"]
+            st.markdown(activity_detail_html(lr_row,
+                extra_stat=f"{lr_row['dist_km']:.1f} km",
+                extra_label="Distance"), unsafe_allow_html=True)
+        st.markdown("**⚡ Best Pace**")
+        if bp_row is not None:
+            p = bp_row["moving_min"] / bp_row["dist_km"]
+            st.markdown(activity_detail_html(bp_row,
+                extra_stat=f"{int(p)}:{int((p%1)*60):02d} /km",
+                extra_label="Pace"), unsafe_allow_html=True)
+    with d2:
+        st.markdown("**⛰️ Most Climbing**")
+        if mc_row is not None:
+            st.markdown(activity_detail_html(mc_row,
+                extra_stat=f"{int(mc_row['elev_gain_m'])} m",
+                extra_label="Elevation"), unsafe_allow_html=True)
+        st.markdown("**🚴 Longest Ride**")
+        if lride_r is not None:
+            st.markdown(activity_detail_html(lride_r,
+                extra_stat=f"{lride_r['dist_km']:.1f} km",
+                extra_label="Distance"), unsafe_allow_html=True)
 st.markdown("---")
 
 # ── Training Consistency Heatmap ─────────────────────────────────────────────
@@ -1135,38 +1192,95 @@ def fmt_pace(v):
     if pd.isna(v): return "—"
     return f"{int(v)}:{int((v%1)*60):02d}"
 
+def activity_detail_html(row, extra_stat="", extra_label=""):
+    """Render a compact detail card for a record activity."""
+    if row is None: return ""
+    act_id   = int(row["activity_id"])
+    strava   = f"https://www.strava.com/activities/{act_id}"
+    date_str = row["date"].strftime("%d %b %Y")
+    name     = str(row["name"])[:40] if pd.notna(row["name"]) else row["sport"]
+    dist     = f"{row['dist_km']:.1f} km" if row["dist_km"] > 0 else ""
+    hrs      = int(row["moving_min"]//60)
+    mins     = int(row["moving_min"]%60)
+    time_s   = f"{hrs}h {mins:02d}m" if hrs > 0 else f"{mins}m"
+    elev     = f"{int(row['elev_gain_m'])} m↑" if pd.notna(row["elev_gain_m"]) and row["elev_gain_m"] > 0 else ""
+    hr_s     = f"{int(row['avg_hr'])} bpm avg" if pd.notna(row["avg_hr"]) and row["avg_hr"] > 0 else ""
+    cal_s    = f"{int(row['calories'])} kcal" if pd.notna(row["calories"]) and row["calories"] > 0 else ""
+    stats    = " · ".join(filter(None, [dist, time_s, elev, hr_s, cal_s]))
+    if extra_stat:
+        stats = f"<b style='color:#fc4c02'>{extra_label}: {extra_stat}</b> · " + stats
+    return f"""
+<div style="background:#111;border:1px solid #222;border-radius:8px;
+            padding:0.75rem 1rem;margin-top:8px;font-size:0.78rem">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="color:#666;font-size:0.65rem;margin-bottom:2px">{date_str}</div>
+      <div style="color:#d4d0ca;font-weight:600;margin-bottom:4px">{name}</div>
+      <div style="color:#888">{stats}</div>
+    </div>
+    <a href="{strava}" target="_blank"
+       style="background:#fc4c02;color:#fff;font-size:0.65rem;font-weight:700;
+              text-decoration:none;padding:4px 10px;border-radius:6px;
+              text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;
+              margin-left:12px;flex-shrink:0">
+      View on Strava ↗
+    </a>
+  </div>
+</div>"""
+
+# Compute record rows
+lr_row  = runs_valid.loc[runs_valid["dist_km"].idxmax()]        if len(runs_valid) else None
+bp_row  = runs_valid.loc[runs_valid["pace_min_km"].idxmin()]    if len(runs_valid) else None
+mc_row  = runs_valid.loc[runs_valid["elev_gain_m"].idxmax()]    if len(runs_valid) else None
+lride_r = rides_all.loc[rides_all["dist_km"].idxmax()]          if len(rides_all) else None
+
 r1, r2, r3, r4, r5, r6 = st.columns(6)
 with r1:
-    v = runs_valid["dist_km"].max() if len(runs_valid) else 0
-    st.markdown(f'<div class="record-card"><div class="record-label">Longest Run</div>'
-                f'<div class="record-value">{v:.1f}</div>'
-                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    v = lr_row["dist_km"] if lr_row is not None else 0
+    st.markdown(f'<div class="record-card"><div class="record-label">Longest Run</div>'                f'<div class="record-value">{v:.1f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
 with r2:
-    v = runs_valid["pace_min_km"].min() if len(runs_valid) else None
-    st.markdown(f'<div class="record-card"><div class="record-label">Best Pace</div>'
-                f'<div class="record-value">{fmt_pace(v)}</div>'
-                f'<div class="record-sub">min/km</div></div>', unsafe_allow_html=True)
+    v = bp_row["pace_min_km"] if bp_row is not None else None
+    st.markdown(f'<div class="record-card"><div class="record-label">Best Pace</div>'                f'<div class="record-value">{fmt_pace(v)}</div>'                f'<div class="record-sub">min/km</div></div>', unsafe_allow_html=True)
 with r3:
-    v = runs_valid["elev_gain_m"].max() if len(runs_valid) else 0
-    st.markdown(f'<div class="record-card"><div class="record-label">Most Climbing</div>'
-                f'<div class="record-value">{v:,.0f}</div>'
-                f'<div class="record-sub">metres</div></div>', unsafe_allow_html=True)
+    v = mc_row["elev_gain_m"] if mc_row is not None else 0
+    st.markdown(f'<div class="record-card"><div class="record-label">Most Climbing</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">metres</div></div>', unsafe_allow_html=True)
 with r4:
-    v = rides_all["dist_km"].max() if len(rides_all) else 0
-    st.markdown(f'<div class="record-card"><div class="record-label">Longest Ride</div>'
-                f'<div class="record-value">{v:.0f}</div>'
-                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    v = lride_r["dist_km"] if lride_r is not None else 0
+    st.markdown(f'<div class="record-card"><div class="record-label">Longest Ride</div>'                f'<div class="record-value">{v:.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
 with r5:
     v = len(df[df["sport"]=="Run"])
-    st.markdown(f'<div class="record-card"><div class="record-label">Total Runs</div>'
-                f'<div class="record-value">{v:,}</div>'
-                f'<div class="record-sub">activities</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="record-card"><div class="record-label">Total Runs</div>'                f'<div class="record-value">{v:,}</div>'                f'<div class="record-sub">activities</div></div>', unsafe_allow_html=True)
 with r6:
     v = df[df["sport"].isin(["Ride","Virtual Ride"])]["dist_km"].sum()
-    st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'
-                f'<div class="record-value">{v:,.0f}</div>'
-                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
 
+# ── Expandable record details ─────────────────────────────────────────────────
+with st.expander("📋 View record activity details", expanded=False):
+    d1, d2 = st.columns(2)
+    with d1:
+        st.markdown("**🏃 Longest Run**")
+        if lr_row is not None:
+            p = lr_row["moving_min"] / lr_row["dist_km"]
+            st.markdown(activity_detail_html(lr_row,
+                extra_stat=f"{lr_row['dist_km']:.1f} km",
+                extra_label="Distance"), unsafe_allow_html=True)
+        st.markdown("**⚡ Best Pace**")
+        if bp_row is not None:
+            p = bp_row["moving_min"] / bp_row["dist_km"]
+            st.markdown(activity_detail_html(bp_row,
+                extra_stat=f"{int(p)}:{int((p%1)*60):02d} /km",
+                extra_label="Pace"), unsafe_allow_html=True)
+    with d2:
+        st.markdown("**⛰️ Most Climbing**")
+        if mc_row is not None:
+            st.markdown(activity_detail_html(mc_row,
+                extra_stat=f"{int(mc_row['elev_gain_m'])} m",
+                extra_label="Elevation"), unsafe_allow_html=True)
+        st.markdown("**🚴 Longest Ride**")
+        if lride_r is not None:
+            st.markdown(activity_detail_html(lride_r,
+                extra_stat=f"{lride_r['dist_km']:.1f} km",
+                extra_label="Distance"), unsafe_allow_html=True)
 st.markdown("---")
 
 # ── Training Consistency Heatmap ─────────────────────────────────────────────
