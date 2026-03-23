@@ -444,205 +444,154 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
 
-# ── CTL / ATL / TSB ───────────────────────────────────────────────────────────
-st.markdown("## Training Load — CTL · ATL · TSB")
 
-# CTL/ATL/TSB always computed on full history (needs all data for accuracy)
-# but we show the snapshot at end of selected year/period
-end2 = df[df["is_endurance"]].copy()
-end2["tss"] = end2["rel_effort"].fillna(
-    end2["moving_min"] * (end2["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
-daily = end2.groupby(end2["date"].dt.normalize())["tss"].sum().reset_index()
-daily.columns = ["date","tss"]
-daily["date"] = pd.to_datetime(daily["date"])
-full = pd.date_range(daily["date"].min(), daily["date"].max(), freq="D")
-daily = daily.set_index("date").reindex(full, fill_value=0).reset_index()
-daily.columns = ["date","tss"]
-daily["ctl"] = daily["tss"].ewm(span=42, adjust=False).mean()
-daily["atl"] = daily["tss"].ewm(span=7,  adjust=False).mean()
-daily["tsb"] = daily["ctl"] - daily["atl"]
+# ══════════════════════════════════════════════════════════════════════════════
+# TOP DASHBOARD — Two column summary + Progress rings
+# ══════════════════════════════════════════════════════════════════════════════
 
-# Show values at end of selected period, not always today
-if selected_year == "All":
-    latest = daily.iloc[-1]
-    ctl_period_label = "Current"
+# Compute CTL/ATL/TSB for summary
+_end2 = df[df["is_endurance"]].copy()
+_end2["tss"] = _end2["rel_effort"].fillna(
+    _end2["moving_min"] * (_end2["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
+_daily = _end2.groupby(_end2["date"].dt.normalize())["tss"].sum().reset_index()
+_daily.columns = ["date","tss"]
+_daily["date"] = pd.to_datetime(_daily["date"])
+_full = pd.date_range(_daily["date"].min(), _daily["date"].max(), freq="D")
+_daily = _daily.set_index("date").reindex(_full, fill_value=0).reset_index()
+_daily.columns = ["date","tss"]
+_daily["ctl"] = _daily["tss"].ewm(span=42, adjust=False).mean()
+_daily["atl"] = _daily["tss"].ewm(span=7,  adjust=False).mean()
+_daily["tsb"] = _daily["ctl"] - _daily["atl"]
+_latest = _daily.iloc[-1]
+_ctl = _latest["ctl"]; _atl = _latest["atl"]; _tsb = _latest["tsb"]
+
+# Week-over-week hours
+_ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
+                "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training","Workout"}
+_end_h = df[df["sport"].isin(_ENDURANCE_H)].copy()
+_last_date  = df["date"].max()
+_wk_start   = _last_date.normalize() - pd.Timedelta(days=_last_date.dayofweek)
+_prev_start = _wk_start - pd.Timedelta(weeks=1)
+_this_h = _end_h[_end_h["date"] >= _wk_start]["moving_min"].sum() / 60
+_last_h = _end_h[(_end_h["date"] >= _prev_start) & (_end_h["date"] < _wk_start)]["moving_min"].sum() / 60
+_dh = _this_h - _last_h
+_dh_col = "#50c850" if _dh >= 0 else "#ff5555"
+_dh_arrow = "▲" if _dh >= 0 else "▼"
+_this_hm = int(_this_h); _this_mm = int((_this_h%1)*60)
+_dh_hm   = int(abs(_dh)); _dh_mm   = int((abs(_dh)%1)*60)
+
+# 2026 progress targets
+RUN_TARGET  = 800   # km
+RIDE_TARGET = 3000  # km
+_run_2026  = df[(df["date"].dt.year==2026) & (df["sport"]=="Run")]["dist_km"].sum()
+_ride_2026 = df[(df["date"].dt.year==2026) & df["sport"].isin(["Ride","Virtual Ride","E-Bike Ride"])]["dist_km"].sum()
+_run_pct   = min(_run_2026 / RUN_TARGET * 100, 100)
+_ride_pct  = min(_ride_2026 / RIDE_TARGET * 100, 100)
+
+def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=42):
+    """SVG progress ring."""
+    circ  = 2 * 3.14159 * r
+    dash  = circ * pct / 100
+    gap   = circ - dash
+    remaining = target - current
+    remaining_str = f"{remaining:.0f} {unit} to go" if pct < 100 else "Goal reached! 🎉"
+    return f"""
+<svg width="130" height="130" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="55" cy="55" r="{r}" fill="none" stroke="#222" stroke-width="8"/>
+  <circle cx="55" cy="55" r="{r}" fill="none" stroke="{color}" stroke-width="8"
+    stroke-dasharray="{dash:.1f} {gap:.1f}"
+    stroke-dashoffset="{circ*0.25:.1f}"
+    stroke-linecap="round"/>
+  <text x="55" y="48" text-anchor="middle" fill="#e8e4de"
+    font-size="14" font-weight="700" font-family="DM Mono,monospace">{current:.0f}</text>
+  <text x="55" y="63" text-anchor="middle" fill="#555"
+    font-size="9" font-family="DM Sans,sans-serif">{unit} of {target}</text>
+  <text x="55" y="80" text-anchor="middle" fill="{color}"
+    font-size="10" font-weight="600" font-family="DM Sans,sans-serif">{pct:.0f}%</text>
+  <text x="55" y="100" text-anchor="middle" fill="#444"
+    font-size="7.5" font-family="DM Sans,sans-serif">{remaining_str}</text>
+</svg>"""
+
+# TSB colour and label
+if _tsb > 5:
+    _tsb_col, _tsb_lbl = "#50c850", "Fresh"
+elif _tsb > -10:
+    _tsb_col, _tsb_lbl = "#ffa500", "Training"
+elif _tsb > -20:
+    _tsb_col, _tsb_lbl = "#ff6b35", "Tired"
 else:
-    yr_end = daily[daily["date"].dt.year == int(selected_year)]
-    latest = yr_end.iloc[-1] if len(yr_end) > 0 else daily.iloc[-1]
-    ctl_period_label = f"End of {selected_year}"
-t1, t2, t3 = st.columns(3)
-tsb = latest["tsb"]
-ctl_val = latest["ctl"]
-atl_val = latest["atl"]
+    _tsb_col, _tsb_lbl = "#ff4444", "Overloaded"
 
-# ── TSB interpretation ────────────────────────────────────────────────────────
-if tsb > 15:
-    tsb_label = "Peak form 🟢"
-    tsb_advice = (
-        "You are at peak freshness. This is the ideal window for racing or testing "
-        "your fitness with a hard effort. Don't waste it on easy sessions."
-    )
-elif tsb > 5:
-    tsb_label = "Fresh 🟢"
-    tsb_advice = (
-        "You're fresh and recovered. Good day for a quality session — intervals, "
-        "tempo, or a long effort. Your body is ready to absorb hard training."
-    )
-elif tsb > -10:
-    tsb_label = "Productive zone 🟡"
-    tsb_advice = (
-        "Light fatigue — this is the normal training zone where fitness is built. "
-        "Continue your plan. Mix hard and easy days to keep progressing."
-    )
-elif tsb > -20:
-    tsb_label = "Tired 🟠"
-    tsb_advice = (
-        "Meaningful fatigue is accumulating. Consider an easy day or rest. "
-        "Avoid hard intervals until TSB recovers above -10. Sleep and nutrition matter now."
-    )
-elif tsb > -30:
-    tsb_label = "Very tired 🔴"
-    tsb_advice = (
-        "High fatigue load. Take 1–2 easy days or full rest. "
-        "Performance will suffer if you push hard here. Recovery is training too."
-    )
-else:
-    tsb_label = "Overreaching ⛔"
-    tsb_advice = (
-        "Danger zone. Extended high fatigue risks illness, injury, or burnout. "
-        "Take several easy days. Consider whether your training load is sustainable."
-    )
+# ── Two column top dashboard ──────────────────────────────────────────────────
+col_left, col_right = st.columns([3, 2])
 
-# ── CTL interpretation ────────────────────────────────────────────────────────
-if ctl_val < 20:
-    ctl_advice = "Low fitness base. Build gradually — increase weekly load by no more than 10% per week."
-elif ctl_val < 40:
-    ctl_advice = "Moderate fitness. Consistent training is building your base. Keep the routine."
-elif ctl_val < 60:
-    ctl_advice = "Good fitness base. You can handle harder training blocks and longer events."
-elif ctl_val < 80:
-    ctl_advice = "Strong fitness. You are well-trained and capable of demanding races."
-else:
-    ctl_advice = "Elite-level fitness load. Maintain carefully — recovery becomes critical at this level."
+with col_left:
+    st.markdown(f"""
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
 
-# ── ATL interpretation ────────────────────────────────────────────────────────
-if atl_val < 20:
-    atl_advice = "Very low recent load. You are well rested — consider if you are training enough."
-elif atl_val < 40:
-    atl_advice = "Moderate recent load. Normal training week. You are not overextending."
-elif atl_val < 60:
-    atl_advice = "High recent load. Make sure easy days are genuinely easy."
-else:
-    atl_advice = "Very high recent load. Your body needs recovery. Prioritise sleep and easy sessions."
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
+    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:4px">CTL · Fitness</div>
+    <div style="color:#e8e4de;font-size:1.5rem;font-weight:700;
+                font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
+    <div style="color:#555;font-size:0.7rem;margin-top:3px">42-day load</div>
+  </div>
 
-t1.metric("CTL — Fitness", f"{ctl_val:.1f}", "42-day fitness base")
-t2.metric("ATL — Fatigue", f"{atl_val:.1f}", "7-day fatigue load")
-t3.metric("TSB — Freshness", f"{tsb:+.1f}", tsb_label)
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
+    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:4px">ATL · Fatigue</div>
+    <div style="color:#e8e4de;font-size:1.5rem;font-weight:700;
+                font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
+    <div style="color:#555;font-size:0.7rem;margin-top:3px">7-day load</div>
+  </div>
 
-# ── Expandable guidance cards ─────────────────────────────────────────────────
-with st.expander("📖 What do CTL · ATL · TSB mean? Click to read guidance", expanded=False):
-    ga, gb, gc = st.columns(3)
-    with ga:
-        st.markdown(f"""
-<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:1rem">
-<div style="color:#fc4c02;font-size:0.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:0.1em;margin-bottom:6px">CTL — Chronic Training Load</div>
-<div style="color:#f0ede8;font-size:1.4rem;font-weight:700;margin-bottom:8px">{ctl_val:.1f}</div>
-<div style="color:#aaa;font-size:0.8rem;line-height:1.6;margin-bottom:10px">
-Your <b style="color:#f0ede8">fitness</b>. A 42-day exponential average of your daily 
-training stress. Higher = more fit. Builds slowly, drops slowly.
-Takes 6+ weeks of consistent training to move significantly.
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
+    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:4px">TSB · Form</div>
+    <div style="color:{_tsb_col};font-size:1.5rem;font-weight:700;
+                font-family:'DM Mono',monospace;line-height:1">{_tsb:+.1f}</div>
+    <div style="color:{_tsb_col};font-size:0.7rem;margin-top:3px;font-weight:600">{_tsb_lbl}</div>
+  </div>
+
 </div>
-<div style="background:#111;border-left:3px solid #fc4c02;padding:8px 10px;
-            border-radius:0 6px 6px 0;font-size:0.78rem;color:#ccc">
-💡 {ctl_advice}
-</div>
-</div>""", unsafe_allow_html=True)
 
-    with gb:
-        st.markdown(f"""
-<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:1rem">
-<div style="color:#ffa500;font-size:0.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:0.1em;margin-bottom:6px">ATL — Acute Training Load</div>
-<div style="color:#f0ede8;font-size:1.4rem;font-weight:700;margin-bottom:8px">{atl_val:.1f}</div>
-<div style="color:#aaa;font-size:0.8rem;line-height:1.6;margin-bottom:10px">
-Your <b style="color:#f0ede8">fatigue</b>. A 7-day exponential average of your daily 
-training stress. Reacts quickly to what you did this week. 
-One hard week spikes it; a few easy days drops it fast.
+<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 16px;
+            display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:3px">This week</div>
+    <div style="color:#e8e4de;font-size:1.8rem;font-weight:700;
+                font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
+  </div>
+  <div style="background:rgba(30,30,30,0.8);border:1px solid #2a2a2a;
+              border-radius:8px;padding:6px 14px;text-align:center">
+    <div style="color:{_dh_col};font-size:1rem;font-weight:700">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</div>
+    <div style="color:#555;font-size:0.72rem">vs last week</div>
+  </div>
 </div>
-<div style="background:#111;border-left:3px solid #ffa500;padding:8px 10px;
-            border-radius:0 6px 6px 0;font-size:0.78rem;color:#ccc">
-💡 {atl_advice}
+""", unsafe_allow_html=True)
+
+with col_right:
+    ring_run  = _ring_svg(_run_pct,  "Running",  _run_2026,  RUN_TARGET,  "km", "#fc4c02")
+    ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa500")
+    st.markdown(f"""
+<div style="display:flex;align-items:center;justify-content:center;gap:8px">
+  <div style="text-align:center">
+    <div style="color:#666;font-size:0.65rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:4px">🏃 2026 Run Goal</div>
+    {ring_run}
+  </div>
+  <div style="text-align:center">
+    <div style="color:#666;font-size:0.65rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:4px">🚴 2026 Ride Goal</div>
+    {ring_ride}
+  </div>
 </div>
-</div>""", unsafe_allow_html=True)
-
-    with gc:
-        tsb_color = "#50c850" if tsb > 5 else ("#ff6b35" if tsb < -20 else "#ffa500")
-        st.markdown(f"""
-<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:1rem">
-<div style="color:{tsb_color};font-size:0.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:0.1em;margin-bottom:6px">TSB — Training Stress Balance</div>
-<div style="color:#f0ede8;font-size:1.4rem;font-weight:700;margin-bottom:8px">{tsb:+.1f} — {tsb_label}</div>
-<div style="color:#aaa;font-size:0.8rem;line-height:1.6;margin-bottom:10px">
-Your <b style="color:#f0ede8">freshness</b>. CTL minus ATL. 
-Positive = more fit than fatigued → race ready. 
-Negative = more fatigued than fit → building phase.
-</div>
-<div style="background:#111;border-left:3px solid {tsb_color};padding:8px 10px;
-            border-radius:0 6px 6px 0;font-size:0.78rem;color:#ccc">
-💡 {tsb_advice}
-</div>
-</div>""", unsafe_allow_html=True)
-
-    st.markdown("""
-<div style="margin-top:1rem;padding:0.75rem 1rem;background:#111;border-radius:8px;
-            font-size:0.78rem;color:#666;line-height:1.7">
-<b style="color:#888">How to use these numbers together:</b><br>
-The goal is to raise CTL (fitness) over time while keeping TSB manageable. 
-A typical training cycle builds ATL for 3 weeks (TSB goes negative), 
-then eases for 1 week so TSB recovers to positive — then you race or test. 
-Repeat. Never let TSB drop below −30 for extended periods.
-</div>""", unsafe_allow_html=True)
-
-if selected_year == "All":
-    days_back = st.slider("Days to show", 90, 1825, 365, step=90, key="ctl_days")
-    plot = daily[daily["date"] >= daily["date"].max() - pd.Timedelta(days=days_back)]
-else:
-    yr_int_ctl = int(selected_year)
-    plot = daily[
-        (daily["date"] >= pd.Timestamp(f"{yr_int_ctl-1}-10-01")) &
-        (daily["date"] <= pd.Timestamp(f"{yr_int_ctl}-12-31"))
-    ]
-
-fig1 = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.65,0.35],
-    vertical_spacing=0.06,
-    subplot_titles=["CTL (fitness) vs ATL (fatigue)", "TSB — freshness"])
-fig1.add_trace(go.Bar(x=plot["date"], y=plot["tss"],
-    marker_color="rgba(255,255,255,0.06)", name="Daily load"), row=1, col=1)
-fig1.add_trace(go.Scatter(x=plot["date"], y=plot["ctl"].round(1),
-    mode="lines", line=dict(color="#fc4c02", width=2.5), name="CTL fitness"), row=1, col=1)
-fig1.add_trace(go.Scatter(x=plot["date"], y=plot["atl"].round(1),
-    mode="lines", line=dict(color="#ffa500", width=2, dash="dot"), name="ATL fatigue"), row=1, col=1)
-fig1.add_trace(go.Bar(x=plot["date"], y=plot["tsb"].clip(lower=0).round(1),
-    marker_color="rgba(80,200,120,0.5)", name="Fresh"), row=2, col=1)
-fig1.add_trace(go.Bar(x=plot["date"], y=plot["tsb"].clip(upper=0).round(1),
-    marker_color="rgba(255,80,80,0.45)", name="Fatigued"), row=2, col=1)
-fig1.add_hline(y=0, line_width=1, line_color="#333", row=2, col=1)
-fig1.update_layout(**CHART_LAYOUT, height=460, barmode="relative",
-    title_font=dict(color="#666"))
-for r in [1,2]:
-    fig1.update_xaxes(**axis_style(), row=r, col=1)
-    fig1.update_yaxes(**axis_style(), row=r, col=1)
-for ann in fig1.layout.annotations:
-    ann.font.color = "#555"
-    ann.font.size  = 11
-st.plotly_chart(fig1, use_container_width=True)
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# ── Weekly Volume ─────────────────────────────────────────────────────────────
 
 st.markdown("---")
 
