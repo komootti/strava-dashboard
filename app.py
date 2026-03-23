@@ -489,28 +489,28 @@ _ride_2026 = df[(df["date"].dt.year==2026) & df["sport"].isin(["Ride","Virtual R
 _run_pct   = min(_run_2026 / RUN_TARGET * 100, 100)
 _ride_pct  = min(_ride_2026 / RIDE_TARGET * 100, 100)
 
-def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=42):
-    """SVG progress ring."""
+def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=72):
+    """SVG progress ring — full height to match left cards."""
     circ  = 2 * 3.14159 * r
     dash  = circ * pct / 100
     gap   = circ - dash
     remaining = target - current
     remaining_str = f"{remaining:.0f} {unit} to go" if pct < 100 else "Goal reached! 🎉"
     return f"""
-<svg width="130" height="130" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="55" cy="55" r="{r}" fill="none" stroke="#222" stroke-width="8"/>
-  <circle cx="55" cy="55" r="{r}" fill="none" stroke="{color}" stroke-width="8"
+<svg width="100%" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="90" cy="90" r="{r}" fill="none" stroke="#252525" stroke-width="10"/>
+  <circle cx="90" cy="90" r="{r}" fill="none" stroke="{color}" stroke-width="10"
     stroke-dasharray="{dash:.1f} {gap:.1f}"
     stroke-dashoffset="{circ*0.25:.1f}"
     stroke-linecap="round"/>
-  <text x="55" y="48" text-anchor="middle" fill="#e8e4de"
-    font-size="14" font-weight="700" font-family="DM Mono,monospace">{current:.0f}</text>
-  <text x="55" y="63" text-anchor="middle" fill="#aaa"
-    font-size="9" font-family="DM Sans,sans-serif">{unit} of {target}</text>
-  <text x="55" y="80" text-anchor="middle" fill="{color}"
-    font-size="10" font-weight="600" font-family="DM Sans,sans-serif">{pct:.0f}%</text>
-  <text x="55" y="100" text-anchor="middle" fill="#888"
-    font-size="7.5" font-family="DM Sans,sans-serif">{remaining_str}</text>
+  <text x="90" y="80" text-anchor="middle" fill="#e8e4de"
+    font-size="26" font-weight="700" font-family="DM Mono,monospace">{current:.0f}</text>
+  <text x="90" y="100" text-anchor="middle" fill="#aaa"
+    font-size="13" font-family="DM Sans,sans-serif">{unit} of {target}</text>
+  <text x="90" y="122" text-anchor="middle" fill="{color}"
+    font-size="15" font-weight="700" font-family="DM Sans,sans-serif">{pct:.0f}%</text>
+  <text x="90" y="143" text-anchor="middle" fill="#888"
+    font-size="11" font-family="DM Sans,sans-serif">{remaining_str}</text>
 </svg>"""
 
 # TSB colour and label
@@ -524,7 +524,7 @@ else:
     _tsb_col, _tsb_lbl = "#ff4444", "Overloaded"
 
 # ── Two column top dashboard ──────────────────────────────────────────────────
-col_left, col_right = st.columns([3, 2])
+col_left, col_right = st.columns([3, 3])
 
 with col_left:
     st.markdown(f"""
@@ -576,15 +576,17 @@ with col_right:
     ring_run  = _ring_svg(_run_pct,  "Running",  _run_2026,  RUN_TARGET,  "km", "#fc4c02")
     ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa500")
     st.markdown(f"""
-<div style="display:flex;align-items:center;justify-content:center;gap:8px">
-  <div style="text-align:center">
-    <div style="color:#aaa;font-size:0.65rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:4px">🏃 2026 Run Goal</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:100%">
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+              padding:12px 8px;text-align:center">
+    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:6px">🏃 2026 Running</div>
     {ring_run}
   </div>
-  <div style="text-align:center">
-    <div style="color:#aaa;font-size:0.65rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:4px">🚴 2026 Ride Goal</div>
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+              padding:12px 8px;text-align:center">
+    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                letter-spacing:0.1em;margin-bottom:6px">🚴 2026 Cycling</div>
     {ring_ride}
   </div>
 </div>
