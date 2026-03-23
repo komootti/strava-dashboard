@@ -528,47 +528,56 @@ col_left, col_right = st.columns([3, 3])
 
 with col_left:
     st.markdown(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+<div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+            gap:10px;height:100%">
 
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+              padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:4px">CTL · Fitness</div>
-    <div style="color:#e8e4de;font-size:1.5rem;font-weight:700;
-                font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
-    <div style="color:#888;font-size:0.7rem;margin-top:3px">42-day load</div>
+                letter-spacing:0.1em">CTL · Fitness</div>
+    <div>
+      <div style="color:#e8e4de;font-size:2rem;font-weight:700;
+                  font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
+      <div style="color:#888;font-size:0.72rem;margin-top:4px">42-day load</div>
+    </div>
   </div>
 
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+              padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:4px">ATL · Fatigue</div>
-    <div style="color:#e8e4de;font-size:1.5rem;font-weight:700;
-                font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
-    <div style="color:#888;font-size:0.7rem;margin-top:3px">7-day load</div>
+                letter-spacing:0.1em">ATL · Fatigue</div>
+    <div>
+      <div style="color:#e8e4de;font-size:2rem;font-weight:700;
+                  font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
+      <div style="color:#888;font-size:0.72rem;margin-top:4px">7-day load</div>
+    </div>
   </div>
 
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+              padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:4px">TSB · Form</div>
-    <div style="color:{_tsb_col};font-size:1.5rem;font-weight:700;
-                font-family:'DM Mono',monospace;line-height:1">{_tsb:+.1f}</div>
-    <div style="color:{_tsb_col};font-size:0.7rem;margin-top:3px;font-weight:600">{_tsb_lbl}</div>
+                letter-spacing:0.1em">TSB · Form</div>
+    <div>
+      <div style="color:{_tsb_col};font-size:2rem;font-weight:700;
+                  font-family:'DM Mono',monospace;line-height:1">{_tsb:+.1f}</div>
+      <div style="color:{_tsb_col};font-size:0.72rem;font-weight:600;margin-top:4px">{_tsb_lbl}</div>
+    </div>
   </div>
 
-</div>
-
-<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 16px;
-            display:flex;align-items:center;justify-content:space-between">
-  <div>
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
+              padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:3px">This week</div>
-    <div style="color:#e8e4de;font-size:1.8rem;font-weight:700;
-                font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
+                letter-spacing:0.1em">This week</div>
+    <div>
+      <div style="color:#e8e4de;font-size:2rem;font-weight:700;
+                  font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+        <span style="color:{_dh_col};font-size:0.8rem;font-weight:600">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</span>
+        <span style="color:#666;font-size:0.72rem">vs last week</span>
+      </div>
+    </div>
   </div>
-  <div style="background:rgba(30,30,30,0.8);border:1px solid #2a2a2a;
-              border-radius:8px;padding:6px 14px;text-align:center">
-    <div style="color:{_dh_col};font-size:1rem;font-weight:700">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</div>
-    <div style="color:#999;font-size:0.72rem">vs last week</div>
-  </div>
+
 </div>
 """, unsafe_allow_html=True)
 
