@@ -429,10 +429,10 @@ st.markdown(f"""
             border-radius:10px;padding:1rem 1.2rem;margin-bottom:1.2rem">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
     <div>
-      <div style="color:#666;font-size:0.65rem;font-weight:600;text-transform:uppercase;
+      <div style="color:#999;font-size:0.65rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.1em;margin-bottom:3px">Latest activity · {la_date}</div>
       <div style="color:#e8e4de;font-size:1.1rem;font-weight:600;margin-bottom:4px">{la_name}</div>
-      <div style="color:#aaa;font-size:0.82rem">{stats}</div>
+      <div style="color:#c8c4be;font-size:0.82rem">{stats}</div>
     </div>
     <div style="text-align:right">
       <div style="background:#fc4c02;color:#fff;font-size:0.65rem;font-weight:700;
@@ -505,11 +505,11 @@ def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=42):
     stroke-linecap="round"/>
   <text x="55" y="48" text-anchor="middle" fill="#e8e4de"
     font-size="14" font-weight="700" font-family="DM Mono,monospace">{current:.0f}</text>
-  <text x="55" y="63" text-anchor="middle" fill="#555"
+  <text x="55" y="63" text-anchor="middle" fill="#aaa"
     font-size="9" font-family="DM Sans,sans-serif">{unit} of {target}</text>
   <text x="55" y="80" text-anchor="middle" fill="{color}"
     font-size="10" font-weight="600" font-family="DM Sans,sans-serif">{pct:.0f}%</text>
-  <text x="55" y="100" text-anchor="middle" fill="#444"
+  <text x="55" y="100" text-anchor="middle" fill="#888"
     font-size="7.5" font-family="DM Sans,sans-serif">{remaining_str}</text>
 </svg>"""
 
@@ -531,23 +531,23 @@ with col_left:
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
-    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:4px">CTL · Fitness</div>
     <div style="color:#e8e4de;font-size:1.5rem;font-weight:700;
                 font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
-    <div style="color:#555;font-size:0.7rem;margin-top:3px">42-day load</div>
+    <div style="color:#888;font-size:0.7rem;margin-top:3px">42-day load</div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
-    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:4px">ATL · Fatigue</div>
     <div style="color:#e8e4de;font-size:1.5rem;font-weight:700;
                 font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
-    <div style="color:#555;font-size:0.7rem;margin-top:3px">7-day load</div>
+    <div style="color:#888;font-size:0.7rem;margin-top:3px">7-day load</div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px">
-    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:4px">TSB · Form</div>
     <div style="color:{_tsb_col};font-size:1.5rem;font-weight:700;
                 font-family:'DM Mono',monospace;line-height:1">{_tsb:+.1f}</div>
@@ -559,7 +559,7 @@ with col_left:
 <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 16px;
             display:flex;align-items:center;justify-content:space-between">
   <div>
-    <div style="color:#666;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:3px">This week</div>
     <div style="color:#e8e4de;font-size:1.8rem;font-weight:700;
                 font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
@@ -567,7 +567,7 @@ with col_left:
   <div style="background:rgba(30,30,30,0.8);border:1px solid #2a2a2a;
               border-radius:8px;padding:6px 14px;text-align:center">
     <div style="color:{_dh_col};font-size:1rem;font-weight:700">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</div>
-    <div style="color:#555;font-size:0.72rem">vs last week</div>
+    <div style="color:#999;font-size:0.72rem">vs last week</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -578,12 +578,12 @@ with col_right:
     st.markdown(f"""
 <div style="display:flex;align-items:center;justify-content:center;gap:8px">
   <div style="text-align:center">
-    <div style="color:#666;font-size:0.65rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#aaa;font-size:0.65rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:4px">🏃 2026 Run Goal</div>
     {ring_run}
   </div>
   <div style="text-align:center">
-    <div style="color:#666;font-size:0.65rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#aaa;font-size:0.65rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:4px">🚴 2026 Ride Goal</div>
     {ring_ride}
   </div>
