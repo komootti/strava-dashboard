@@ -527,38 +527,64 @@ else:
 col_left, col_right = st.columns([3, 3])
 
 with col_left:
+    # Trend: compare today vs 7 days ago
+    _week_ago = _daily.iloc[-8] if len(_daily) >= 8 else _daily.iloc[0]
+    _ctl_d = _ctl - _week_ago["ctl"]
+    _atl_d = _atl - _week_ago["atl"]
+    _tsb_d = _tsb - _week_ago["tsb"]
+
+    def _trend(delta, invert=False):
+        """Return trend arrow + color. invert=True means lower is better (ATL)."""
+        good = delta < 0 if invert else delta > 0
+        col  = "#50c850" if good else "#ff5555" if (delta < 0 if not invert else delta < 0) else "#888"
+        arr  = "▲" if delta > 0 else "▼" if delta < 0 else "—"
+        return arr, col, abs(delta)
+
+    ctl_arr, ctl_col, ctl_chg = _trend(_ctl_d)
+    atl_arr, atl_col, atl_chg = _trend(_atl_d, invert=True)  # lower fatigue = better
+    tsb_arr, tsb_col, tsb_chg = _trend(_tsb_d)
+
     st.markdown(f"""
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">CTL · Fitness</div>
+              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">CTL · Fitness</div>
+      <div style="color:{ctl_col};font-size:0.72rem;font-weight:600">{ctl_arr} {ctl_chg:.1f}</div>
+    </div>
     <div>
       <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
-      <div style="color:#888;font-size:0.72rem;margin-top:5px">42-day fitness base</div>
+      <div style="color:#888;font-size:0.7rem;margin-top:5px">42-day fitness base</div>
     </div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">ATL · Fatigue</div>
+              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">ATL · Fatigue</div>
+      <div style="color:{atl_col};font-size:0.72rem;font-weight:600">{atl_arr} {atl_chg:.1f}</div>
+    </div>
     <div>
       <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
-      <div style="color:#888;font-size:0.72rem;margin-top:5px">7-day fatigue load</div>
+      <div style="color:#888;font-size:0.7rem;margin-top:5px">7-day fatigue load</div>
     </div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">TSB · Form</div>
+              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">TSB · Form</div>
+      <div style="color:{tsb_col};font-size:0.72rem;font-weight:600">{tsb_arr} {tsb_chg:.1f}</div>
+    </div>
     <div>
       <div style="color:{_tsb_col};font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_tsb:+.1f}</div>
-      <div style="color:{_tsb_col};font-size:0.72rem;font-weight:600;margin-top:5px">{_tsb_lbl}</div>
+      <div style="color:{_tsb_col};font-size:0.7rem;font-weight:600;margin-top:5px">{_tsb_lbl}</div>
     </div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between">
+              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">This week</div>
     <div>
       <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
@@ -576,17 +602,19 @@ with col_right:
     ring_run  = _ring_svg(_run_pct,  "Running",  _run_2026,  RUN_TARGET,  "km", "#fc4c02")
     ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa500")
     st.markdown(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:100%">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:12px 8px;text-align:center">
+              padding:16px 8px;text-align:center;min-height:280px;display:flex;
+              flex-direction:column;align-items:center">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:6px">🏃 2026 Running</div>
+                letter-spacing:0.1em;margin-bottom:8px">🏃 2026 Running</div>
     {ring_run}
   </div>
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:12px 8px;text-align:center">
+              padding:16px 8px;text-align:center;min-height:280px;display:flex;
+              flex-direction:column;align-items:center">
     <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:6px">🚴 2026 Cycling</div>
+                letter-spacing:0.1em;margin-bottom:8px">🚴 2026 Cycling</div>
     {ring_ride}
   </div>
 </div>
