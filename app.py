@@ -524,70 +524,146 @@ else:
     _tsb_col, _tsb_lbl = "#ff4444", "Overloaded"
 
 # ── Two column top dashboard ──────────────────────────────────────────────────
-col_left, col_right = st.columns([3, 3])
+# Single HTML block — all 6 cards in one CSS grid so heights match perfectly
+st.markdown(f"""
+<style>
+.dash-grid {{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    height: 290px;
+}}
+.dash-card {{
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+}}
+.dash-card:hover .card-tooltip {{
+    display: block;
+}}
+.card-label {{
+    color: #bbb;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}}
+.card-value {{
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    line-height: 1;
+    color: #e8e4de;
+}}
+.card-sub {{
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-top: 5px;
+}}
+.card-trend {{
+    font-size: 0.7rem;
+    font-weight: 600;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}}
+.card-tooltip {{
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e1e;
+    border: 1px solid #fc4c02;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    color: #e8e4de;
+    width: 220px;
+    z-index: 999;
+    line-height: 1.5;
+    text-align: left;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}}
+.ring-card {{
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px 8px;
+    grid-row: 1 / 3;
+}}
+.ring-label {{
+    color: #bbb;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+}}
+</style>
 
-with col_left:
-    # Trend: compare today vs 7 days ago
-    _week_ago = _daily.iloc[-8] if len(_daily) >= 8 else _daily.iloc[0]
-    _ctl_d = _ctl - _week_ago["ctl"]
-    _atl_d = _atl - _week_ago["atl"]
-    _tsb_d = _tsb - _week_ago["tsb"]
+<div class="dash-grid">
 
-    def _trend(delta, invert=False):
-        """Return trend arrow + color. invert=True means lower is better (ATL)."""
-        good = delta < 0 if invert else delta > 0
-        col  = "#50c850" if good else "#ff5555" if (delta < 0 if not invert else delta < 0) else "#888"
-        arr  = "▲" if delta > 0 else "▼" if delta < 0 else "—"
-        return arr, col, abs(delta)
-
-    ctl_arr, ctl_col, ctl_chg = _trend(_ctl_d)
-    atl_arr, atl_col, atl_chg = _trend(_atl_d, invert=True)  # lower fatigue = better
-    tsb_arr, tsb_col, tsb_chg = _trend(_tsb_d)
-
-    st.markdown(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:280px">
-
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">CTL · Fitness</div>
-      <div style="color:{ctl_col};font-size:0.72rem;font-weight:600">{ctl_arr} {ctl_chg:.1f}</div>
-    </div>
+  <!-- CTL -->
+  <div class="dash-card" style="grid-column:1; grid-row:1">
+    <div class="card-label">CTL · Fitness</div>
+    <div class="card-trend" style="color:{ctl_col}">{ctl_arr} {ctl_chg:.1f}</div>
     <div>
-      <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
-      <div style="color:#aaa;font-size:0.7rem;margin-top:5px">42-day fitness base</div>
+      <div class="card-value">{_ctl:.1f}</div>
+      <div class="card-sub">42-day fitness base</div>
+    </div>
+    <div class="card-tooltip">
+      <b>Chronic Training Load</b><br>
+      Your long-term fitness level.<br><br>
+      {'🟢 Good base — ready to build on.' if _ctl >= 60 else '🟡 Moderate fitness — keep consistent.' if _ctl >= 30 else '🔴 Low base — focus on building volume.'}
     </div>
   </div>
 
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">ATL · Fatigue</div>
-      <div style="color:{atl_col};font-size:0.72rem;font-weight:600">{atl_arr} {atl_chg:.1f}</div>
-    </div>
+  <!-- ATL -->
+  <div class="dash-card" style="grid-column:2; grid-row:1">
+    <div class="card-label">ATL · Fatigue</div>
+    <div class="card-trend" style="color:{atl_col}">{atl_arr} {atl_chg:.1f}</div>
     <div>
-      <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
-      <div style="color:#aaa;font-size:0.7rem;margin-top:5px">7-day fatigue load</div>
+      <div class="card-value">{_atl:.1f}</div>
+      <div class="card-sub">7-day fatigue load</div>
+    </div>
+    <div class="card-tooltip">
+      <b>Acute Training Load</b><br>
+      Your recent fatigue from training.<br><br>
+      {'🔴 High fatigue — prioritise recovery.' if _atl > 80 else '🟡 Moderate fatigue — ease tomorrow.' if _atl > 40 else '🟢 Low fatigue — body is fresh.'}
     </div>
   </div>
 
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">TSB · Form</div>
-      <div style="color:{tsb_col};font-size:0.72rem;font-weight:600">{tsb_arr} {tsb_chg:.1f}</div>
-    </div>
+  <!-- TSB -->
+  <div class="dash-card" style="grid-column:1; grid-row:2">
+    <div class="card-label">TSB · Form</div>
+    <div class="card-trend" style="color:{tsb_col}">{tsb_arr} {tsb_chg:.1f}</div>
     <div>
-      <div style="color:{_tsb_col};font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_tsb:+.1f}</div>
-      <div style="color:{_tsb_col};font-size:0.7rem;font-weight:600;margin-top:5px">{_tsb_lbl}</div>
+      <div class="card-value" style="color:{_tsb_col}">{_tsb:+.1f}</div>
+      <div class="card-sub" style="color:{_tsb_col};font-weight:600">{_tsb_lbl}</div>
+    </div>
+    <div class="card-tooltip">
+      <b>Training Stress Balance</b><br>
+      Fitness minus fatigue = form.<br><br>
+      {'🏆 Peaked — race or PB attempt.' if _tsb > 15 else '🟢 Fresh — ideal for hard session.' if _tsb > 5 else '🟡 Building — tempo or intervals ok.' if _tsb > -10 else '🟠 Tired — keep it easy today.' if _tsb > -20 else '🔴 Overloaded — rest day needed.'}
     </div>
   </div>
 
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">This week</div>
+  <!-- This week -->
+  <div class="dash-card" style="grid-column:2; grid-row:2">
+    <div class="card-label">This week</div>
     <div>
-      <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
+      <div class="card-value">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
         <span style="color:{_dh_col};font-size:0.82rem;font-weight:700">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</span>
         <span style="color:#aaa;font-size:0.72rem">vs last week</span>
@@ -595,31 +671,20 @@ with col_left:
     </div>
   </div>
 
-</div>
-""", unsafe_allow_html=True)
-
-with col_right:
-    ring_run  = _ring_svg(_run_pct,  "Running",  _run_2026,  RUN_TARGET,  "km", "#fc4c02")
-    ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa500")
-    st.markdown(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:16px 8px;text-align:center;min-height:280px;display:flex;
-              flex-direction:column;align-items:center">
-    <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:8px">🏃 2026 Running</div>
+  <!-- Running ring -->
+  <div class="ring-card" style="grid-column:3; grid-row:1/3">
+    <div class="ring-label">🏃 2026 Running</div>
     {ring_run}
   </div>
-  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:16px 8px;text-align:center;min-height:280px;display:flex;
-              flex-direction:column;align-items:center">
-    <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                letter-spacing:0.1em;margin-bottom:8px">🚴 2026 Cycling</div>
+
+  <!-- Cycling ring -->
+  <div class="ring-card" style="grid-column:4; grid-row:1/3">
+    <div class="ring-label">🚴 2026 Cycling</div>
     {ring_ride}
   </div>
+
 </div>
 """, unsafe_allow_html=True)
-
 st.markdown("---")
 
 
