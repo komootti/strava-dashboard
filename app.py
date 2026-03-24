@@ -524,6 +524,25 @@ else:
     _tsb_col, _tsb_lbl = "#ff4444", "Overloaded"
 
 # ── Two column top dashboard ──────────────────────────────────────────────────
+# Trend: compare today vs 7 days ago
+_week_ago = _daily.iloc[-8] if len(_daily) >= 8 else _daily.iloc[0]
+_ctl_d = _ctl - _week_ago["ctl"]
+_atl_d = _atl - _week_ago["atl"]
+_tsb_d = _tsb - _week_ago["tsb"]
+
+def _trend(delta, invert=False):
+    good = delta < 0 if invert else delta > 0
+    col  = "#50c850" if good else "#ff5555"
+    arr  = "▲" if delta > 0.05 else "▼" if delta < -0.05 else "—"
+    return arr, col, abs(delta)
+
+ctl_arr, ctl_col, ctl_chg = _trend(_ctl_d)
+atl_arr, atl_col, atl_chg = _trend(_atl_d, invert=True)
+tsb_arr, tsb_col, tsb_chg = _trend(_tsb_d)
+
+ring_run  = _ring_svg(_run_pct,  "Running",  _run_2026,  RUN_TARGET,  "km", "#fc4c02")
+ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa500")
+
 # Single HTML block — all 6 cards in one CSS grid so heights match perfectly
 st.markdown(f"""
 <style>
