@@ -545,36 +545,36 @@ with col_left:
     tsb_arr, tsb_col, tsb_chg = _trend(_tsb_d)
 
     st.markdown(f"""
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:280px">
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">CTL · Fitness</div>
+      <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">CTL · Fitness</div>
       <div style="color:{ctl_col};font-size:0.72rem;font-weight:600">{ctl_arr} {ctl_chg:.1f}</div>
     </div>
     <div>
       <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_ctl:.1f}</div>
-      <div style="color:#888;font-size:0.7rem;margin-top:5px">42-day fitness base</div>
+      <div style="color:#aaa;font-size:0.7rem;margin-top:5px">42-day fitness base</div>
     </div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">ATL · Fatigue</div>
+      <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">ATL · Fatigue</div>
       <div style="color:{atl_col};font-size:0.72rem;font-weight:600">{atl_arr} {atl_chg:.1f}</div>
     </div>
     <div>
       <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_atl:.1f}</div>
-      <div style="color:#888;font-size:0.7rem;margin-top:5px">7-day fatigue load</div>
+      <div style="color:#aaa;font-size:0.7rem;margin-top:5px">7-day fatigue load</div>
     </div>
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
+              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">TSB · Form</div>
+      <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">TSB · Form</div>
       <div style="color:{tsb_col};font-size:0.72rem;font-weight:600">{tsb_arr} {tsb_chg:.1f}</div>
     </div>
     <div>
@@ -584,13 +584,13 @@ with col_left:
   </div>
 
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
-              padding:20px;min-height:130px;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">This week</div>
+              padding:20px;height:calc(50% - 5px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between">
+    <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">This week</div>
     <div>
       <div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
         <span style="color:{_dh_col};font-size:0.82rem;font-weight:700">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</span>
-        <span style="color:#777;font-size:0.72rem">vs last week</span>
+        <span style="color:#aaa;font-size:0.72rem">vs last week</span>
       </div>
     </div>
   </div>
@@ -606,14 +606,14 @@ with col_right:
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
               padding:16px 8px;text-align:center;min-height:280px;display:flex;
               flex-direction:column;align-items:center">
-    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:8px">🏃 2026 Running</div>
     {ring_run}
   </div>
   <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;
               padding:16px 8px;text-align:center;min-height:280px;display:flex;
               flex-direction:column;align-items:center">
-    <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+    <div style="color:#bbb;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                 letter-spacing:0.1em;margin-bottom:8px">🚴 2026 Cycling</div>
     {ring_ride}
   </div>
