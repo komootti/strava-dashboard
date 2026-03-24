@@ -215,7 +215,7 @@ SPORT_COLORS = {
 CHART_LAYOUT = dict(
     plot_bgcolor="#161616",
     paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(family="DM Sans", color="#aaa", size=11),
+    font=dict(family="DM Sans", color="#bbb", size=11),
     margin=dict(t=30, b=30, l=50, r=20),
     legend=dict(
         orientation="h", y=1.08,
@@ -232,11 +232,12 @@ CHART_LAYOUT = dict(
 
 def axis_style():
     return dict(
-        gridcolor="#222",
+        gridcolor="#2a2a2a",
         linecolor="#333",
-        tickcolor="#444",
-        tickfont=dict(color="#666", size=10),
+        tickcolor="#555",
+        tickfont=dict(color="#aaa", size=11),
         zerolinecolor="#333",
+        title_font=dict(color="#bbb", size=11),
     )
 
 def lollipop(x, y, color="#fc4c02", name="", unit="km"):
@@ -1110,42 +1111,33 @@ with col_run:
 with col_ride:
     st.markdown("### 🚴 Cycling")
     cycling_types = ["Ride","Virtual Ride","E-Bike Ride"]
-    cyc_colors = {"Ride":"#ffa500","Virtual Ride":"#ffcc44","E-Bike Ride":"#ce93d8"}
     if selected_year == "All":
-        cyc = df[df["sport"].isin(cycling_types)].copy()
-        yr_cyc = cyc.groupby(["year","sport"])["dist_km"].sum().reset_index()
-        cyc_pivot = yr_cyc.pivot_table(index="year", columns="sport",
-            values="dist_km", aggfunc="sum", fill_value=0).reset_index()
-        fig_c = go.Figure()
-        for ctype in cycling_types:
-            if ctype not in cyc_pivot.columns: continue
-            fig_c.add_trace(go.Bar(
-                x=cyc_pivot["year"].astype(int), y=cyc_pivot[ctype].round(),
-                name=ctype,
-                marker=dict(color=cyc_colors[ctype], line=dict(width=0)),
-                width=0.35,
-                hovertemplate=ctype + ": <b>%{y:,.0f} km</b><extra></extra>"))
-        fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
-            barmode="stack", height=300, yaxis_title="km")
-        fig_c.update_xaxes(**axis_style(), dtick=1, tickformat="d")
-        fig_c.update_yaxes(**axis_style())
-        st.plotly_chart(fig_c, use_container_width=True)
+        cyc_tot = (df[df["sport"].isin(cycling_types)]
+                   .groupby("year")["dist_km"].sum().reset_index())
+        if len(cyc_tot) > 0:
+            stem, dot = lollipop(cyc_tot["year"].astype(int),
+                                  cyc_tot["dist_km"].round(),
+                                  color="#ffa500", unit="km")
+            fig_c = go.Figure([stem, dot])
+            fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
+                height=300, yaxis_title="km", barmode="overlay")
+            fig_c.update_xaxes(**axis_style(), dtick=1, tickformat="d")
+            fig_c.update_yaxes(**axis_style())
+            st.plotly_chart(fig_c, use_container_width=True)
     else:
-        cyc_m = fdf[fdf["sport"].isin(cycling_types)].copy()
+        cyc_m = df[df["sport"].isin(cycling_types)].copy()
+        cyc_m = cyc_m[cyc_m["date"].dt.year == int(selected_year)]
         cyc_m["month_num"]  = cyc_m["date"].dt.month
         cyc_m["month_name"] = cyc_m["date"].dt.strftime("%b")
-        mo_cyc = cyc_m.groupby(["month_num","month_name","sport"])["dist_km"].sum().reset_index()
+        mo_cyc = cyc_m.groupby(["month_num","month_name"])["dist_km"].sum().reset_index()
         mo_cyc = mo_cyc.sort_values("month_num")
         if len(mo_cyc) > 0:
-            fig_c = go.Figure()
-            for ctype in cycling_types:
-                s = mo_cyc[mo_cyc["sport"]==ctype]
-                if len(s)==0: continue
-                fig_c.add_trace(go.Bar(
-                    x=s["month_name"], y=s["dist_km"].round(1),
-                    name=ctype, marker_color=cyc_colors[ctype]))
+            stem, dot = lollipop(mo_cyc["month_name"],
+                                  mo_cyc["dist_km"].round(1),
+                                  color="#ffa500", unit="km")
+            fig_c = go.Figure([stem, dot])
             fig_c.update_layout(**{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=40,r=10)},
-                barmode="stack", height=300, yaxis_title="km")
+                height=300, yaxis_title="km", barmode="overlay")
             fig_c.update_xaxes(**axis_style())
             fig_c.update_yaxes(**axis_style())
             st.plotly_chart(fig_c, use_container_width=True)
