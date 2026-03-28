@@ -523,10 +523,10 @@ _effort_html = f'<div style="background:{effort_col}22;border:1px solid {effort_
 # Pre-build HTML fragments to avoid nested f-strings/quotes
 _ins_html = ""
 for _ins in _insights:
+    # Show full insight string — no character splitting
     _ins_html += (
-        f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">' +
-        f'<span style="font-size:0.85rem;min-width:20px">{_ins[0]}</span>' +
-        f'<span style="color:#aaa;font-size:0.78rem;line-height:1.4">{_ins[1:]}</span></div>'
+        '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">' +
+        f'<span style="color:#aaa;font-size:0.78rem;line-height:1.4">{_ins}</span></div>'
     )
 
 _card_left = (
