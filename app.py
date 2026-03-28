@@ -653,7 +653,6 @@ if _la_poly:
             st.caption("Add folium and streamlit-folium to requirements.txt for route maps.")
 
 # ── AI Athlete Intelligence ──────────────────────────────────────────────────
-@st.cache_data(ttl=3600, show_spinner=False)
 def get_ai_analysis(api_key, sport, name, dist, mins, elev, hr, effort_lbl,
                     pace_s, ctl, atl, tsb, tsb_lbl,
                     wk_km, last_wk_km, avg_dist_30, this_wk_h, last_wk_h,
@@ -755,15 +754,28 @@ if not _api_key:
         unsafe_allow_html=True
     )
 else:
-    with st.spinner("✦ Generating athlete intelligence..."):
-        _ai_text = get_ai_analysis(
-            _api_key, la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
-            effort_lbl, la_pace_s,
-            _ctl, _atl, _tsb, _tsb_lbl,
-            this_wk_km, last_wk_km, avg_dist_30,
-            _this_h, _last_h,
-            _recent_sports_str, _days_since_rest
-        )
+    # Use session state to cache only successful responses
+    _cache_key = f"ai_{int(latest_act['activity_id'])}"
+    if _cache_key not in st.session_state:
+        with st.spinner("✦ Generating athlete intelligence..."):
+            st.session_state[_cache_key] = get_ai_analysis(
+                _api_key, la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
+                effort_lbl, la_pace_s,
+                _ctl, _atl, _tsb, _tsb_lbl,
+                this_wk_km, last_wk_km, avg_dist_30,
+                _this_h, _last_h,
+                _recent_sports_str, _days_since_rest
+            )
+            # Don't cache errors
+            if st.session_state[_cache_key] and (
+                st.session_state[_cache_key].startswith("ERROR") or
+                st.session_state[_cache_key].startswith("EXCEPTION")):
+                _ai_text = st.session_state[_cache_key]
+                del st.session_state[_cache_key]
+            else:
+                _ai_text = st.session_state[_cache_key]
+    else:
+        _ai_text = st.session_state[_cache_key]
     if not _ai_text or _ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION"):
         _err = _ai_text or "No response"
         st.markdown(
