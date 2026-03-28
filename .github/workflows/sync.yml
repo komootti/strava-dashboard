@@ -2,8 +2,8 @@ name: Strava Auto Sync
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # every day at 03:00 UTC — adjust to your timezone
-  workflow_dispatch:        # lets you also trigger manually from the Actions tab
+    - cron: "0 3 * * *"
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -24,6 +24,7 @@ jobs:
         run: pip install requests pandas
 
       - name: Run Strava sync
+        id: strava_sync
         env:
           STRAVA_CLIENT_ID:     ${{ secrets.STRAVA_CLIENT_ID }}
           STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
@@ -31,3 +32,10 @@ jobs:
           GITHUB_TOKEN:         ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO:          ${{ github.repository }}
         run: python sync.py
+
+      - name: Sync polylines
+        env:
+          STRAVA_ACCESS_TOKEN:  ${{ env.STRAVA_ACCESS_TOKEN }}
+          GITHUB_TOKEN:         ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO:          ${{ github.repository }}
+        run: python sync_polylines.py
