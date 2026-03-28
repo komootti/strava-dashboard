@@ -236,14 +236,14 @@ def make_folium_map(coords, height=280):
     clat = sum(c[0] for c in coords) / len(coords)
     clon = sum(c[1] for c in coords) / len(coords)
     m = folium.Map(location=[clat, clon], zoom_start=12,
-                   tiles="CartoDB dark_matter", width="100%", height=height)
-    folium.PolyLine(coords, color="#fc4c02", weight=3, opacity=0.9).add_to(m)
-    folium.CircleMarker(coords[0],  radius=6, color="#50c850",
+                   tiles="CartoDB positron", width="100%", height=height)
+    folium.PolyLine(coords, color="#fc4c02", weight=4, opacity=0.9).add_to(m)
+    folium.CircleMarker(coords[0],  radius=7, color="#ffffff",
                         fill=True, fill_color="#50c850", fill_opacity=1,
-                        tooltip="Start").add_to(m)
-    folium.CircleMarker(coords[-1], radius=6, color="#fc4c02",
+                        weight=2, tooltip="Start").add_to(m)
+    folium.CircleMarker(coords[-1], radius=7, color="#ffffff",
                         fill=True, fill_color="#fc4c02", fill_opacity=1,
-                        tooltip="Finish").add_to(m)
+                        weight=2, tooltip="Finish").add_to(m)
     return m
 
 ENDURANCE = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
