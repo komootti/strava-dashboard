@@ -501,31 +501,49 @@ insight_html = "".join([
     for ico, txt in insights
 ]) if insights else '<div style="color:#555;font-size:0.78rem">No analysis data available</div>'
 
+# Pre-compute values for the card to avoid quote conflicts in f-string
+_la_id     = int(latest_act["activity_id"])
+_la_spd    = f"{latest_act['avg_speed_ms']*3.6:.1f} km/h" if la_sport in ["Ride","Virtual Ride","E-Bike Ride"] and latest_act["avg_speed_ms"] > 0 else ""
+_strava_url = f"https://www.strava.com/activities/{_la_id}"
+
+# Rebuild stats line with precomputed speed
+if _la_spd:
+    stats_line = " · ".join(filter(None, [la_dist_s, la_time_s, _la_spd, la_elev_s, la_hr_s, la_cal_s]))
+# (else stats_line already set above)
+
+_wk_d    = this_wk_km - last_wk_km
+_wk_arr  = "▲" if _wk_d >= 0 else "▼"
+_wk_col  = "#50c850" if _wk_d >= 0 else "#ff5555"
+_wk_badge = f'<span style="color:{_wk_col};font-weight:600">{_wk_arr} {abs(_wk_d):.1f} km vs last week</span>' if last_wk_km > 0 else ""
+
+_insights = [i for i in [pace_insight, hr_insight] if i]
+
+_effort_html = f'<div style="background:{effort_col}22;border:1px solid {effort_col}44;color:{effort_col};font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px">{effort_lbl}</div>' if effort_lbl else ""
+
 st.markdown(f"""
 <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;
             border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1rem">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;
               flex-wrap:wrap;gap:12px">
 
-    
     <div style="flex:1;min-width:200px">
       <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>
       <div style="color:#e8e4de;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>
       <div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>
-      
+
       <div style="border-top:1px solid #262626;padding-top:10px">
-        {insight_html}
+        {"".join(f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px"><span style="font-size:0.85rem;min-width:20px">{ins[0]}</span><span style="color:#aaa;font-size:0.78rem;line-height:1.4">{ins[1:]}</span></div>' for ins in _insights)}
       </div>
     </div>
 
-    
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
       <div style="background:#fc4c02;color:#fff;font-size:0.62rem;font-weight:700;
                   text-transform:uppercase;letter-spacing:0.1em;padding:4px 12px;
                   border-radius:999px">{la_sport}</div>
-      {f'<div style="background:{effort_col}22;border:1px solid {effort_col}44;color:{effort_col};font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px">{effort_lbl}</div>' if effort_lbl else ''}
-      <a href="https://www.strava.com/activities/{int(latest_act['activity_id'])}"
+      {_effort_html}
+      <div style="font-size:0.78rem;text-align:right">{_wk_badge}</div>
+      <a href="{_strava_url}"
          target="_blank"
          style="color:#fc4c02;font-size:0.7rem;text-decoration:none;font-weight:600;
                 border:1px solid #3a1a0a;padding:3px 10px;border-radius:6px;margin-top:4px">
