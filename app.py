@@ -392,55 +392,147 @@ st.markdown(f"""
 
 
 
-# ── Latest activity card ─────────────────────────────────────────────────────
+# ── Latest activity card + analysis ──────────────────────────────────────────
 latest_act = df.sort_values("date", ascending=False).iloc[0]
 la_sport   = latest_act["sport"]
 la_date    = latest_act["date"].strftime("%a %d %b %Y")
 la_name    = latest_act["name"] if pd.notna(latest_act["name"]) else la_sport
-la_dist    = f"{latest_act['dist_km']:.1f} km" if latest_act["dist_km"] > 0 else ""
-la_time    = f"{int(latest_act['moving_min']//60)}h {int(latest_act['moving_min']%60):02d}m" if latest_act["moving_min"] > 0 else ""
-la_elev    = f"{int(latest_act['elev_gain_m'])} m↑" if pd.notna(latest_act["elev_gain_m"]) and latest_act["elev_gain_m"] > 0 else ""
-la_hr      = f"{int(latest_act['avg_hr'])} bpm" if pd.notna(latest_act["avg_hr"]) and latest_act["avg_hr"] > 0 else ""
+la_dist    = latest_act["dist_km"]
+la_mins    = latest_act["moving_min"]
+la_elev_v  = latest_act["elev_gain_m"] if pd.notna(latest_act["elev_gain_m"]) else 0
+la_hr_v    = latest_act["avg_hr"] if pd.notna(latest_act["avg_hr"]) else 0
+la_effort  = latest_act["rel_effort"] if pd.notna(latest_act["rel_effort"]) else 0
+la_cal     = latest_act["calories"] if pd.notna(latest_act["calories"]) else 0
 
-# Pace for runs, speed for rides
-if la_sport in ["Run","Walk","Virtual Run","Hike"] and latest_act["dist_km"] > 0:
-    p = latest_act["moving_min"] / latest_act["dist_km"]
-    la_pace = f"{int(p)}:{int((p%1)*60):02d} /km"
+la_dist_s  = f"{la_dist:.1f} km" if la_dist > 0 else ""
+la_time_s  = f"{int(la_mins//60)}h {int(la_mins%60):02d}m" if la_mins > 0 else ""
+la_elev_s  = f"{int(la_elev_v)} m↑" if la_elev_v > 0 else ""
+la_hr_s    = f"{int(la_hr_v)} bpm" if la_hr_v > 0 else ""
+la_cal_s   = f"{int(la_cal)} kcal" if la_cal > 0 else ""
+
+# Pace / speed
+if la_sport in ["Run","Walk","Virtual Run","Hike"] and la_dist > 0:
+    _p = la_mins / la_dist
+    la_pace_s = f"{int(_p)}:{int((_p%1)*60):02d} /km"
 elif la_sport in ["Ride","Virtual Ride","E-Bike Ride"] and latest_act["avg_speed_ms"] > 0:
-    la_pace = f"{latest_act['avg_speed_ms']*3.6:.1f} km/h"
+    la_pace_s = f"{latest_act['avg_speed_ms']*3.6:.1f} km/h"
 else:
-    la_pace = ""
+    la_pace_s = ""
 
-# Week comparison for this sport
+stats_line = " · ".join(filter(None, [la_dist_s, la_time_s, la_pace_s, la_elev_s, la_hr_s, la_cal_s]))
+
+# ── Historical comparisons for same sport ─────────────────────────────────────
+same_sport = df[(df["sport"]==la_sport) & (df["dist_km"]>0)].copy()
+same_runs  = df[(df["sport"]==la_sport) & (df["dist_km"]>1)].copy() if la_dist > 1 else same_sport
+
 this_week_start = latest_act["date"].normalize() - pd.Timedelta(days=latest_act["date"].dayofweek)
 last_week_start = this_week_start - pd.Timedelta(weeks=1)
-this_wk_acts = df[(df["date"] >= this_week_start) & (df["sport"]==la_sport)]
-last_wk_acts = df[(df["date"] >= last_week_start) & (df["date"] < this_week_start) & (df["sport"]==la_sport)]
-this_wk_km   = this_wk_acts["dist_km"].sum()
-last_wk_km   = last_wk_acts["dist_km"].sum()
-wk_delta     = this_wk_km - last_wk_km
-wk_arrow     = "▲" if wk_delta >= 0 else "▼"
-wk_col       = "#50c850" if wk_delta >= 0 else "#ff5555"
-wk_badge     = f'<span style="color:{wk_col};font-weight:600">{wk_arrow} {abs(wk_delta):.1f} km vs last week</span>' if last_wk_km > 0 else ""
+month_ago_start = latest_act["date"] - pd.Timedelta(days=30)
 
-stats = " · ".join(filter(None, [la_dist, la_time, la_pace, la_elev, la_hr]))
+# Week totals
+this_wk_acts = df[df["date"] >= this_week_start]
+last_wk_acts = df[(df["date"] >= last_week_start) & (df["date"] < this_week_start)]
+this_wk_km   = this_wk_acts[this_wk_acts["sport"]==la_sport]["dist_km"].sum()
+last_wk_km   = last_wk_acts[last_wk_acts["sport"]==la_sport]["dist_km"].sum()
+this_wk_h    = this_wk_acts["moving_min"].sum() / 60
+last_wk_h    = last_wk_acts["moving_min"].sum() / 60
+
+# Recent 30-day avg session for this sport
+recent_same  = same_sport[same_sport["date"] >= month_ago_start]
+avg_dist_30  = recent_same["dist_km"].mean() if len(recent_same) > 0 else 0
+avg_hr_30    = recent_same["avg_hr"].mean() if len(recent_same) > 0 else 0
+
+# Effort intensity label
+effort_lbl = ""
+if la_effort > 0:
+    if la_effort < 30:   effort_lbl, effort_col = "Easy", "#50c850"
+    elif la_effort < 70: effort_lbl, effort_col = "Moderate", "#ffa500"
+    elif la_effort < 120:effort_lbl, effort_col = "Hard", "#ff6b35"
+    else:                effort_lbl, effort_col = "Max effort", "#ff4444"
+else:
+    effort_lbl, effort_col = "", "#888"
+
+# Pace comparison vs 30-day avg (runs only)
+pace_insight = ""
+if la_sport in ["Run","Walk"] and la_dist > 1 and avg_dist_30 > 0:
+    la_pace_v  = la_mins / la_dist if la_dist > 0 else 0
+    recent_same["pace"] = recent_same["moving_min"] / recent_same["dist_km"].replace(0, np.nan)
+    avg_pace_30 = recent_same["pace"].mean()
+    if la_pace_v > 0 and avg_pace_30 > 0:
+        pace_diff = la_pace_v - avg_pace_30
+        if abs(pace_diff) > 0.1:
+            faster = pace_diff < 0
+            pace_insight = f"{'⚡ ' if faster else '🐢 '}{abs(pace_diff*60):.0f}s/km {'faster' if faster else 'slower'} than your 30-day avg"
+
+# HR zone context
+hr_insight = ""
+if la_hr_v > 0:
+    max_hr_est = 220 - 35  # rough estimate, adjust if known
+    hr_pct = la_hr_v / max_hr_est * 100
+    if hr_pct < 60:    hr_insight = "Zone 1 · Recovery pace"
+    elif hr_pct < 70:  hr_insight = "Zone 2 · Aerobic base"
+    elif hr_pct < 80:  hr_insight = "Zone 3 · Aerobic power"
+    elif hr_pct < 90:  hr_insight = "Zone 4 · Threshold"
+    else:              hr_insight = "Zone 5 · Max effort"
+
+# Weekly context
+wk_delta_km  = this_wk_km - last_wk_km
+wk_arrow     = "▲" if wk_delta_km >= 0 else "▼"
+wk_col       = "#50c850" if wk_delta_km >= 0 else "#ff5555"
+wk_pct       = abs(wk_delta_km / last_wk_km * 100) if last_wk_km > 0 else 0
+
+# Build insight bullets
+insights = []
+if pace_insight:               insights.append(("⚡", pace_insight))
+if hr_insight and la_hr_v > 0:insights.append(("❤️", f"{int(la_hr_v)} bpm · {hr_insight}"))
+if effort_lbl:                 insights.append(("💪", f"Effort: {effort_lbl}"))
+if last_wk_km > 0:             insights.append(("📅", f"This week: {this_wk_km:.0f} km — {wk_arrow} {abs(wk_delta_km):.0f} km ({wk_pct:.0f}%) vs last week"))
+if la_dist > 0 and avg_dist_30 > 0:
+    vs = "longer" if la_dist > avg_dist_30 else "shorter"
+    insights.append(("📏", f"{abs(la_dist - avg_dist_30):.1f} km {vs} than your 30-day avg session ({avg_dist_30:.1f} km)"))
+if la_elev_v > 100:
+    insights.append(("⛰️", f"{int(la_elev_v)} m elevation — {'hilly' if la_elev_v/la_dist > 15 else 'moderate climb'}" if la_dist > 0 else f"{int(la_elev_v)} m elevation"))
+
+insight_html = "".join([
+    f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">'
+    f'<span style="font-size:0.85rem;min-width:20px">{ico}</span>'
+    f'<span style="color:#c8c4be;font-size:0.78rem;line-height:1.4">{txt}</span>'
+    f'</div>'
+    for ico, txt in insights
+]) if insights else '<div style="color:#555;font-size:0.78rem">No analysis data available</div>'
 
 st.markdown(f"""
 <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;
-            border-radius:10px;padding:1rem 1.2rem;margin-bottom:1.2rem">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-    <div>
-      <div style="color:#999;font-size:0.65rem;font-weight:600;text-transform:uppercase;
-                  letter-spacing:0.1em;margin-bottom:3px">Latest activity · {la_date}</div>
-      <div style="color:#e8e4de;font-size:1.1rem;font-weight:600;margin-bottom:4px">{la_name}</div>
-      <div style="color:#c8c4be;font-size:0.82rem">{stats}</div>
+            border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1rem">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;
+              flex-wrap:wrap;gap:12px">
+
+    <!-- Left: activity header + stats -->
+    <div style="flex:1;min-width:200px">
+      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
+                  letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>
+      <div style="color:#e8e4de;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>
+      <div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>
+      <!-- Insight bullets -->
+      <div style="border-top:1px solid #262626;padding-top:10px">
+        {insight_html}
+      </div>
     </div>
-    <div style="text-align:right">
-      <div style="background:#fc4c02;color:#fff;font-size:0.65rem;font-weight:700;
-                  text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;
-                  border-radius:999px;display:inline-block;margin-bottom:6px">{la_sport}</div>
-      <div style="font-size:0.78rem">{wk_badge}</div>
+
+    <!-- Right: sport badge + effort badge -->
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div style="background:#fc4c02;color:#fff;font-size:0.62rem;font-weight:700;
+                  text-transform:uppercase;letter-spacing:0.1em;padding:4px 12px;
+                  border-radius:999px">{la_sport}</div>
+      {f'<div style="background:{effort_col}22;border:1px solid {effort_col}44;color:{effort_col};font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px">{effort_lbl}</div>' if effort_lbl else ''}
+      <a href="https://www.strava.com/activities/{int(latest_act['activity_id'])}"
+         target="_blank"
+         style="color:#fc4c02;font-size:0.7rem;text-decoration:none;font-weight:600;
+                border:1px solid #3a1a0a;padding:3px 10px;border-radius:6px;margin-top:4px">
+        View on Strava ↗
+      </a>
     </div>
+
   </div>
 </div>
 """, unsafe_allow_html=True)
