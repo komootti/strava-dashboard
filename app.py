@@ -740,17 +740,39 @@ for _d in _sorted_dates:
     else:
         break
 
-with st.spinner("✦ Generating athlete intelligence..."):
-    _ai_text = get_ai_analysis(
-        la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
-        effort_lbl, la_pace_s,
-        _ctl, _atl, _tsb, _tsb_lbl,
-        this_wk_km, last_wk_km, avg_dist_30,
-        _this_h, _last_h,
-        _recent_sports_str, _days_since_rest
-    )
+_ai_text = None
 
-if _ai_text:
+# Check API key is available
+_api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") else ""
+
+if not _api_key:
+    st.markdown(
+        '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;' +
+        'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
+        '✦ Add <code>ANTHROPIC_API_KEY</code> to Streamlit secrets to enable athlete intelligence.' +
+        '</div>',
+        unsafe_allow_html=True
+    )
+else:
+    with st.spinner("✦ Generating athlete intelligence..."):
+        _ai_text = get_ai_analysis(
+            la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
+            effort_lbl, la_pace_s,
+            _ctl, _atl, _tsb, _tsb_lbl,
+            this_wk_km, last_wk_km, avg_dist_30,
+            _this_h, _last_h,
+            _recent_sports_str, _days_since_rest
+        )
+    if not _ai_text:
+        st.markdown(
+            '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #ff5555;' +
+            'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
+            '✦ Could not generate analysis — check API key in Streamlit secrets.' +
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+if _api_key and _ai_text:
     _paras = [p.strip() for p in _ai_text.split("\n\n") if p.strip()]
     _analysis  = _paras[0] if len(_paras) > 0 else ""
     _recommend = _paras[1] if len(_paras) > 1 else ""
