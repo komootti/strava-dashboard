@@ -507,19 +507,19 @@ st.markdown(f"""
   <div style="display:flex;justify-content:space-between;align-items:flex-start;
               flex-wrap:wrap;gap:12px">
 
-    <!-- Left: activity header + stats -->
+    
     <div style="flex:1;min-width:200px">
       <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>
       <div style="color:#e8e4de;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>
       <div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>
-      <!-- Insight bullets -->
+      
       <div style="border-top:1px solid #262626;padding-top:10px">
         {insight_html}
       </div>
     </div>
 
-    <!-- Right: sport badge + effort badge -->
+    
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
       <div style="background:#fc4c02;color:#fff;font-size:0.62rem;font-weight:700;
                   text-transform:uppercase;letter-spacing:0.1em;padding:4px 12px;
@@ -726,7 +726,7 @@ st.markdown(f"""
 
 <div class="dash-grid">
 
-  <!-- CTL -->
+  
   <div class="dash-card" style="grid-column:1; grid-row:1">
     <div class="card-label">CTL · Fitness</div>
     <div class="card-trend" style="color:{ctl_col}">{ctl_arr} {ctl_chg:.1f}</div>
@@ -741,7 +741,7 @@ st.markdown(f"""
     </div>
   </div>
 
-  <!-- ATL -->
+  
   <div class="dash-card" style="grid-column:2; grid-row:1">
     <div class="card-label">ATL · Fatigue</div>
     <div class="card-trend" style="color:{atl_col}">{atl_arr} {atl_chg:.1f}</div>
@@ -756,7 +756,7 @@ st.markdown(f"""
     </div>
   </div>
 
-  <!-- TSB -->
+  
   <div class="dash-card" style="grid-column:1; grid-row:2">
     <div class="card-label">TSB · Form</div>
     <div class="card-trend" style="color:{tsb_col}">{tsb_arr} {tsb_chg:.1f}</div>
@@ -771,7 +771,7 @@ st.markdown(f"""
     </div>
   </div>
 
-  <!-- This week -->
+  
   <div class="dash-card" style="grid-column:2; grid-row:2">
     <div class="card-label">This week</div>
     <div>
@@ -783,13 +783,13 @@ st.markdown(f"""
     </div>
   </div>
 
-  <!-- Running ring -->
+  
   <div class="ring-card" style="grid-column:3; grid-row:1/3">
     <div class="ring-label">🏃 2026 Running</div>
     {ring_run}
   </div>
 
-  <!-- Cycling ring -->
+  
   <div class="ring-card" style="grid-column:4; grid-row:1/3">
     <div class="ring-label">🚴 2026 Cycling</div>
     {ring_ride}
