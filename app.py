@@ -306,6 +306,7 @@ def load_data():
     return df
 
 df = load_data()
+_polylines = load_polylines()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 # ── Year filter state ────────────────────────────────────────────────────────
@@ -557,7 +558,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
+# ── Latest activity map ───────────────────────────────────────────────────────
+_la_poly = _polylines.get(str(int(latest_act["activity_id"])), "")
+if _la_poly:
+    _la_coords = decode_polyline(_la_poly)
+    if _la_coords:
+        try:
+            import folium
+            from streamlit_folium import st_folium
+            st_folium(make_folium_map(_la_coords, height=280),
+                      use_container_width=True, height=280,
+                      returned_objects=[], key="latest_map")
+        except ImportError:
+            st.caption("Add folium and streamlit-folium to requirements.txt for route maps.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TOP DASHBOARD — Two column summary + Progress rings
