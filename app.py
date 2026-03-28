@@ -443,6 +443,36 @@ st.markdown(f"""
 
 
 
+# ── Pre-compute CTL/ATL/TSB for use in AI section ───────────────────────────
+_end2_pre = df[df["is_endurance"]].copy()
+_end2_pre["tss"] = _end2_pre["rel_effort"].fillna(
+    _end2_pre["moving_min"] * (_end2_pre["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
+_daily_pre = _end2_pre.groupby(_end2_pre["date"].dt.normalize())["tss"].sum().reset_index()
+_daily_pre.columns = ["date","tss"]
+_daily_pre["date"] = pd.to_datetime(_daily_pre["date"])
+_full_pre = pd.date_range(_daily_pre["date"].min(), _daily_pre["date"].max(), freq="D")
+_daily_pre = _daily_pre.set_index("date").reindex(_full_pre, fill_value=0).reset_index()
+_daily_pre.columns = ["date","tss"]
+_daily_pre["ctl"] = _daily_pre["tss"].ewm(span=42, adjust=False).mean()
+_daily_pre["atl"] = _daily_pre["tss"].ewm(span=7,  adjust=False).mean()
+_daily_pre["tsb"] = _daily_pre["ctl"] - _daily_pre["atl"]
+_latest_pre = _daily_pre.iloc[-1]
+_ctl = _latest_pre["ctl"]; _atl = _latest_pre["atl"]; _tsb = _latest_pre["tsb"]
+if _tsb > 5:    _tsb_lbl = "Fresh"
+elif _tsb > -10: _tsb_lbl = "Training"
+elif _tsb > -20: _tsb_lbl = "Tired"
+else:            _tsb_lbl = "Overloaded"
+
+_ENDURANCE_PRE = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
+                  "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training"}
+_end_h_pre   = df[df["sport"].isin(_ENDURANCE_PRE)].copy()
+_last_date_p = df["date"].max()
+_wk_start_p  = _last_date_p.normalize() - pd.Timedelta(days=_last_date_p.dayofweek)
+_prev_start_p= _wk_start_p - pd.Timedelta(weeks=1)
+_this_h = _end_h_pre[_end_h_pre["date"] >= _wk_start_p]["moving_min"].sum() / 60
+_last_h = _end_h_pre[(_end_h_pre["date"] >= _prev_start_p) &
+                      (_end_h_pre["date"] < _wk_start_p)]["moving_min"].sum() / 60
+
 # ── Latest activity card + analysis ──────────────────────────────────────────
 latest_act = df.sort_values("date", ascending=False).iloc[0]
 la_sport   = latest_act["sport"]
@@ -621,6 +651,123 @@ if _la_poly:
                       returned_objects=[], key="latest_map")
         except ImportError:
             st.caption("Add folium and streamlit-folium to requirements.txt for route maps.")
+
+# ── AI Athlete Intelligence ──────────────────────────────────────────────────
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_ai_analysis(sport, name, dist, mins, elev, hr, effort_lbl,
+                    pace_s, ctl, atl, tsb, tsb_lbl,
+                    wk_km, last_wk_km, avg_dist_30, this_wk_h, last_wk_h,
+                    recent_sports_str, days_since_rest):
+    """Call Claude to generate activity analysis + next session recommendation."""
+    import requests as _req
+    import json as _json
+
+    hrs  = int(mins // 60)
+    mns  = int(mins % 60)
+    time_str = f"{hrs}h {mns:02d}m" if hrs > 0 else f"{mns}m"
+    wk_delta = wk_km - last_wk_km
+    h_delta  = this_wk_h - last_wk_h
+
+    prompt = f"""You are a personal endurance sports coach analysing an athlete's training data.
+
+LATEST ACTIVITY:
+- Sport: {sport}
+- Name: {name}
+- Distance: {dist:.1f} km
+- Duration: {time_str}
+- Elevation: {elev:.0f} m
+- Avg HR: {hr:.0f} bpm
+- Pace/Speed: {pace_s}
+- Effort: {effort_lbl if effort_lbl else 'Unknown'}
+
+TRAINING LOAD (right now):
+- CTL (fitness, 42-day): {ctl:.1f}
+- ATL (fatigue, 7-day): {atl:.1f}
+- TSB (form): {tsb:+.1f} ({tsb_lbl})
+- This week: {this_wk_h:.1f}h ({wk_delta:+.1f} km vs last week)
+- 30-day avg session distance for {sport}: {avg_dist_30:.1f} km
+- Days since last full rest day: {days_since_rest}
+- Recent sports mix (last 14 days): {recent_sports_str}
+
+Write TWO short sections:
+
+1. ACTIVITY ANALYSIS (2-3 sentences): What does this specific activity tell us? Comment on effort level, how it compares to recent training, HR zone, and anything notable. Be specific and use the numbers.
+
+2. RECOMMENDED NEXT SESSION (2-3 sentences): Based on TSB, fatigue, and training mix, what should this athlete do next and why? Be specific — name the sport, rough duration, intensity zone, and the reason.
+
+Keep both sections concise and direct. No bullet points. No headers in your response — just two paragraphs separated by a blank line. Write like a knowledgeable coach, not a generic fitness bot."""
+
+    try:
+        resp = _req.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 300,
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=15
+        )
+        if resp.status_code == 200:
+            return resp.json()["content"][0]["text"].strip()
+    except Exception as e:
+        return None
+    return None
+
+# Compute inputs for AI
+_recent_14 = df[df["date"] >= (df["date"].max() - pd.Timedelta(days=14))]
+_recent_sports = _recent_14["sport"].value_counts().head(4)
+_recent_sports_str = ", ".join([f"{s} ({c}x)" for s, c in _recent_sports.items()])
+
+# Days since last rest (no activity)
+_sorted_dates = sorted(df["date"].dt.normalize().unique(), reverse=True)
+_days_since_rest = 0
+_seen = set()
+for _d in _sorted_dates:
+    if _d in _seen:
+        continue
+    _seen.add(_d)
+    if _days_since_rest == 0:
+        _days_since_rest += 1
+        continue
+    _prev = _d + pd.Timedelta(days=1)
+    if _prev in _seen:
+        _days_since_rest += 1
+    else:
+        break
+
+with st.spinner("✦ Generating athlete intelligence..."):
+    _ai_text = get_ai_analysis(
+        la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
+        effort_lbl, la_pace_s,
+        _ctl, _atl, _tsb, _tsb_lbl,
+        this_wk_km, last_wk_km, avg_dist_30,
+        _this_h, _last_h,
+        _recent_sports_str, _days_since_rest
+    )
+
+if _ai_text:
+    _paras = [p.strip() for p in _ai_text.split("\n\n") if p.strip()]
+    _analysis  = _paras[0] if len(_paras) > 0 else ""
+    _recommend = _paras[1] if len(_paras) > 1 else ""
+
+    st.markdown(
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">'
+        + '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;'
+        + 'border-radius:10px;padding:1rem 1.2rem">'
+        + '<div style="color:#fc4c02;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:0.1em;margin-bottom:8px">✦ Activity Analysis</div>'
+        + f'<div style="color:#d4d0ca;font-size:0.85rem;line-height:1.6">{_analysis}</div>'
+        + '</div>'
+        + '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #50c850;'
+        + 'border-radius:10px;padding:1rem 1.2rem">'
+        + '<div style="color:#50c850;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
+        + 'letter-spacing:0.1em;margin-bottom:8px">▶ Recommended Next Session</div>'
+        + f'<div style="color:#d4d0ca;font-size:0.85rem;line-height:1.6">{_recommend}</div>'
+        + '</div>'
+        + '</div>',
+        unsafe_allow_html=True
+    )
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TOP DASHBOARD — Two column summary + Progress rings
