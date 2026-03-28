@@ -700,7 +700,11 @@ Keep both sections concise and direct. No bullet points. No headers in your resp
     try:
         resp = _req.post(
             "https://api.anthropic.com/v1/messages",
-            headers={"Content-Type": "application/json"},
+            headers={
+                "x-api-key": st.secrets.get("ANTHROPIC_API_KEY", ""),
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
             json={
                 "model": "claude-sonnet-4-20250514",
                 "max_tokens": 300,
