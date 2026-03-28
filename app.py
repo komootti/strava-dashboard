@@ -654,7 +654,7 @@ if _la_poly:
 
 # ── AI Athlete Intelligence ──────────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_ai_analysis(sport, name, dist, mins, elev, hr, effort_lbl,
+def get_ai_analysis(api_key, sport, name, dist, mins, elev, hr, effort_lbl,
                     pace_s, ctl, atl, tsb, tsb_lbl,
                     wk_km, last_wk_km, avg_dist_30, this_wk_h, last_wk_h,
                     recent_sports_str, days_since_rest):
@@ -701,22 +701,23 @@ Keep both sections concise and direct. No bullet points. No headers in your resp
         resp = _req.post(
             "https://api.anthropic.com/v1/messages",
             headers={
-                "x-api-key": st.secrets.get("ANTHROPIC_API_KEY", ""),
+                "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
             },
             json={
                 "model": "claude-sonnet-4-20250514",
-                "max_tokens": 300,
+                "max_tokens": 400,
                 "messages": [{"role": "user", "content": prompt}]
             },
-            timeout=15
+            timeout=20
         )
         if resp.status_code == 200:
             return resp.json()["content"][0]["text"].strip()
+        else:
+            return f"ERROR {resp.status_code}: {resp.text[:200]}"
     except Exception as e:
-        return None
-    return None
+        return f"EXCEPTION: {str(e)[:200]}"
 
 # Compute inputs for AI
 _recent_14 = df[df["date"] >= (df["date"].max() - pd.Timedelta(days=14))]
@@ -756,21 +757,23 @@ if not _api_key:
 else:
     with st.spinner("✦ Generating athlete intelligence..."):
         _ai_text = get_ai_analysis(
-            la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
+            _api_key, la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
             effort_lbl, la_pace_s,
             _ctl, _atl, _tsb, _tsb_lbl,
             this_wk_km, last_wk_km, avg_dist_30,
             _this_h, _last_h,
             _recent_sports_str, _days_since_rest
         )
-    if not _ai_text:
+    if not _ai_text or _ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION"):
+        _err = _ai_text or "No response"
         st.markdown(
             '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #ff5555;' +
             'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
-            '✦ Could not generate analysis — check API key in Streamlit secrets.' +
+            f'✦ API error: {_err}' +
             '</div>',
             unsafe_allow_html=True
         )
+        _ai_text = None
 
 if _api_key and _ai_text:
     _paras = [p.strip() for p in _ai_text.split("\n\n") if p.strip()]
