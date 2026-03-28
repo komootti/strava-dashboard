@@ -194,7 +194,57 @@ hr {
 """, unsafe_allow_html=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/komootti/strava-dashboard/main/activities.csv"
+GITHUB_RAW_URL    = "https://raw.githubusercontent.com/komootti/strava-dashboard/main/activities.csv"
+POLYLINES_RAW_URL = "https://raw.githubusercontent.com/komootti/strava-dashboard/main/polylines.json"
+
+@st.cache_data(ttl=300)
+def load_polylines():
+    try:
+        r = requests.get(POLYLINES_RAW_URL, timeout=10)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return {}
+
+def decode_polyline(encoded):
+    coords = []
+    idx = 0
+    lat = lng = 0
+    while idx < len(encoded):
+        for coord in range(2):
+            shift = result = 0
+            while True:
+                b = ord(encoded[idx]) - 63
+                idx += 1
+                result |= (b & 0x1F) << shift
+                shift += 5
+                if b < 0x20:
+                    break
+            val = ~(result >> 1) if result & 1 else result >> 1
+            if coord == 0:
+                lat += val
+            else:
+                lng += val
+        coords.append((lat / 1e5, lng / 1e5))
+    return coords
+
+def make_folium_map(coords, height=280):
+    import folium
+    if not coords:
+        return None
+    clat = sum(c[0] for c in coords) / len(coords)
+    clon = sum(c[1] for c in coords) / len(coords)
+    m = folium.Map(location=[clat, clon], zoom_start=12,
+                   tiles="CartoDB dark_matter", width="100%", height=height)
+    folium.PolyLine(coords, color="#fc4c02", weight=3, opacity=0.9).add_to(m)
+    folium.CircleMarker(coords[0],  radius=6, color="#50c850",
+                        fill=True, fill_color="#50c850", fill_opacity=1,
+                        tooltip="Start").add_to(m)
+    folium.CircleMarker(coords[-1], radius=6, color="#fc4c02",
+                        fill=True, fill_color="#fc4c02", fill_opacity=1,
+                        tooltip="Finish").add_to(m)
+    return m
 
 ENDURANCE = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
              "Nordic Ski","Swim","Rowing","E-Bike Ride","Stand Up Paddling","Kayaking"}
