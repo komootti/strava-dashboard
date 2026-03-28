@@ -1394,6 +1394,36 @@ st.dataframe(
     }
 )
 
+# ── Activity route map ────────────────────────────────────────────────────────
+if _polylines:
+    map_opts = []
+    for _, row in recent_acts.iterrows():
+        try:
+            aid = str(int(row["activity_id"]))
+        except Exception:
+            continue
+        if aid in _polylines:
+            lbl = row["Date"] + " · " + (str(row["name"])[:30] if pd.notna(row["name"]) else str(row["sport"]))
+            map_opts.append((lbl, aid))
+
+    if map_opts:
+        col_sel, _ = st.columns([3, 2])
+        with col_sel:
+            sel_lbl = st.selectbox("🗺️ View route map", [m[0] for m in map_opts], key="map_sel")
+        sel_aid    = next(aid for lbl, aid in map_opts if lbl == sel_lbl)
+        sel_coords = decode_polyline(_polylines[sel_aid])
+        if sel_coords:
+            try:
+                import folium
+                from streamlit_folium import st_folium
+                st_folium(make_folium_map(sel_coords, height=350),
+                          use_container_width=True, height=350,
+                          returned_objects=[], key="recent_map")
+            except ImportError:
+                st.info("Add `folium` and `streamlit-folium` to requirements.txt to see route maps.")
+    else:
+        st.caption("No route data available yet — sync will populate maps after next run.")
+
 st.markdown("""
 <div style="margin-top:3rem;padding-top:1rem;border-top:1px solid #222;
             color:#444;font-size:0.75rem;text-align:center">
