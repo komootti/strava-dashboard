@@ -724,10 +724,10 @@ st.markdown(f"""
 <style>
 .dash-grid {{
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1.4fr 1.4fr;
+    grid-template-rows: 145px 145px;
     gap: 10px;
-    height: 290px;
+    width: 100%;
 }}
 .dash-card {{
     background: #1a1a1a;
