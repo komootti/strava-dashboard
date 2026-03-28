@@ -520,40 +520,42 @@ _insights = [i for i in [pace_insight, hr_insight] if i]
 
 _effort_html = f'<div style="background:{effort_col}22;border:1px solid {effort_col}44;color:{effort_col};font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px">{effort_lbl}</div>' if effort_lbl else ""
 
-st.markdown(f"""
-<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;
-            border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1rem">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;
-              flex-wrap:wrap;gap:12px">
+# Pre-build HTML fragments to avoid nested f-strings/quotes
+_ins_html = ""
+for _ins in _insights:
+    _ins_html += (
+        f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">' +
+        f'<span style="font-size:0.85rem;min-width:20px">{_ins[0]}</span>' +
+        f'<span style="color:#aaa;font-size:0.78rem;line-height:1.4">{_ins[1:]}</span></div>'
+    )
 
-    <div style="flex:1;min-width:200px">
-      <div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;
-                  letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>
-      <div style="color:#e8e4de;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>
-      <div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>
+_card_left = (
+    f'<div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;' +
+    f'letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>' +
+    f'<div style="color:#e8e4de;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>' +
+    f'<div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>' +
+    f'<div style="border-top:1px solid #262626;padding-top:10px">{_ins_html}</div>'
+)
 
-      <div style="border-top:1px solid #262626;padding-top:10px">
-        {"".join(f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px"><span style="font-size:0.85rem;min-width:20px">{ins[0]}</span><span style="color:#aaa;font-size:0.78rem;line-height:1.4">{ins[1:]}</span></div>' for ins in _insights)}
-      </div>
-    </div>
+_card_right = (
+    f'<div style="background:#fc4c02;color:#fff;font-size:0.62rem;font-weight:700;' +
+    f'text-transform:uppercase;letter-spacing:0.1em;padding:4px 12px;border-radius:999px">{la_sport}</div>' +
+    (_effort_html) +
+    f'<div style="font-size:0.78rem;text-align:right">{_wk_badge}</div>' +
+    f'<a href="{_strava_url}" target="_blank" ' +
+    f'style="color:#fc4c02;font-size:0.7rem;text-decoration:none;font-weight:600;' +
+    f'border:1px solid #3a1a0a;padding:3px 10px;border-radius:6px;margin-top:4px">View on Strava ↗</a>'
+)
 
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-      <div style="background:#fc4c02;color:#fff;font-size:0.62rem;font-weight:700;
-                  text-transform:uppercase;letter-spacing:0.1em;padding:4px 12px;
-                  border-radius:999px">{la_sport}</div>
-      {_effort_html}
-      <div style="font-size:0.78rem;text-align:right">{_wk_badge}</div>
-      <a href="{_strava_url}"
-         target="_blank"
-         style="color:#fc4c02;font-size:0.7rem;text-decoration:none;font-weight:600;
-                border:1px solid #3a1a0a;padding:3px 10px;border-radius:6px;margin-top:4px">
-        View on Strava ↗
-      </a>
-    </div>
-
-  </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;' +
+    'border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1rem">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">' +
+    f'<div style="flex:1;min-width:200px">{_card_left}</div>' +
+    f'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">{_card_right}</div>' +
+    '</div></div>',
+    unsafe_allow_html=True
+)
 
 
 
