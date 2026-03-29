@@ -207,6 +207,20 @@ def load_polylines():
         pass
     return {}
 
+OURA_RAW_URL = "https://raw.githubusercontent.com/komootti/strava-dashboard/main/oura_data.json"
+
+@st.cache_data(ttl=300)
+def load_oura():
+    try:
+        r = requests.get(OURA_RAW_URL, timeout=10)
+        if r.status_code == 200:
+            df_o = pd.DataFrame(r.json())
+            df_o["date"] = pd.to_datetime(df_o["date"])
+            return df_o.sort_values("date", ascending=False).reset_index(drop=True)
+    except Exception:
+        pass
+    return pd.DataFrame()
+
 def decode_polyline(encoded):
     coords = []
     idx = 0
@@ -357,6 +371,7 @@ def load_data():
 
 df = load_data()
 _polylines = load_polylines()
+oura_df    = load_oura()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 # ── Year filter state ────────────────────────────────────────────────────────
@@ -656,7 +671,9 @@ if _la_poly:
 def get_ai_analysis(api_key, sport, name, dist, mins, elev, hr, effort_lbl,
                     pace_s, ctl, atl, tsb, tsb_lbl,
                     wk_km, last_wk_km, avg_dist_30, this_wk_h, last_wk_h,
-                    recent_sports_str, days_since_rest):
+                    recent_sports_str, days_since_rest,
+                    oura_readiness=None, oura_hrv=None, oura_hrv_avg=None,
+                    oura_rhr=None, oura_sleep=None, oura_sleep_h=None, oura_temp=None):
     """Call Claude to generate activity analysis + next session recommendation."""
     import requests as _req
     import json as _json
@@ -695,6 +712,18 @@ Write TWO short sections:
 2. RECOMMENDED NEXT SESSION (2-3 sentences): Based on TSB, fatigue, and training mix, what should this athlete do next and why? Be specific — name the sport, rough duration, intensity zone, and the reason.
 
 Keep both sections concise and direct. No bullet points. No headers in your response — just two paragraphs separated by a blank line. Write like a knowledgeable coach, not a generic fitness bot."""
+
+    if any(v is not None for v in [oura_readiness, oura_hrv, oura_rhr, oura_sleep]):
+        oura_ctx = "\n\nRECOVERY DATA (Oura Ring — last night):"
+        if oura_readiness: oura_ctx += f"\n- Readiness: {oura_readiness:.0f}/100"
+        if oura_hrv and oura_hrv_avg: oura_ctx += f"\n- HRV: {oura_hrv:.0f} ms (7d avg: {oura_hrv_avg:.0f} ms, {'above' if oura_hrv >= oura_hrv_avg else 'below'} average)"
+        elif oura_hrv: oura_ctx += f"\n- HRV: {oura_hrv:.0f} ms"
+        if oura_rhr:    oura_ctx += f"\n- Resting HR: {oura_rhr:.0f} bpm"
+        if oura_sleep:  oura_ctx += f"\n- Sleep score: {oura_sleep:.0f}/100"
+        if oura_sleep_h: oura_ctx += f"\n- Sleep: {int(oura_sleep_h//60)}h {int(oura_sleep_h%60):02d}m"
+        if oura_temp:   oura_ctx += f"\n- Body temp: {oura_temp:+.2f}°C vs baseline"
+        oura_ctx += "\n\nWeight the recovery data heavily. If readiness < 70 or HRV is below 7d average, recommend easy or rest regardless of TSB."
+        prompt += oura_ctx
 
     try:
         resp = _req.post(
@@ -1080,6 +1109,131 @@ c2.metric("Distance",     f"{end['dist_km'].sum():,.0f} km")
 c3.metric("Elevation",    f"{end['elev_gain_m'].sum()/1000:.1f}k m")
 c4.metric("Moving time",  f"{int(end['moving_min'].sum()//60):,}h")
 c5.metric("Calories",     f"{fdf['calories'].sum()/1000:.0f}k kcal")
+
+st.markdown("---")
+
+# ── Oura Recovery ─────────────────────────────────────────────────────────────
+if not oura_df.empty:
+    st.markdown("## Recovery & Readiness")
+
+    def osafe(row, col):
+        try: v = row[col]; return float(v) if pd.notna(v) else None
+        except: return None
+
+    today_o  = oura_df.iloc[0]
+    recent_7 = oura_df.head(7)
+    recent_30= oura_df.head(30).sort_values("date")
+
+    o_ready  = osafe(today_o, "readiness_score")
+    o_hrv    = osafe(today_o, "hrv_avg")
+    o_rhr    = osafe(today_o, "resting_hr")
+    o_sleep  = osafe(today_o, "sleep_score")
+    o_sleep_h= osafe(today_o, "total_sleep_min")
+    o_deep   = osafe(today_o, "deep_sleep_min")
+    o_temp   = osafe(today_o, "temperature_deviation")
+    o_resp   = osafe(today_o, "respiratory_rate")
+
+    hrv_7avg = recent_7["hrv_avg"].dropna().mean() if "hrv_avg" in recent_7.columns else None
+    rhr_7avg = recent_7["resting_hr"].dropna().mean() if "resting_hr" in recent_7.columns else None
+    hrv_d    = (o_hrv - hrv_7avg) if o_hrv and hrv_7avg else None
+    rhr_d    = (o_rhr - rhr_7avg) if o_rhr and rhr_7avg else None
+
+    def scol(v, hi=85, lo=70):
+        if v is None: return "#666"
+        return "#50c850" if v >= hi else "#ffa500" if v >= lo else "#ff5555"
+
+    def trend_badge(delta, invert=False, unit=""):
+        if delta is None: return ""
+        good = delta < 0 if invert else delta > 0
+        col  = "#50c850" if good else "#ff5555"
+        arr  = "▲" if delta > 0.05 else "▼" if delta < -0.05 else "—"
+        return f'<span style="color:{col};font-weight:600">{arr} {abs(delta):.1f}{unit}</span>'
+
+    if o_ready is not None:
+        if o_ready >= 85:   rmsg = "Optimal — peak performance window"
+        elif o_ready >= 70: rmsg = "Good — normal training"
+        elif o_ready >= 60: rmsg = "Fair — keep intensity moderate"
+        else:               rmsg = "Low — prioritise recovery today"
+    else: rmsg = ""
+
+    sleep_str = f"{int(o_sleep_h//60)}h {int(o_sleep_h%60):02d}m" if o_sleep_h else "—"
+    deep_str  = f"{int(o_deep//60)}h {int(o_deep%60):02d}m" if o_deep else "—"
+    temp_col  = "#ff5555" if o_temp and abs(o_temp) > 0.5 else "#ffa500" if o_temp and abs(o_temp) > 0.2 else "#50c850"
+
+    html_oura = (
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">'
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid {scol(o_ready)};border-radius:10px;padding:16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
+        + f'<div style="color:{scol(o_ready)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_ready) if o_ready else "—"}</div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{rmsg}</div></div>'
+
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
+        + f'<div style="color:#a78bfa;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_hrv) if o_hrv else "—"}<span style="font-size:0.9rem;color:#666"> ms</span></div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(hrv_d, unit=" ms")} vs 7d avg</div></div>'
+
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
+        + f'<div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg</div></div>'
+
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
+        + f'<div style="color:{scol(o_sleep)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_sleep) if o_sleep else "—"}</div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{sleep_str} · {deep_str} deep</div></div>'
+        + '</div>'
+
+        + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
+        + f'<div style="color:{temp_col};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_temp:+.2f}°C" if o_temp is not None else "—"}</div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">deviation from baseline</div></div>'
+
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
+        + f'<div style="color:#e8e4de;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
+
+        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px">'
+        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
+        + f'<div style="color:{scol(osafe(today_o,"activity_score"))};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(osafe(today_o,"activity_score")) if osafe(today_o,"activity_score") else "—"}</div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Oura activity balance</div></div>'
+        + '</div>'
+    )
+
+    st.markdown(html_oura, unsafe_allow_html=True)
+
+    # 30-day HRV + RHR trend chart
+    chart_o = recent_30[["date","hrv_avg","resting_hr"]].copy()
+    chart_o = chart_o[chart_o["hrv_avg"].notna() | chart_o["resting_hr"].notna()]
+
+    if len(chart_o) > 3:
+        chart_o["hrv_roll"] = chart_o["hrv_avg"].rolling(7, min_periods=1).mean()
+        fig_o = go.Figure()
+        fig_o.add_trace(go.Bar(
+            x=chart_o["date"], y=chart_o["hrv_avg"].round(1), name="HRV",
+            marker=dict(color="rgba(167,139,250,0.4)", line=dict(width=0)),
+            hovertemplate="<b>%{x|%d %b}</b><br>HRV: <b>%{y:.0f} ms</b><extra></extra>"))
+        fig_o.add_trace(go.Scatter(
+            x=chart_o["date"], y=chart_o["hrv_roll"].round(1), name="HRV 7d avg",
+            mode="lines", line=dict(color="#a78bfa", width=2.5),
+            hovertemplate="7d avg: <b>%{y:.0f} ms</b><extra></extra>"))
+        if chart_o["resting_hr"].notna().sum() > 3:
+            fig_o.add_trace(go.Scatter(
+                x=chart_o["date"], y=chart_o["resting_hr"], name="Resting HR",
+                mode="lines+markers", yaxis="y2",
+                line=dict(color="#fc4c02", width=1.5, dash="dot"),
+                marker=dict(size=4, color="#fc4c02"),
+                hovertemplate="<b>%{x|%d %b}</b><br>RHR: <b>%{y:.0f} bpm</b><extra></extra>"))
+        fig_o.update_layout(
+            **{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=50)},
+            height=260,
+            yaxis=dict(**axis_style(), title="HRV (ms)"),
+            yaxis2=dict(**axis_style(), title="RHR (bpm)", overlaying="y",
+                        side="right", showgrid=False),
+        )
+        fig_o.update_xaxes(**axis_style())
+        st.plotly_chart(fig_o, use_container_width=True)
 
 st.markdown("---")
 
