@@ -75,21 +75,26 @@ html, body, [class*="css"] {
 
 /* Section headers */
 h1 {
-    color: #f0ede8 !important;
+    color: #1a1a1a !important;
     font-size: 1.6rem !important;
     font-weight: 700 !important;
     letter-spacing: -0.02em;
 }
 h2 {
     color: #1a1a1a !important;
-    font-size: 1.1rem !important;
-    font-weight: 600 !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-top: 1rem !important;
-    padding-bottom: 0.5rem;
+    letter-spacing: 0.08em;
+    margin-top: 0.8rem !important;
+    margin-bottom: 0.8rem !important;
+    padding-bottom: 3px;
     border-bottom: 2px solid #fc4c02;
-    display: inline-block;
+    display: table;
+    line-height: 1.3;
+}
+h2::after {
+    content: none;
 }
 h3 {
     color: #c8c4be !important;
@@ -311,7 +316,7 @@ CHART_LAYOUT = dict(
     hoverlabel=dict(
         bgcolor="#ffffff",
         bordercolor="#fc4c02",
-        font=dict(color="#ffffff", size=12, family="DM Sans"),
+        font=dict(color="#1a1a1a", size=12, family="DM Sans"),
     ),
     hovermode="closest",
 )
@@ -1241,7 +1246,7 @@ if not oura_df.empty:
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">'
         + oura_card("Readiness",
             f'<span style="color:{scol(o_ready)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_ready) if o_ready else "—"}</span>',
-            rmsg, _spark_ready, scol(o_ready), border_color=scol(o_ready))
+            rmsg, _spark_ready, scol(o_ready), border_color=None)
         + oura_card("HRV",
             f'<span style="color:#a78bfa;font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_hrv) if o_hrv else "—"}</span><span style="color:#999;font-size:0.85rem"> ms</span>',
             f'{trend_badge(hrv_d, unit=" ms")} vs 7d avg', _spark_hrv, "#a78bfa")
@@ -1368,7 +1373,7 @@ st.markdown("""<style>
     font-weight: 600 !important;
 }
 .hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; }
-.hm-year-wrap div[data-testid="stRadio"] label * { color: #1a1a1a !important; font-weight: 600 !important; }
+.hm-year-wrap div[data-testid="stRadio"] label, .hm-year-wrap div[data-testid="stRadio"] label *, .hm-year-wrap div[data-testid="stRadio"] label div, .hm-year-wrap div[data-testid="stRadio"] label p, .hm-year-wrap div[data-testid="stRadio"] label span { color: #1a1a1a !important; font-weight: 600 !important; }
 .hm-year-wrap div[data-testid="stRadio"] label:has(input:checked) * { color: #fc4c02 !important; }
 .hm-year-wrap div[data-testid="stRadio"] label > div { display: flex !important; align-items: center !important; }
 </style>""", unsafe_allow_html=True)
@@ -1419,6 +1424,9 @@ for _, row in day_df.iterrows():
     if row["tss"] > 0:
         title += " load"
     cells.append(f'<rect x="{x}" y="{y}" width="{cell_size}" height="{cell_size}" '                 f'rx="2" fill="{col}"><title>{title}</title></rect>')
+    # Also add a visible label for today's cell if tss > 0
+    if row["tss"] > 0 and row["date"].date() == pd.Timestamp.now().date():
+        cells.append(f'<text x="{x+cell_size//2}" y="{y-3}" text-anchor="middle" fill="#fc4c02" font-size="7" font-family="DM Sans">{row["tss"]:.0f}</text>')
 
 # Month labels
 month_labels = []
@@ -1639,7 +1647,7 @@ if len(weekly_hrs) >= 2:
       <div style="color:#666;font-size:0.68rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.12em;margin-bottom:6px">This week</div>
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="color:#ffffff;font-size:2rem;font-weight:700;
+        <div style="color:#1a1a1a;font-size:2rem;font-weight:700;
                     font-family:'DM Mono',monospace;line-height:1;min-width:120px">
           {this_h}h&nbsp;{this_m:02d}m
         </div>
