@@ -26,17 +26,17 @@ html, body, [class*="css"] {
 
 /* Dark background */
 .stApp {
-    background-color: #0f0f0f;
-    color: #e8e4de;
+    background-color: #f7f5f2;
+    color: #1a1a1a;
 }
 
 /* Sidebar */
 [data-testid="stSidebar"] {
-    background-color: #161616 !important;
-    border-right: 1px solid #2a2a2a;
+    background-color: #ffffff !important;
+    border-right: 1px solid #e2ddd8;
 }
 [data-testid="stSidebar"] * {
-    color: #d4d0ca !important;
+    color: #333 !important;
 }
 
 /* Main content padding */
@@ -47,8 +47,8 @@ html, body, [class*="css"] {
 
 /* Metric cards */
 [data-testid="metric-container"] {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: #ffffff;
+    border: 1px solid #e2ddd8;
     border-radius: 12px;
     padding: 1.2rem 1.4rem !important;
     transition: border-color 0.2s;
@@ -99,13 +99,13 @@ h3 {
 
 /* Divider */
 hr {
-    border-color: #2a2a2a !important;
+    border-color: #e2ddd8 !important;
     margin: 1.5rem 0 !important;
 }
 
 /* Dataframe */
 [data-testid="stDataFrame"] {
-    border: 1px solid #2a2a2a;
+    border: 1px solid #e2ddd8;
     border-radius: 12px;
     overflow: hidden;
 }
@@ -151,8 +151,8 @@ hr {
 
 /* Record card style */
 .record-card {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: #ffffff;
+    border: 1px solid #e2ddd8;
     border-radius: 12px;
     padding: 1rem 1.2rem;
     margin-bottom: 0.5rem;
@@ -289,7 +289,7 @@ CHART_LAYOUT = dict(
     hoverlabel=dict(
         bgcolor="#ffffff",
         bordercolor="#fc4c02",
-        font=dict(color="#1a1a1a", size=12, family="DM Sans"),
+        font=dict(color="#ffffff", size=12, family="DM Sans"),
     ),
     hovermode="closest",
 )
@@ -316,7 +316,7 @@ def lollipop(x, y, color="#fc4c02", name="", unit="km"):
     )
     dot = go.Scatter(
         x=x, y=y, mode="markers", name="",
-        marker=dict(color=color, size=8, line=dict(color="#0f0f0f", width=2)),
+        marker=dict(color=color, size=8, line=dict(color="#ffffff", width=2)),
         showlegend=False,
         hovertemplate=tip,
     )
@@ -393,10 +393,10 @@ div[data-testid='stSidebar'] .stSelectbox label {
     letter-spacing: 0.1em;
 }
 div[data-testid='stSidebar'] .stSelectbox > div > div {
-    background: #1a1a1a !important;
-    border: 1px solid #2a2a2a !important;
+    background: #ffffff !important;
+    border: 1px solid #e2ddd8 !important;
     border-radius: 10px !important;
-    color: #d4d0ca !important;
+    color: #333 !important;
     font-size: 0.85rem !important;
     font-weight: 500 !important;
     transition: border-color 0.2s !important;
@@ -592,7 +592,7 @@ if la_elev_v > 100:
 insight_html = "".join([
     f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">'
     f'<span style="font-size:0.85rem;min-width:20px">{ico}</span>'
-    f'<span style="color:#c8c4be;font-size:0.78rem;line-height:1.4">{txt}</span>'
+    f'<span style="color:#555555;font-size:0.78rem;line-height:1.4">{txt}</span>'
     f'</div>'
     for ico, txt in insights
 ]) if insights else '<div style="color:#555;font-size:0.78rem">No analysis data available</div>'
@@ -622,15 +622,15 @@ for _ins in _insights:
     # Show full insight string — no character splitting
     _ins_html += (
         '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">' +
-        f'<span style="color:#aaa;font-size:0.78rem;line-height:1.4">{_ins}</span></div>'
+        f'<span style="color:#999;font-size:0.78rem;line-height:1.4">{_ins}</span></div>'
     )
 
 _card_left = (
     f'<div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;' +
     f'letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>' +
-    f'<div style="color:#1a1a1a;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>' +
-    f'<div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>' +
-    f'<div style="border-top:1px solid #262626;padding-top:10px">{_ins_html}</div>'
+    f'<div style="color:#ffffff;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>' +
+    f'<div style="color:#888;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>' +
+    f'<div style="border-top:1px solid #e8e4de;padding-top:10px">{_ins_html}</div>'
 )
 
 _card_right = (
@@ -640,11 +640,11 @@ _card_right = (
     f'<div style="font-size:0.78rem;text-align:right">{_wk_badge}</div>' +
     f'<a href="{_strava_url}" target="_blank" ' +
     f'style="color:#fc4c02;font-size:0.7rem;text-decoration:none;font-weight:600;' +
-    f'border:1px solid #3a1a0a;padding:3px 10px;border-radius:6px;margin-top:4px">View on Strava ↗</a>'
+    f'border:1px solid #fc4c02;padding:3px 10px;border-radius:6px;margin-top:4px">View on Strava ↗</a>'
 )
 
 st.markdown(
-    '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;' +
+    '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;' +
     'border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1rem">' +
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">' +
     f'<div style="flex:1;min-width:200px">{_card_left}</div>' +
@@ -776,7 +776,7 @@ _api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") els
 
 if not _api_key:
     st.markdown(
-        '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;' +
+        '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;' +
         'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
         '✦ Add <code>ANTHROPIC_API_KEY</code> to Streamlit secrets to enable athlete intelligence.' +
         '</div>',
@@ -808,7 +808,7 @@ else:
     if not _ai_text or _ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION"):
         _err = _ai_text or "No response"
         st.markdown(
-            '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #ff5555;' +
+            '<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:3px solid #ff5555;' +
             'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
             f'✦ API error: {_err}' +
             '</div>',
@@ -823,13 +823,13 @@ if _api_key and _ai_text:
 
     st.markdown(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">'
-        + '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #fc4c02;'
+        + '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;'
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#fc4c02;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">✦ Activity Analysis</div>'
         + f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_analysis}</div>'
         + '</div>'
-        + '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #50c850;'
+        + '<div style="background:#f5fbf5;border:1px solid #c8ecc8;border-left:4px solid #50c850;'
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#50c850;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">▶ Recommended Next Session</div>'
@@ -896,9 +896,9 @@ def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=72):
     stroke-dasharray="{dash:.1f} {gap:.1f}"
     stroke-dashoffset="{circ*0.25:.1f}"
     stroke-linecap="round"/>
-  <text x="90" y="80" text-anchor="middle" fill="#e8e4de"
+  <text x="90" y="80" text-anchor="middle" fill="#1a1a1a"
     font-size="26" font-weight="700" font-family="DM Mono,monospace">{current:.0f}</text>
-  <text x="90" y="100" text-anchor="middle" fill="#aaa"
+  <text x="90" y="100" text-anchor="middle" fill="#666"
     font-size="13" font-family="DM Sans,sans-serif">{unit} of {target}</text>
   <text x="90" y="122" text-anchor="middle" fill="{color}"
     font-size="15" font-weight="700" font-family="DM Sans,sans-serif">{pct:.0f}%</text>
@@ -948,7 +948,8 @@ st.markdown(f"""
 }}
 .dash-card {{
     background: #ffffff;
-    border: 1px solid #e8e4de;
+    border: 1px solid #e2ddd8;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     border-radius: 10px;
     padding: 18px 20px;
     display: flex;
@@ -971,7 +972,7 @@ st.markdown(f"""
     font-weight: 700;
     font-family: 'DM Mono', monospace;
     line-height: 1;
-    color: #e8e4de;
+    color: #1a1a1a;
 }}
 .card-sub {{
     font-size: 0.7rem;
@@ -996,12 +997,12 @@ st.markdown(f"""
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 0.75rem;
-    color: #1a1a1a;
+    color: #ffffff;
     width: 220px;
     z-index: 999;
     line-height: 1.5;
     text-align: left;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }}
 .ring-card {{
     background: #ffffff;
@@ -1078,7 +1079,7 @@ st.markdown(f"""
       <div class="card-value">{_this_hm}h&nbsp;{_this_mm:02d}m</div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
         <span style="color:{_dh_col};font-size:0.82rem;font-weight:700">{_dh_arrow} {_dh_hm}h {_dh_mm:02d}m</span>
-        <span style="color:#aaa;font-size:0.72rem">vs last week</span>
+        <span style="color:#999;font-size:0.72rem">vs last week</span>
       </div>
     </div>
   </div>
@@ -1152,40 +1153,40 @@ if not oura_df.empty:
 
     html_oura = (
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">'
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid {scol(o_ready)};border-radius:10px;padding:16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
+        + f'<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:3px solid {scol(o_ready)};border-radius:10px;padding:16px">'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
         + f'<div style="color:{scol(o_ready)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_ready) if o_ready else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{rmsg}</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
         + f'<div style="color:#a78bfa;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_hrv) if o_hrv else "—"}<span style="font-size:0.9rem;color:#666"> ms</span></div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(hrv_d, unit=" ms")} vs 7d avg</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
-        + f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
+        + f'<div style="color:#ffffff;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
         + f'<div style="color:{scol(o_sleep)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_sleep) if o_sleep else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{sleep_str} · {deep_str} deep</div></div>'
         + '</div>'
 
         + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
         + f'<div style="color:{temp_col};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_temp:+.2f}°C" if o_temp is not None else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">deviation from baseline</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
-        + f'<div style="color:#1a1a1a;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
+        + f'<div style="color:#ffffff;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
+        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
         + f'<div style="color:{scol(osafe(today_o,"activity_score"))};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(osafe(today_o,"activity_score")) if osafe(today_o,"activity_score") else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Oura activity balance</div></div>'
         + '</div>'
@@ -1267,7 +1268,7 @@ st.markdown("""<style>
 .hm-year-wrap div[data-testid="stRadio"] label {
     padding: 2px 10px !important;
     border-radius: 6px !important;
-    border: 1px solid #252525 !important;
+    border: 1px solid #e8e4de !important;
     background: transparent !important;
     color: #666 !important;
     font-size: 0.7rem !important;
@@ -1356,7 +1357,7 @@ for i, d in enumerate(DOW_LABELS):
 # Legend
 legend_x = pad_left
 legend_y  = pad_top + 7*(cell_size+gap) + 12
-legend_svg = [f'<text x="{legend_x}" y="{legend_y+11}" fill="#999" font-size="9" font-family="DM Sans">Less</text>']
+legend_svg = [f'<text x="{legend_x}" y="{legend_y+11}" fill="#bbb" font-size="9" font-family="DM Sans">Less</text>']
 for i, col in enumerate(COLOURS):
     lx = legend_x + 32 + i*(cell_size+gap)
     legend_svg.append(f'<rect x="{lx}" y="{legend_y}" width="{cell_size}" height="{cell_size}" rx="2" fill="{col}"><title>{LABELS[i]}</title></rect>')
@@ -1389,7 +1390,7 @@ s2.metric("Rest days",     f"{total_days - active_days}")
 s3.metric("Longest streak", f"{max_streak} days")
 s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
 
-st.markdown(f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:1rem 1.2rem;overflow-x:auto;box-shadow:0 1px 4px rgba(0,0,0,0.06);-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='font-size:0.72rem;color:#444;margin-top:4px'>Hover over any square to see the training load. Colour = training stress: dark = rest, orange = hard session.</div>", unsafe_allow_html=True)
 
@@ -1425,7 +1426,7 @@ def activity_detail_html(row, extra_stat="", extra_label=""):
     if extra_stat:
         stats = f"<b style='color:#fc4c02'>{extra_label}: {extra_stat}</b> · " + stats
     return f"""
-<div style="background:#111;border:1px solid #222;border-radius:8px;
+<div style="background:#f7f5f2;border:1px solid #e2ddd8;border-radius:8px;
             padding:0.75rem 1rem;margin-top:8px;font-size:0.78rem">
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div>
@@ -1556,11 +1557,11 @@ if len(weekly_hrs) >= 2:
       <div style="color:#666;font-size:0.68rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.12em;margin-bottom:6px">This week</div>
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="color:#1a1a1a;font-size:2rem;font-weight:700;
+        <div style="color:#ffffff;font-size:2rem;font-weight:700;
                     font-family:'DM Mono',monospace;line-height:1;min-width:120px">
           {this_h}h&nbsp;{this_m:02d}m
         </div>
-        <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;
+        <div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:8px;
                     padding:6px 14px;display:inline-flex;align-items:center;gap:8px">
           <span style="color:{delta_col};font-size:0.95rem;font-weight:700">{arrow} {dlt_h}h {dlt_m:02d}m</span>
           <span style="color:#555;font-size:0.78rem">({abs(delta_pct):.0f}%) vs last week</span>
@@ -1830,7 +1831,7 @@ if _polylines:
         st.caption("No route data available yet — sync will populate maps after next run.")
 
 st.markdown("""
-<div style="margin-top:3rem;padding-top:1rem;border-top:1px solid #222;
+<div style="margin-top:3rem;padding-top:1rem;border-top:1px solid #e2ddd8;
             color:#444;font-size:0.75rem;text-align:center">
   Built on Strava data · Powered by Streamlit
 </div>
