@@ -2,6 +2,7 @@
 """
 Strava Auto Sync — GitHub Actions
 Pulls new activities from Strava, appends to activities.csv, commits to GitHub.
+Uses a 7-day lookback window to catch late-uploaded activities.
 """
 
 import os, time, requests, base64, io
@@ -25,24 +26,20 @@ r = requests.post("https://www.strava.com/oauth/token", data={
     "refresh_token": REFRESH_TOKEN,
 })
 r.raise_for_status()
-tokens       = r.json()
-ACCESS_TOKEN = tokens["access_token"]
+ACCESS_TOKEN = r.json()["access_token"]
 print("✅ Authenticated with Strava")
 
-# ── Step 2: Load existing CSV via raw URL (handles large files correctly) ──────
+# ── Step 2: Load existing CSV ─────────────────────────────────────────────────
 print("Loading activities.csv from GitHub...")
 headers_gh = {
     "Authorization": f"token {GITHUB_TOKEN}",
     "Accept":        "application/vnd.github.v3+json",
 }
-
-# Get file SHA via contents API (needed later for the commit)
 api_url  = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{CSV_PATH}"
 r        = requests.get(api_url, headers=headers_gh)
 r.raise_for_status()
-sha = r.json()["sha"]
+sha      = r.json()["sha"]
 
-# Download actual content via raw URL — works for any file size
 raw_url  = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/{CSV_PATH}"
 r        = requests.get(raw_url, headers={"Authorization": f"token {GITHUB_TOKEN}"})
 r.raise_for_status()
@@ -52,11 +49,13 @@ existing["_date"] = pd.to_datetime(
     existing["Activity Date"],
     format="%b %d, %Y, %I:%M:%S %p", errors="coerce")
 last_date = existing["_date"].max()
-after_ts  = int(last_date.timestamp()) - (2 * 24 * 3600)  # look back 2 days to catch late uploads
-print(f"✅ {len(existing):,} existing activities — last: {last_date.strftime('%d %b %Y')}")
 
-# ── Step 3: Fetch new activities from Strava ──────────────────────────────────
-print("Fetching new activities from Strava...")
+# 7-day lookback — catches activities uploaded late, out of order, or from watch sync delays
+after_ts  = int(last_date.timestamp()) - (7 * 24 * 3600)
+print(f"✅ {len(existing):,} existing — last: {last_date.strftime('%d %b %Y')} — fetching from {(last_date - pd.Timedelta(days=7)).strftime('%d %b %Y')}")
+
+# ── Step 3: Fetch activities from Strava ──────────────────────────────────────
+print("Fetching activities from Strava...")
 headers_st = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
 all_new    = []
 page       = 1
@@ -75,13 +74,13 @@ while True:
     page += 1
     time.sleep(0.5)
 
-print(f"✅ {len(all_new)} new activities fetched")
+print(f"✅ {len(all_new)} activities fetched from Strava (last 7 days)")
 
 if len(all_new) == 0:
-    print("Nothing new to sync — done.")
+    print("Nothing to sync — done.")
     exit(0)
 
-# ── Step 4: Convert to CSV format ─────────────────────────────────────────────
+# ── Step 4: Convert to CSV rows ───────────────────────────────────────────────
 rows = []
 for a in all_new:
     start = datetime.fromisoformat(a["start_date_local"].replace("Z", ""))
@@ -114,7 +113,7 @@ for a in all_new:
 
 new_df = pd.DataFrame(rows)
 
-# ── Step 5: Merge and deduplicate ─────────────────────────────────────────────
+# ── Step 5: Merge and deduplicate by Activity ID ──────────────────────────────
 existing = existing.drop(columns=["_date"], errors="ignore")
 for col in existing.columns:
     if col not in new_df.columns:
@@ -123,15 +122,17 @@ new_df   = new_df.reindex(columns=existing.columns)
 combined = pd.concat([existing, new_df], ignore_index=True)
 combined = combined.drop_duplicates(subset=["Activity ID"], keep="last")
 combined = combined.sort_values("Activity Date").reset_index(drop=True)
-print(f"✅ {len(combined):,} total activities after merge")
 
-# ── Step 6: Push updated CSV back to GitHub ───────────────────────────────────
+added = len(combined) - (len(existing))
+print(f"✅ {len(combined):,} total activities — {added} new added")
+
+# ── Step 6: Push to GitHub ────────────────────────────────────────────────────
 print("Pushing to GitHub...")
 csv_content = combined.to_csv(index=False).encode("utf-8")
 encoded     = base64.b64encode(csv_content).decode("utf-8")
 
 payload = {
-    "message": f"Auto-sync: +{len(new_df)} activities ({datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC)",
+    "message": f"Auto-sync: {added} new activities ({datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC)",
     "content": encoded,
     "sha":     sha,
 }
