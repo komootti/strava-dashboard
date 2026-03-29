@@ -111,26 +111,25 @@ hr {
 }
 [data-testid="stDataFrame"] * {
     color: #1a1a1a !important;
-    background-color: transparent !important;
+    background: transparent !important;
+    font-family: "DM Sans", sans-serif !important;
 }
-[data-testid="stDataFrame"] [data-testid="glideDataGrid"] {
+[data-testid="stDataFrame"] [class*="dvn-scroller"] {
     background: #ffffff !important;
 }
-[data-testid="stDataFrame"] thead th {
-    background: #f7f5f2 !important;
-    color: #888 !important;
-    font-size: 0.72rem !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+[data-testid="stDataFrame"] canvas {
+    filter: invert(0) !important;
 }
-[data-testid="stDataFrame"] tbody td {
-    color: #1a1a1a !important;
-    border-bottom: 1px solid #f0ede8 !important;
-    font-size: 0.85rem !important;
-}
-[data-testid="stDataFrame"] tbody tr:hover td {
-    background: #faf8f5 !important;
+/* Force the glide data grid to light mode */
+.stDataFrame [data-testid="stDataFrame"] {
+    --gdg-bg-cell: #ffffff !important;
+    --gdg-bg-cell-medium: #f7f5f2 !important;
+    --gdg-text-dark: #1a1a1a !important;
+    --gdg-text-medium: #555 !important;
+    --gdg-text-light: #888 !important;
+    --gdg-border-color: #e8e4de !important;
+    --gdg-bg-header: #f7f5f2 !important;
+    --gdg-bg-header-has-focus: #f0ede8 !important;
 }
 
 /* Sliders */
@@ -666,15 +665,7 @@ _card_right = (
     f'border:1px solid #fc4c02;padding:3px 10px;border-radius:6px;margin-top:4px">View on Strava ↗</a>'
 )
 
-st.markdown(
-    '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;' +
-    'border-radius:10px;padding:1.1rem 1.3rem;margin-bottom:1rem">' +
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">' +
-    f'<div style="flex:1;min-width:200px">{_card_left}</div>' +
-    f'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">{_card_right}</div>' +
-    '</div></div>',
-    unsafe_allow_html=True
-)
+# (activity card now shown inline with map below)
 
 # ── Latest activity map + info side by side ──────────────────────────────────
 _la_poly = _polylines.get(str(int(latest_act["activity_id"])), "")
@@ -1151,7 +1142,7 @@ st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0
 
 # ── Oura Recovery ─────────────────────────────────────────────────────────────
 if not oura_df.empty:
-    st.markdown("## Recovery & Readiness")
+    st.markdown('<h2 style="margin-top:0.5rem!important">Recovery & Readiness</h2>', unsafe_allow_html=True)
 
     def osafe(row, col):
         try: v = row[col]; return float(v) if pd.notna(v) else None
