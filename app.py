@@ -41,7 +41,7 @@ html, body, [class*="css"] {
 
 /* Main content padding */
 .block-container {
-    padding: 2rem 2.5rem 2rem 2.5rem !important;
+    padding: 1.2rem 2rem 1.2rem 2rem !important;
     max-width: 1400px;
 }
 
@@ -81,12 +81,12 @@ h1 {
     letter-spacing: -0.02em;
 }
 h2 {
-    color: #f0ede8 !important;
+    color: #1a1a1a !important;
     font-size: 1.1rem !important;
     font-weight: 600 !important;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-top: 2rem !important;
+    margin-top: 1rem !important;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid #fc4c02;
     display: inline-block;
@@ -108,6 +108,29 @@ hr {
     border: 1px solid #e2ddd8;
     border-radius: 12px;
     overflow: hidden;
+}
+[data-testid="stDataFrame"] * {
+    color: #1a1a1a !important;
+    background-color: transparent !important;
+}
+[data-testid="stDataFrame"] [data-testid="glideDataGrid"] {
+    background: #ffffff !important;
+}
+[data-testid="stDataFrame"] thead th {
+    background: #f7f5f2 !important;
+    color: #888 !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+[data-testid="stDataFrame"] tbody td {
+    color: #1a1a1a !important;
+    border-bottom: 1px solid #f0ede8 !important;
+    font-size: 0.85rem !important;
+}
+[data-testid="stDataFrame"] tbody tr:hover td {
+    background: #faf8f5 !important;
 }
 
 /* Sliders */
@@ -381,7 +404,7 @@ if "selected_year" not in st.session_state:
 
 with st.sidebar:
     st.markdown("## 🔥 Filters")
-    st.markdown("---")
+    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
     # ── Year filter ──────────────────────────────────────────────────────────
     st.markdown("""<style>
@@ -413,11 +436,11 @@ div[data-testid='stSidebar'] .stSelectbox > div > div:hover {
         st.session_state["selected_year"] = chosen
         st.rerun()
 
-    st.markdown("---")
+    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
     all_sports = sorted(df["sport"].unique().tolist())
     selected_sports = st.multiselect("Sports", all_sports, default=all_sports)
 
-    st.markdown("---")
+    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
     if st.button("🔄 Reload data", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
@@ -1098,10 +1121,10 @@ st.markdown(f"""
 
 </div>
 """, unsafe_allow_html=True)
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Oura Recovery ─────────────────────────────────────────────────────────────
 if not oura_df.empty:
@@ -1226,7 +1249,7 @@ if not oura_df.empty:
         fig_o.update_xaxes(**axis_style())
         st.plotly_chart(fig_o, use_container_width=True)
 
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Headline metrics ──────────────────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -1236,7 +1259,7 @@ c3.metric("Elevation",    f"{end['elev_gain_m'].sum()/1000:.1f}k m")
 c4.metric("Moving time",  f"{int(end['moving_min'].sum()//60):,}h")
 c5.metric("Calories",     f"{fdf['calories'].sum()/1000:.0f}k kcal")
 
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Training Consistency Heatmap ─────────────────────────────────────────────
 st.markdown("## Training Consistency")
@@ -1394,7 +1417,7 @@ st.markdown(f'<div style="background:#ffffff;border:1px solid #e2ddd8;border-rad
 
 st.markdown("<div style='font-size:0.72rem;color:#444;margin-top:4px'>Hover over any square to see the training load. Colour = training stress: dark = rest, orange = hard session.</div>", unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Personal records ──────────────────────────────────────────────────────────
 st.markdown("## Personal Records")
@@ -1497,7 +1520,7 @@ with st.expander("📋 View record activity details", expanded=False):
             st.markdown(activity_detail_html(lride_r,
                 extra_stat=f"{lride_r['dist_km']:.1f} km",
                 extra_label="Distance"), unsafe_allow_html=True)
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 st.markdown("## Weekly Volume")
 
@@ -1591,7 +1614,7 @@ fig_h.update_xaxes(**axis_style())
 fig_h.update_yaxes(**axis_style())
 st.plotly_chart(fig_h, use_container_width=True)
 
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Yearly volumes side by side ───────────────────────────────────────────────
 st.markdown("## Yearly Volume" if selected_year == "All" else f"## {selected_year} — Monthly Volume")
@@ -1661,7 +1684,7 @@ with col_ride:
             st.plotly_chart(fig_c, use_container_width=True)
         else:
             st.info("No cycling data for this year.")
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Elevation Gain ───────────────────────────────────────────────────────────
 if selected_year == "All":
@@ -1748,7 +1771,7 @@ with col_ride_elev:
             st.plotly_chart(fig_ce, use_container_width=True)
         else:
             st.info("No cycling data for this year.")
-st.markdown("---")
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Recent activities ─────────────────────────────────────────────────────────
 st.markdown("## Recent Activities")
