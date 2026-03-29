@@ -57,16 +57,16 @@ html, body, [class*="css"] {
     border-color: #fc4c02;
 }
 [data-testid="stMetricLabel"] {
-    color: #aaa !important;
+    color: #666 !important;
     font-size: 0.75rem !important;
     font-weight: 500 !important;
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
 [data-testid="stMetricValue"] {
-    color: #eceae5 !important;
+    color: #1a1a1a !important;
     font-size: 1.9rem !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     line-height: 1.2;
 }
 [data-testid="stMetricDelta"] {
@@ -470,8 +470,8 @@ st.markdown(f"""
               text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px">
     Personal Training Dashboard
   </div>
-  <h1 style="margin:0;font-size:2rem;font-weight:800;letter-spacing:-0.03em">
-    Your Athletic Journey
+  <h1 style="margin:0;font-size:1.8rem;font-weight:800;letter-spacing:-0.03em;color:#1a1a1a">
+    My Personal Fitness Dashboard
   </h1>
   <div style="color:#999;font-size:0.85rem;margin-top:4px">
     {'📅 ' + selected_year if selected_year != 'All' else df['date'].min().strftime('%b %Y') + ' — ' + df['date'].max().strftime('%b %Y') + ' · ' + str(df['year'].nunique()) + ' years'}
@@ -676,7 +676,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ── Latest activity map ───────────────────────────────────────────────────────
+# ── Latest activity map + info side by side ──────────────────────────────────
 _la_poly = _polylines.get(str(int(latest_act["activity_id"])), "")
 if _la_poly:
     _la_coords = decode_polyline(_la_poly)
@@ -684,9 +684,32 @@ if _la_poly:
         try:
             import folium
             from streamlit_folium import st_folium
-            st_folium(make_folium_map(_la_coords, height=280),
-                      use_container_width=True, height=280,
-                      returned_objects=[], key="latest_map")
+            _c1, _c2 = st.columns([1, 1])
+            with _c1:
+                _effort_tag = (
+                    '<span style="background:#f0fdf0;border:1px solid #86efac;color:#16a34a;'
+                    'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">'
+                    + effort_lbl + '</span>'
+                ) if effort_lbl else ""
+                st.markdown(
+                    '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;'
+                    'padding:1.2rem;height:220px;display:flex;flex-direction:column;justify-content:space-between;'
+                    'box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
+                    '<div>'
+                    + f'<div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">{la_sport} · {la_date}</div>'
+                    + f'<div style="color:#1a1a1a;font-size:1.2rem;font-weight:700;margin-bottom:8px">{la_name}</div>'
+                    + f'<div style="color:#555;font-size:0.82rem;line-height:1.8">{stats_line}</div>'
+                    + '</div>'
+                    + f'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #f0ede8">'
+                    + _effort_tag
+                    + f'<a href="{_strava_url}" target="_blank" style="color:#fc4c02;font-size:0.75rem;font-weight:600;text-decoration:none">View on Strava ↗</a>'
+                    + '</div></div>',
+                    unsafe_allow_html=True
+                )
+            with _c2:
+                st_folium(make_folium_map(_la_coords, height=220),
+                          use_container_width=True, height=220,
+                          returned_objects=[], key="latest_map")
         except ImportError:
             st.caption("Add folium and streamlit-folium to requirements.txt for route maps.")
 
