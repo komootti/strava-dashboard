@@ -277,31 +277,31 @@ SPORT_COLORS = {
 }
 
 CHART_LAYOUT = dict(
-    plot_bgcolor="#161616",
+    plot_bgcolor="#ffffff",
     paper_bgcolor="rgba(0,0,0,0)",
-    font=dict(family="DM Sans", color="#bbb", size=11),
+    font=dict(family="DM Sans", color="#666", size=11),
     margin=dict(t=30, b=30, l=50, r=20),
     legend=dict(
         orientation="h", y=1.08,
-        font=dict(color="#c8c4be", size=11),
+        font=dict(color="#555", size=11),
         bgcolor="rgba(0,0,0,0)"
     ),
     hoverlabel=dict(
-        bgcolor="#1e1e1e",
+        bgcolor="#ffffff",
         bordercolor="#fc4c02",
-        font=dict(color="#e8e4de", size=12, family="DM Sans"),
+        font=dict(color="#1a1a1a", size=12, family="DM Sans"),
     ),
     hovermode="closest",
 )
 
 def axis_style():
     return dict(
-        gridcolor="#2a2a2a",
-        linecolor="#333",
-        tickcolor="#555",
-        tickfont=dict(color="#aaa", size=11),
-        zerolinecolor="#333",
-        title_font=dict(color="#bbb", size=11),
+        gridcolor="#f0ede8",
+        linecolor="#e8e4de",
+        tickcolor="#ddd",
+        tickfont=dict(color="#888", size=11),
+        zerolinecolor="#e8e4de",
+        title_font=dict(color="#666", size=11),
     )
 
 def lollipop(x, y, color="#fc4c02", name="", unit="km"):
@@ -450,7 +450,7 @@ st.markdown(f"""
   <h1 style="margin:0;font-size:2rem;font-weight:800;letter-spacing:-0.03em">
     Your Athletic Journey
   </h1>
-  <div style="color:#888;font-size:0.85rem;margin-top:4px">
+  <div style="color:#999;font-size:0.85rem;margin-top:4px">
     {'📅 ' + selected_year if selected_year != 'All' else df['date'].min().strftime('%b %Y') + ' — ' + df['date'].max().strftime('%b %Y') + ' · ' + str(df['year'].nunique()) + ' years'}
   </div>
 </div>
@@ -628,7 +628,7 @@ for _ins in _insights:
 _card_left = (
     f'<div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;' +
     f'letter-spacing:0.1em;margin-bottom:4px">Latest activity · {la_date}</div>' +
-    f'<div style="color:#e8e4de;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>' +
+    f'<div style="color:#1a1a1a;font-size:1.15rem;font-weight:700;margin-bottom:6px">{la_name}</div>' +
     f'<div style="color:#bbb;font-size:0.82rem;margin-bottom:10px">{stats_line}</div>' +
     f'<div style="border-top:1px solid #262626;padding-top:10px">{_ins_html}</div>'
 )
@@ -827,13 +827,13 @@ if _api_key and _ai_text:
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#fc4c02;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">✦ Activity Analysis</div>'
-        + f'<div style="color:#d4d0ca;font-size:0.85rem;line-height:1.6">{_analysis}</div>'
+        + f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_analysis}</div>'
         + '</div>'
         + '<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid #50c850;'
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#50c850;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">▶ Recommended Next Session</div>'
-        + f'<div style="color:#d4d0ca;font-size:0.85rem;line-height:1.6">{_recommend}</div>'
+        + f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_recommend}</div>'
         + '</div>'
         + '</div>',
         unsafe_allow_html=True
@@ -891,7 +891,7 @@ def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=72):
     remaining_str = f"{remaining:.0f} {unit} to go" if pct < 100 else "Goal reached! 🎉"
     return f"""
 <svg width="100%" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="90" cy="90" r="{r}" fill="none" stroke="#252525" stroke-width="10"/>
+  <circle cx="90" cy="90" r="{r}" fill="none" stroke="#e8e4de" stroke-width="10"/>
   <circle cx="90" cy="90" r="{r}" fill="none" stroke="{color}" stroke-width="10"
     stroke-dasharray="{dash:.1f} {gap:.1f}"
     stroke-dashoffset="{circ*0.25:.1f}"
@@ -902,7 +902,7 @@ def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=72):
     font-size="13" font-family="DM Sans,sans-serif">{unit} of {target}</text>
   <text x="90" y="122" text-anchor="middle" fill="{color}"
     font-size="15" font-weight="700" font-family="DM Sans,sans-serif">{pct:.0f}%</text>
-  <text x="90" y="143" text-anchor="middle" fill="#888"
+  <text x="90" y="143" text-anchor="middle" fill="#555"
     font-size="11" font-family="DM Sans,sans-serif">{remaining_str}</text>
 </svg>"""
 
@@ -947,8 +947,8 @@ st.markdown(f"""
     width: 100%;
 }}
 .dash-card {{
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: #ffffff;
+    border: 1px solid #e8e4de;
     border-radius: 10px;
     padding: 18px 20px;
     display: flex;
@@ -991,12 +991,12 @@ st.markdown(f"""
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
-    background: #1e1e1e;
+    background: #ffffff;
     border: 1px solid #fc4c02;
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 0.75rem;
-    color: #e8e4de;
+    color: #1a1a1a;
     width: 220px;
     z-index: 999;
     line-height: 1.5;
@@ -1004,8 +1004,8 @@ st.markdown(f"""
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }}
 .ring-card {{
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background: #ffffff;
+    border: 1px solid #e8e4de;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -1102,16 +1102,6 @@ st.markdown("---")
 
 st.markdown("---")
 
-# ── Headline metrics ──────────────────────────────────────────────────────────
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Activities",   f"{len(fdf):,}")
-c2.metric("Distance",     f"{end['dist_km'].sum():,.0f} km")
-c3.metric("Elevation",    f"{end['elev_gain_m'].sum()/1000:.1f}k m")
-c4.metric("Moving time",  f"{int(end['moving_min'].sum()//60):,}h")
-c5.metric("Calories",     f"{fdf['calories'].sum()/1000:.0f}k kcal")
-
-st.markdown("---")
-
 # ── Oura Recovery ─────────────────────────────────────────────────────────────
 if not oura_df.empty:
     st.markdown("## Recovery & Readiness")
@@ -1163,39 +1153,39 @@ if not oura_df.empty:
     html_oura = (
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">'
         + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:3px solid {scol(o_ready)};border-radius:10px;padding:16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
         + f'<div style="color:{scol(o_ready)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_ready) if o_ready else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{rmsg}</div></div>'
 
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
+        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
         + f'<div style="color:#a78bfa;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_hrv) if o_hrv else "—"}<span style="font-size:0.9rem;color:#666"> ms</span></div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(hrv_d, unit=" ms")} vs 7d avg</div></div>'
 
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
-        + f'<div style="color:#e8e4de;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
+        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
+        + f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg</div></div>'
 
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
+        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
         + f'<div style="color:{scol(o_sleep)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_sleep) if o_sleep else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{sleep_str} · {deep_str} deep</div></div>'
         + '</div>'
 
         + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
+        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
         + f'<div style="color:{temp_col};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_temp:+.2f}°C" if o_temp is not None else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">deviation from baseline</div></div>'
 
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
-        + f'<div style="color:#e8e4de;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
+        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
+        + f'<div style="color:#1a1a1a;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
 
-        + f'<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#bbb;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
+        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
+        + f'<div style="color:#666;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
         + f'<div style="color:{scol(osafe(today_o,"activity_score"))};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(osafe(today_o,"activity_score")) if osafe(today_o,"activity_score") else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Oura activity balance</div></div>'
         + '</div>'
@@ -1234,6 +1224,16 @@ if not oura_df.empty:
         )
         fig_o.update_xaxes(**axis_style())
         st.plotly_chart(fig_o, use_container_width=True)
+
+st.markdown("---")
+
+# ── Headline metrics ──────────────────────────────────────────────────────────
+c1, c2, c3, c4, c5 = st.columns(5)
+c1.metric("Activities",   f"{len(fdf):,}")
+c2.metric("Distance",     f"{end['dist_km'].sum():,.0f} km")
+c3.metric("Elevation",    f"{end['elev_gain_m'].sum()/1000:.1f}k m")
+c4.metric("Moving time",  f"{int(end['moving_min'].sum()//60):,}h")
+c5.metric("Calories",     f"{fdf['calories'].sum()/1000:.0f}k kcal")
 
 st.markdown("---")
 
@@ -1313,7 +1313,7 @@ day_df["dow"]   = day_df["date"].dt.dayofweek  # 0=Mon
 day_df["week"]  = (day_df["date"] - year_start).dt.days // 7
 
 # Colours: dark bg → light orange gradient
-COLOURS = ["#1a1a1a","#7a2800","#c03000","#e85500","#fc4c02"]
+COLOURS = ["#f0ede8","#ffd4b8","#ffaa77","#ff6622","#fc4c02"]
 LABELS  = ["Rest","Light","Moderate","Hard","Very hard"]
 DOW_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
@@ -1356,7 +1356,7 @@ for i, d in enumerate(DOW_LABELS):
 # Legend
 legend_x = pad_left
 legend_y  = pad_top + 7*(cell_size+gap) + 12
-legend_svg = [f'<text x="{legend_x}" y="{legend_y+11}" fill="#444" font-size="9" font-family="DM Sans">Less</text>']
+legend_svg = [f'<text x="{legend_x}" y="{legend_y+11}" fill="#999" font-size="9" font-family="DM Sans">Less</text>']
 for i, col in enumerate(COLOURS):
     lx = legend_x + 32 + i*(cell_size+gap)
     legend_svg.append(f'<rect x="{lx}" y="{legend_y}" width="{cell_size}" height="{cell_size}" rx="2" fill="{col}"><title>{LABELS[i]}</title></rect>')
@@ -1389,7 +1389,7 @@ s2.metric("Rest days",     f"{total_days - active_days}")
 s3.metric("Longest streak", f"{max_streak} days")
 s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
 
-st.markdown(f'<div style="background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='font-size:0.72rem;color:#444;margin-top:4px'>Hover over any square to see the training load. Colour = training stress: dark = rest, orange = hard session.</div>", unsafe_allow_html=True)
 
@@ -1430,7 +1430,7 @@ def activity_detail_html(row, extra_stat="", extra_label=""):
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div>
       <div style="color:#666;font-size:0.65rem;margin-bottom:2px">{date_str}</div>
-      <div style="color:#d4d0ca;font-weight:600;margin-bottom:4px">{name}</div>
+      <div style="color:#333;font-weight:600;margin-bottom:4px">{name}</div>
       <div style="color:#888">{stats}</div>
     </div>
     <a href="{strava}" target="_blank"
@@ -1556,7 +1556,7 @@ if len(weekly_hrs) >= 2:
       <div style="color:#666;font-size:0.68rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.12em;margin-bottom:6px">This week</div>
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="color:#e8e4de;font-size:2rem;font-weight:700;
+        <div style="color:#1a1a1a;font-size:2rem;font-weight:700;
                     font-family:'DM Mono',monospace;line-height:1;min-width:120px">
           {this_h}h&nbsp;{this_m:02d}m
         </div>
