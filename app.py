@@ -1185,8 +1185,8 @@ if not oura_df.empty:
     deep_str  = f"{int(o_deep//60)}h {int(o_deep%60):02d}m" if o_deep else "—"
     temp_col  = "#ff5555" if o_temp and abs(o_temp) > 0.5 else "#ffa500" if o_temp and abs(o_temp) > 0.2 else "#50c850"
 
-    def sparkline_svg(values, color, width=80, height=28):
-        """Build a tiny inline SVG sparkline from a list of values."""
+    def sparkline_svg(values, color, width=90, height=36):
+        """Inline SVG sparkline with all data points shown."""
         vals = [v for v in values if v is not None and not (isinstance(v, float) and v != v)]
         if len(vals) < 2:
             return ""
@@ -1194,18 +1194,25 @@ if not oura_df.empty:
         rng = mx - mn if mx != mn else 1
         pts = []
         for i, v in enumerate(vals):
-            x = int(i / (len(vals)-1) * width)
-            y = int((1 - (v - mn) / rng) * (height - 4)) + 2
-            pts.append(f"{x},{y}")
-        path = " ".join(pts)
-        # Draw dots at start and end
-        x0, y0 = pts[0].split(",")
-        xn, yn = pts[-1].split(",")
+            x = round(i / (len(vals)-1) * width, 1)
+            y = round((1 - (v - mn) / rng) * (height - 6)) + 3
+            pts.append((x, y))
+        path = " ".join(f"{x},{y}" for x,y in pts)
+        # Area fill
+        area = f"0,{height} " + path + f" {width},{height}"
+        circles = "".join(
+            f'<circle cx="{x}" cy="{y}" r="2" fill="#ffffff" stroke="{color}" stroke-width="1.2"/>' 
+            for x,y in pts
+        )
+        # Last point larger + filled
+        xn, yn = pts[-1]
         return (
             f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" ' +
-            'xmlns="http://www.w3.org/2000/svg" style="display:block;margin-top:6px">' +
-            f'<polyline points="{path}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>' +
-            f'<circle cx="{xn}" cy="{yn}" r="2.5" fill="{color}"/>' +
+            'xmlns="http://www.w3.org/2000/svg">' +
+            f'<polygon points="{area}" fill="{color}" opacity="0.08"/>' +
+            f'<polyline points="{path}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>' +
+            circles +
+            f'<circle cx="{xn}" cy="{yn}" r="3" fill="{color}"/>' +
             '</svg>'
         )
 
@@ -1215,31 +1222,35 @@ if not oura_df.empty:
     _spark_rhr   = list(reversed(recent_7["resting_hr"].tolist())) if "resting_hr" in recent_7.columns else []
     _spark_sleep = list(reversed(recent_7["sleep_score"].tolist())) if "sleep_score" in recent_7.columns else []
 
+    def oura_card(label, value_html, sub, spark_vals, spark_color, border_color=None):
+        """Compact Oura card: label top-left, sparkline top-right, big value, sub text."""
+        border = f"border-left:3px solid {border_color};" if border_color else ""
+        spark  = sparkline_svg(spark_vals, spark_color, width=90, height=36)
+        return (
+            f'<div style="background:#ffffff;border:1px solid #e2ddd8;{border}border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">' +
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">' +
+            f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-top:2px">{label}</div>' +
+            f'<div>{spark}</div>' +
+            '</div>' +
+            f'<div style="margin:4px 0 6px">{value_html}</div>' +
+            f'<div style="color:#999;font-size:0.7rem">{sub}</div>' +
+            '</div>'
+        )
+
     html_oura = (
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">'
-        + f'<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:3px solid {scol(o_ready)};border-radius:10px;padding:16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
-        + f'<div style="color:{scol(o_ready)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_ready) if o_ready else "—"}</div>'
-        + sparkline_svg(_spark_ready, scol(o_ready))
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{rmsg}</div></div>'
-
-        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
-        + f'<div style="color:#a78bfa;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_hrv) if o_hrv else "—"}<span style="font-size:0.9rem;color:#666"> ms</span></div>'
-        + sparkline_svg(_spark_hrv, "#a78bfa")
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(hrv_d, unit=" ms")} vs 7d avg</div></div>'
-
-        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
-        + f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
-        + sparkline_svg(_spark_rhr, "#fc4c02")
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg</div></div>'
-
-        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
-        + f'<div style="color:{scol(o_sleep)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_sleep) if o_sleep else "—"}</div>'
-        + sparkline_svg(_spark_sleep, scol(o_sleep))
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{sleep_str} · {deep_str} deep</div></div>'
+        + oura_card("Readiness",
+            f'<span style="color:{scol(o_ready)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_ready) if o_ready else "—"}</span>',
+            rmsg, _spark_ready, scol(o_ready), border_color=scol(o_ready))
+        + oura_card("HRV",
+            f'<span style="color:#a78bfa;font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_hrv) if o_hrv else "—"}</span><span style="color:#999;font-size:0.85rem"> ms</span>',
+            f'{trend_badge(hrv_d, unit=" ms")} vs 7d avg', _spark_hrv, "#a78bfa")
+        + oura_card("Resting HR",
+            f'<span style="color:#1a1a1a;font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_rhr) if o_rhr else "—"}</span><span style="color:#999;font-size:0.85rem"> bpm</span>',
+            f'{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg', _spark_rhr, "#fc4c02")
+        + oura_card("Sleep",
+            f'<span style="color:{scol(o_sleep)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_sleep) if o_sleep else "—"}</span>',
+            f'{sleep_str} · {deep_str} deep', _spark_sleep, scol(o_sleep))
         + '</div>'
 
         + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
@@ -1357,8 +1368,9 @@ st.markdown("""<style>
     font-weight: 600 !important;
 }
 .hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; }
-.hm-year-wrap div[data-testid="stRadio"] label span { color: #1a1a1a !important; font-weight: 600 !important; }
-.hm-year-wrap div[data-testid="stRadio"] label p { color: #1a1a1a !important; font-weight: 600 !important; }
+.hm-year-wrap div[data-testid="stRadio"] label * { color: #1a1a1a !important; font-weight: 600 !important; }
+.hm-year-wrap div[data-testid="stRadio"] label:has(input:checked) * { color: #fc4c02 !important; }
+.hm-year-wrap div[data-testid="stRadio"] label > div { display: flex !important; align-items: center !important; }
 </style>""", unsafe_allow_html=True)
 
 with st.container():
