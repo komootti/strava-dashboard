@@ -1271,8 +1271,8 @@ if not oura_df.empty:
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
-        + f'<div style="color:{scol(osafe(today_o,"activity_score"))};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(osafe(today_o,"activity_score")) if osafe(today_o,"activity_score") else "—"}</div>'
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Oura activity balance</div></div>'
+        + f'<div style="color:{scol(osafe(today_o,"activity_score"))};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(osafe(today_o,"activity_score")) if osafe(today_o,"activity_score") is not None else "—"}</div>'
+        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Daily activity balance</div></div>'
         + '</div>'
     )
 
