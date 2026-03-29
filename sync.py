@@ -52,7 +52,7 @@ existing["_date"] = pd.to_datetime(
     existing["Activity Date"],
     format="%b %d, %Y, %I:%M:%S %p", errors="coerce")
 last_date = existing["_date"].max()
-after_ts  = int(last_date.timestamp())
+after_ts  = int(last_date.timestamp()) - (2 * 24 * 3600)  # look back 2 days to catch late uploads
 print(f"✅ {len(existing):,} existing activities — last: {last_date.strftime('%d %b %Y')}")
 
 # ── Step 3: Fetch new activities from Strava ──────────────────────────────────
