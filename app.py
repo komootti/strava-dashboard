@@ -746,7 +746,7 @@ Write TWO short sections:
 
 1. ACTIVITY ANALYSIS (2-3 sentences): What does this specific activity tell us? Comment on effort level, how it compares to recent training, HR zone, and anything notable. Be specific and use the numbers.
 
-2. RECOMMENDED NEXT SESSION (2-3 sentences): Based on TSB, fatigue, and training mix, what should this athlete do next and why? Be specific — name the sport, rough duration, intensity zone, and the reason.
+2. RECOMMENDED NEXT SESSION (2-3 sentences): Based on TSB, fatigue, and training mix, what should this athlete do FOR THEIR NEXT SESSION (not tomorrow — the very next time they train)? Be specific — name the sport, rough duration, intensity zone, and the reason. Do not mention days of the week or "tomorrow" — say "next session" or "next workout" instead.
 
 Keep both sections concise and direct. No bullet points. No headers in your response — just two paragraphs separated by a blank line. Write like a knowledgeable coach, not a generic fitness bot."""
 
@@ -1307,8 +1307,8 @@ st.markdown("""<style>
     border-radius: 6px !important;
     border: 1px solid #e8e4de !important;
     background: transparent !important;
-    color: #666 !important;
-    font-size: 0.7rem !important;
+    color: #333 !important;
+    font-size: 0.72rem !important;
     font-weight: 500 !important;
     margin: 0 !important;
     cursor: pointer;
@@ -1326,6 +1326,7 @@ st.markdown("""<style>
     font-weight: 600 !important;
 }
 .hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; }
+.hm-year-wrap div[data-testid="stRadio"] label > div { font-size: 0.72rem !important; color: #333 !important; }
 </style>""", unsafe_allow_html=True)
 
 with st.container():
@@ -1821,19 +1822,30 @@ recent_acts["HR"]   = recent_acts["avg_hr"].apply(
 recent_acts["Elev"] = recent_acts["elev_gain_m"].apply(
     lambda e: f"{int(e)}m" if not pd.isna(e) else "—")
 
+# Build clean display table
+_display = recent_acts[["Date","sport","name","Km","Time","Pace","HR","Elev"]].copy()
+_display.columns = ["Date","Sport","Activity","km","Time","Pace","HR","Elev↑"]
+st.markdown("""<style>
+table { width:100%; border-collapse:collapse; font-family:'DM Sans',sans-serif; font-size:0.83rem; }
+thead tr { background:#f7f5f2; border-bottom:2px solid #e8e4de; }
+thead th { color:#888; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; padding:8px 12px; text-align:left; }
+tbody tr { border-bottom:1px solid #f0ede8; }
+tbody tr:hover { background:#faf8f5; }
+tbody td { color:#1a1a1a; padding:8px 12px; }
+tbody td:first-child { color:#888; font-size:0.78rem; }
+</style>""", unsafe_allow_html=True)
 st.dataframe(
-    recent_acts[["Date","sport","name","Km","Time","Pace","HR","Elev"]]
-    .rename(columns={"sport":"Sport","name":"Activity"}),
+    _display,
     use_container_width=True, hide_index=True,
     column_config={
         "Date":     st.column_config.TextColumn("Date", width="small"),
         "Sport":    st.column_config.TextColumn("Sport", width="small"),
         "Activity": st.column_config.TextColumn("Activity"),
-        "Km":       st.column_config.NumberColumn("Km", format="%.1f"),
+        "km":       st.column_config.TextColumn("km", width="small"),
         "Time":     st.column_config.TextColumn("Time", width="small"),
         "Pace":     st.column_config.TextColumn("Pace", width="small"),
-        "HR":       st.column_config.TextColumn("HR ♥", width="small"),
-        "Elev":     st.column_config.TextColumn("Elev", width="small"),
+        "HR":       st.column_config.TextColumn("HR", width="small"),
+        "Elev↑":    st.column_config.TextColumn("Elev↑", width="small"),
     }
 )
 
