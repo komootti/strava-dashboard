@@ -1135,10 +1135,7 @@ st.markdown(f"""
 
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
-
-
-st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
+st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.5rem 0">', unsafe_allow_html=True)
 
 # ── Oura Recovery ─────────────────────────────────────────────────────────────
 if not oura_df.empty:
@@ -1188,26 +1185,60 @@ if not oura_df.empty:
     deep_str  = f"{int(o_deep//60)}h {int(o_deep%60):02d}m" if o_deep else "—"
     temp_col  = "#ff5555" if o_temp and abs(o_temp) > 0.5 else "#ffa500" if o_temp and abs(o_temp) > 0.2 else "#50c850"
 
+    def sparkline_svg(values, color, width=80, height=28):
+        """Build a tiny inline SVG sparkline from a list of values."""
+        vals = [v for v in values if v is not None and not (isinstance(v, float) and v != v)]
+        if len(vals) < 2:
+            return ""
+        mn, mx = min(vals), max(vals)
+        rng = mx - mn if mx != mn else 1
+        pts = []
+        for i, v in enumerate(vals):
+            x = int(i / (len(vals)-1) * width)
+            y = int((1 - (v - mn) / rng) * (height - 4)) + 2
+            pts.append(f"{x},{y}")
+        path = " ".join(pts)
+        # Draw dots at start and end
+        x0, y0 = pts[0].split(",")
+        xn, yn = pts[-1].split(",")
+        return (
+            f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" ' +
+            'xmlns="http://www.w3.org/2000/svg" style="display:block;margin-top:6px">' +
+            f'<polyline points="{path}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>' +
+            f'<circle cx="{xn}" cy="{yn}" r="2.5" fill="{color}"/>' +
+            '</svg>'
+        )
+
+    # Build 7-day sparkline data
+    _spark_ready = list(reversed(recent_7["readiness_score"].tolist())) if "readiness_score" in recent_7.columns else []
+    _spark_hrv   = list(reversed(recent_7["hrv_avg"].tolist())) if "hrv_avg" in recent_7.columns else []
+    _spark_rhr   = list(reversed(recent_7["resting_hr"].tolist())) if "resting_hr" in recent_7.columns else []
+    _spark_sleep = list(reversed(recent_7["sleep_score"].tolist())) if "sleep_score" in recent_7.columns else []
+
     html_oura = (
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">'
         + f'<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:3px solid {scol(o_ready)};border-radius:10px;padding:16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Readiness</div>'
         + f'<div style="color:{scol(o_ready)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_ready) if o_ready else "—"}</div>'
+        + sparkline_svg(_spark_ready, scol(o_ready))
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{rmsg}</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">HRV</div>'
         + f'<div style="color:#a78bfa;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_hrv) if o_hrv else "—"}<span style="font-size:0.9rem;color:#666"> ms</span></div>'
+        + sparkline_svg(_spark_hrv, "#a78bfa")
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(hrv_d, unit=" ms")} vs 7d avg</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Resting HR</div>'
-        + f'<div style="color:#ffffff;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
+        + f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_rhr) if o_rhr else "—"}<span style="font-size:0.9rem;color:#666"> bpm</span></div>'
+        + sparkline_svg(_spark_rhr, "#fc4c02")
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Sleep</div>'
         + f'<div style="color:{scol(o_sleep)};font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.2;margin-top:6px">{int(o_sleep) if o_sleep else "—"}</div>'
+        + sparkline_svg(_spark_sleep, scol(o_sleep))
         + f'<div style="color:#888;font-size:0.7rem;margin-top:4px">{sleep_str} · {deep_str} deep</div></div>'
         + '</div>'
 
@@ -1219,7 +1250,7 @@ if not oura_df.empty:
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
-        + f'<div style="color:#ffffff;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
+        + f'<div style="color:#1a1a1a;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
@@ -1305,11 +1336,11 @@ st.markdown("""<style>
 .hm-year-wrap div[data-testid="stRadio"] label {
     padding: 2px 10px !important;
     border-radius: 6px !important;
-    border: 1px solid #e8e4de !important;
-    background: transparent !important;
-    color: #333 !important;
+    border: 1px solid #e2ddd8 !important;
+    background: #ffffff !important;
+    color: #1a1a1a !important;
     font-size: 0.72rem !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     margin: 0 !important;
     cursor: pointer;
     letter-spacing: 0.04em;
@@ -1325,8 +1356,9 @@ st.markdown("""<style>
     color: #fc4c02 !important;
     font-weight: 600 !important;
 }
-.hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; }
-.hm-year-wrap div[data-testid="stRadio"] label > div { font-size: 0.72rem !important; color: #333 !important; }
+.hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; }
+.hm-year-wrap div[data-testid="stRadio"] label span { color: #1a1a1a !important; font-weight: 600 !important; }
+.hm-year-wrap div[data-testid="stRadio"] label p { color: #1a1a1a !important; font-weight: 600 !important; }
 </style>""", unsafe_allow_html=True)
 
 with st.container():
@@ -1822,31 +1854,38 @@ recent_acts["HR"]   = recent_acts["avg_hr"].apply(
 recent_acts["Elev"] = recent_acts["elev_gain_m"].apply(
     lambda e: f"{int(e)}m" if not pd.isna(e) else "—")
 
-# Build clean display table
-_display = recent_acts[["Date","sport","name","Km","Time","Pace","HR","Elev"]].copy()
-_display.columns = ["Date","Sport","Activity","km","Time","Pace","HR","Elev↑"]
-st.markdown("""<style>
-table { width:100%; border-collapse:collapse; font-family:'DM Sans',sans-serif; font-size:0.83rem; }
-thead tr { background:#f7f5f2; border-bottom:2px solid #e8e4de; }
-thead th { color:#888; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; padding:8px 12px; text-align:left; }
-tbody tr { border-bottom:1px solid #f0ede8; }
-tbody tr:hover { background:#faf8f5; }
-tbody td { color:#1a1a1a; padding:8px 12px; }
-tbody td:first-child { color:#888; font-size:0.78rem; }
-</style>""", unsafe_allow_html=True)
-st.dataframe(
-    _display,
-    use_container_width=True, hide_index=True,
-    column_config={
-        "Date":     st.column_config.TextColumn("Date", width="small"),
-        "Sport":    st.column_config.TextColumn("Sport", width="small"),
-        "Activity": st.column_config.TextColumn("Activity"),
-        "km":       st.column_config.TextColumn("km", width="small"),
-        "Time":     st.column_config.TextColumn("Time", width="small"),
-        "Pace":     st.column_config.TextColumn("Pace", width="small"),
-        "HR":       st.column_config.TextColumn("HR", width="small"),
-        "Elev↑":    st.column_config.TextColumn("Elev↑", width="small"),
-    }
+# Build HTML table — guaranteed light theme (st.dataframe uses canvas, ignores CSS)
+_trows = ""
+for _, r in recent_acts.iterrows():
+    sport_color = SPORT_COLORS.get(r["sport"], "#888")
+    _trows += (
+        "<tr>"
+        + f'<td style="color:#999;font-size:0.78rem">{r["Date"]}</td>'
+        + f'<td><span style="background:{sport_color}22;color:{sport_color};font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase">{r["sport"]}</span></td>'
+        + f'<td style="color:#1a1a1a;font-weight:500">{str(r["name"])[:35] if pd.notna(r["name"]) else r["sport"]}</td>'
+        + f'<td style="color:#333">{r["Km"] if r["Km"] > 0 else "—"}</td>'
+        + f'<td style="color:#333">{r["Time"]}</td>'
+        + f'<td style="color:#333">{r["Pace"]}</td>'
+        + f'<td style="color:#333">{r["HR"]}</td>'
+        + f'<td style="color:#333">{r["Elev"]}</td>'
+        + "</tr>"
+    )
+st.markdown(
+    '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+    '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.83rem">' +
+    '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Date</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:left">Sport</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Activity</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:right">km</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:left">Time</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:left">Pace</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:right">HR</th>' +
+    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:right">Elev</th>' +
+    '</tr></thead>' +
+    f'<tbody>{_trows}</tbody>' +
+    '</table></div>',
+    unsafe_allow_html=True
 )
 
 # ── Activity route map ────────────────────────────────────────────────────────
