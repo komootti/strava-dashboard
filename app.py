@@ -1342,46 +1342,27 @@ daily_data = build_heatmap_data(df)
 
 # Year selector for heatmap
 hm_years = sorted(df["year"].dropna().unique().astype(int).tolist(), reverse=True)
-st.markdown("""<style>
-.hm-year-wrap div[data-testid="stRadio"] > div {
-    flex-direction: row !important;
-    flex-wrap: wrap;
-    gap: 4px;
-    background: transparent;
-}
-.hm-year-wrap div[data-testid="stRadio"] label {
-    padding: 2px 10px !important;
-    border-radius: 6px !important;
-    border: 1px solid #e2ddd8 !important;
-    background: #ffffff !important;
-    color: #1a1a1a !important;
-    font-size: 0.72rem !important;
-    font-weight: 600 !important;
-    margin: 0 !important;
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    font-family: "DM Mono", monospace !important;
-}
-.hm-year-wrap div[data-testid="stRadio"] label:hover {
-    border-color: #444 !important;
-    color: #aaa !important;
-}
-.hm-year-wrap div[data-testid="stRadio"] label:has(input:checked) {
-    background: rgba(252,76,2,0.15) !important;
-    border-color: #fc4c02 !important;
-    color: #fc4c02 !important;
-    font-weight: 600 !important;
-}
-.hm-year-wrap div[data-testid="stRadio"] label > div:first-child { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; }
-.hm-year-wrap div[data-testid="stRadio"] label, .hm-year-wrap div[data-testid="stRadio"] label *, .hm-year-wrap div[data-testid="stRadio"] label div, .hm-year-wrap div[data-testid="stRadio"] label p, .hm-year-wrap div[data-testid="stRadio"] label span { color: #1a1a1a !important; font-weight: 600 !important; }
-.hm-year-wrap div[data-testid="stRadio"] label:has(input:checked) * { color: #fc4c02 !important; }
-.hm-year-wrap div[data-testid="stRadio"] label > div { display: flex !important; align-items: center !important; }
-</style>""", unsafe_allow_html=True)
-
-with st.container():
-    st.markdown('<div class="hm-year-wrap">', unsafe_allow_html=True)
-    hm_year = st.radio("hm", hm_years,
-        index=0, horizontal=True,
+# Year selector using selectbox — reliable light theme, no CSS fighting
+_hm_col, _ = st.columns([2, 5])
+with _hm_col:
+    st.markdown("""<style>
+    div[data-testid="stSidebar"] ~ div .stSelectbox label { display: none; }
+    .hm-select div[data-baseweb="select"] > div {
+        background: #ffffff !important;
+        border: 1px solid #e2ddd8 !important;
+        border-radius: 8px !important;
+        color: #1a1a1a !important;
+        font-size: 0.82rem !important;
+        font-weight: 600 !important;
+        font-family: "DM Mono", monospace !important;
+    }
+    .hm-select div[data-baseweb="select"] > div:hover { border-color: #fc4c02 !important; }
+    .hm-select div[data-baseweb="select"] span { color: #1a1a1a !important; }
+    .hm-select li { color: #1a1a1a !important; background: #ffffff !important; font-size: 0.82rem !important; }
+    .hm-select li:hover { background: #f7f5f2 !important; }
+    </style>""", unsafe_allow_html=True)
+    st.markdown('<div class="hm-select">', unsafe_allow_html=True)
+    hm_year = st.selectbox("Year", hm_years, index=0,
         label_visibility="collapsed", key="hm_yr")
     st.markdown('</div>', unsafe_allow_html=True)
 
