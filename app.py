@@ -710,13 +710,15 @@ if _la_poly:
             st.caption("Add folium and streamlit-folium to requirements.txt for route maps.")
 
 # ── AI Athlete Intelligence ──────────────────────────────────────────────────
+@st.cache_data(ttl=86400, show_spinner=False)  # cache 24h — persists across restarts
 def get_ai_analysis(api_key, sport, name, dist, mins, elev, hr, effort_lbl,
                     pace_s, ctl, atl, tsb, tsb_lbl,
                     wk_km, last_wk_km, avg_dist_30, this_wk_h, last_wk_h,
                     recent_sports_str, days_since_rest,
                     oura_readiness=None, oura_hrv=None, oura_hrv_avg=None,
                     oura_rhr=None, oura_sleep=None, oura_sleep_h=None, oura_temp=None):
-    """Call Claude to generate activity analysis + next session recommendation."""
+    """Call Claude to generate activity analysis + next session recommendation.
+    Cached by activity_id for 24h — won't re-call API on app restarts."""
     import requests as _req
     import json as _json
 
@@ -825,28 +827,26 @@ if not _api_key:
         unsafe_allow_html=True
     )
 else:
-    # Use session state to cache only successful responses
-    _cache_key = f"ai_{int(latest_act['activity_id'])}"
-    if _cache_key not in st.session_state:
-        with st.spinner("✦ Generating athlete intelligence..."):
-            st.session_state[_cache_key] = get_ai_analysis(
-                _api_key, la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
-                effort_lbl, la_pace_s,
-                _ctl, _atl, _tsb, _tsb_lbl,
-                this_wk_km, last_wk_km, avg_dist_30,
-                _this_h, _last_h,
-                _recent_sports_str, _days_since_rest
-            )
-            # Don't cache errors
-            if st.session_state[_cache_key] and (
-                st.session_state[_cache_key].startswith("ERROR") or
-                st.session_state[_cache_key].startswith("EXCEPTION")):
-                _ai_text = st.session_state[_cache_key]
-                del st.session_state[_cache_key]
-            else:
-                _ai_text = st.session_state[_cache_key]
-    else:
-        _ai_text = st.session_state[_cache_key]
+    with st.spinner("✦ Generating athlete intelligence..."):
+        _o = oura_df.iloc[0] if not oura_df.empty else None
+        def _og(c):
+            try: v=_o[c]; return float(v) if pd.notna(v) else None
+            except: return None
+        _ai_text = get_ai_analysis(
+            _api_key, la_sport, la_name, la_dist, la_mins, la_elev_v, la_hr_v,
+            effort_lbl, la_pace_s,
+            _ctl, _atl, _tsb, _tsb_lbl,
+            this_wk_km, last_wk_km, avg_dist_30,
+            _this_h, _last_h,
+            _recent_sports_str, _days_since_rest,
+            oura_readiness=_og("readiness_score") if _o is not None else None,
+            oura_hrv=_og("hrv_avg") if _o is not None else None,
+            oura_hrv_avg=oura_df.head(7)["hrv_avg"].dropna().mean() if not oura_df.empty else None,
+            oura_rhr=_og("resting_hr") if _o is not None else None,
+            oura_sleep=_og("sleep_score") if _o is not None else None,
+            oura_sleep_h=_og("total_sleep_min") if _o is not None else None,
+            oura_temp=_og("temperature_deviation") if _o is not None else None,
+        )
     if not _ai_text or _ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION"):
         _err = _ai_text or "No response"
         st.markdown(
