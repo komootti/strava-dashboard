@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sync Training">
+<title>Sync Training</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    background:#f7f5f2; font-family:-apple-system,'SF Pro Display',sans-serif;
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:2rem 1.5rem; color:#1a1a1a;
+  }
+  .logo { font-size:2.2rem; margin-bottom:0.4rem; }
+  h1 { font-size:1.3rem; font-weight:700; letter-spacing:-0.02em; color:#1a1a1a; margin-bottom:0.2rem; }
+  .subtitle { font-size:0.8rem; color:#999; margin-bottom:2rem; }
+
+  /* Token section */
+  .token-section {
+    width:100%; max-width:340px; background:#ffffff;
+    border:1px solid #e2ddd8; border-radius:14px;
+    padding:1rem 1.2rem; margin-bottom:1.2rem;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  }
+  .token-label { font-size:0.6rem; color:#999; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; }
+  .token-row { display:flex; gap:8px; align-items:center; }
+  .token-input {
+    flex:1; background:#f7f5f2; border:1px solid #e2ddd8; border-radius:8px;
+    padding:8px 10px; color:#1a1a1a; font-size:0.8rem; outline:none;
+  }
+  .token-input:focus { border-color:#fc4c02; }
+  .token-save {
+    background:#fc4c02; color:#fff; border:none; border-radius:8px;
+    padding:8px 14px; font-size:0.8rem; font-weight:600; cursor:pointer;
+  }
+  .token-status { font-size:0.7rem; margin-top:6px; color:#aaa; }
+  .token-status.ok { color:#50c850; }
+
+  /* Section label */
+  .section-label {
+    width:100%; max-width:340px;
+    font-size:0.6rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.1em; color:#aaa; margin-bottom:8px; margin-top:0.5rem;
+  }
+
+  /* Buttons */
+  .btn {
+    width:100%; max-width:340px; padding:0.95rem 1.4rem;
+    border-radius:12px; border:none; font-size:0.95rem; font-weight:600;
+    cursor:pointer; display:flex; align-items:center; gap:14px;
+    margin-bottom:8px; transition:transform 0.12s, opacity 0.12s;
+    position:relative; overflow:hidden; text-align:left;
+  }
+  .btn:active { transform:scale(0.97); opacity:0.85; }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .btn-strava  { background:#fc4c02; color:#fff; }
+  .btn-oura    { background:#1a1a2e; color:#fff; }
+  .btn-fitbod  { background:#2d6a4f; color:#fff; }
+  .btn-maps    { background:#ffffff; color:#1a1a1a; border:1px solid #e2ddd8; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .btn-all     { background:#1a1a1a; color:#fff; }
+  .btn-icon { font-size:1.3rem; flex-shrink:0; width:28px; text-align:center; }
+  .btn-text { flex:1; }
+  .btn-label { font-size:0.95rem; font-weight:600; line-height:1.2; }
+  .btn-desc  { font-size:0.7rem; opacity:0.7; font-weight:400; margin-top:2px; }
+  .spinner {
+    display:none; position:absolute; right:1.2rem; top:50%;
+    transform:translateY(-50%); width:18px; height:18px;
+    border:2px solid rgba(255,255,255,0.3); border-top-color:#fff;
+    border-radius:50%; animation:spin 0.7s linear infinite;
+  }
+  .btn-maps .spinner { border-top-color:#fc4c02; }
+  @keyframes spin { to { transform:translateY(-50%) rotate(360deg); } }
+
+  /* Status row */
+  .status-row {
+    width:100%; max-width:340px; display:grid;
+    grid-template-columns:1fr 1fr; gap:8px; margin-top:1.2rem;
+  }
+  .status-card {
+    background:#ffffff; border:1px solid #e2ddd8; border-radius:10px;
+    padding:0.7rem 0.9rem; box-shadow:0 1px 4px rgba(0,0,0,0.04);
+  }
+  .s-label { font-size:0.58rem; color:#aaa; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:3px; }
+  .s-val { font-size:0.8rem; font-weight:600; color:#1a1a1a; }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:2rem; left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:#1a1a1a; border-radius:10px;
+    padding:0.8rem 1.3rem; font-size:0.85rem; font-weight:500;
+    color:#fff; white-space:nowrap; opacity:0;
+    transition:all 0.3s ease; z-index:999;
+    max-width:90vw; text-align:center;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.success { background:#16a34a; }
+  .toast.error   { background:#dc2626; }
+  .toast.info    { background:#fc4c02; }
+</style>
+</head>
+<body>
+
+<div class="logo">🔥</div>
+<h1>Training Sync</h1>
+<p class="subtitle">komootti · Personal Fitness Dashboard</p>
+
+<div class="token-section">
+  <div class="token-label">🔑 GitHub Token (stored locally on this device)</div>
+  <div class="token-row">
+    <input type="password" class="token-input" id="tokenInput"
+           placeholder="ghp_xxxxxxxxxxxx" autocomplete="off"
+           autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button class="token-save" onclick="saveToken()">Save</button>
+  </div>
+  <div class="token-status" id="tokenStatus">Enter once — never leaves this device</div>
+</div>
+
+<div class="section-label">Individual syncs</div>
+
+<button class="btn btn-strava" id="btnStrava" onclick="trigger('strava')">
+  <span class="btn-icon">🚴</span>
+  <span class="btn-text">
+    <div class="btn-label">Sync Strava</div>
+    <div class="btn-desc">Activities + polylines</div>
+  </span>
+  <div class="spinner" id="spinStrava"></div>
+</button>
+
+<button class="btn btn-oura" id="btnOura" onclick="trigger('oura')">
+  <span class="btn-icon">💍</span>
+  <span class="btn-text">
+    <div class="btn-label">Sync Oura</div>
+    <div class="btn-desc">Readiness · HRV · Sleep</div>
+  </span>
+  <div class="spinner" id="spinOura"></div>
+</button>
+
+<button class="btn btn-fitbod" id="btnFitbod" onclick="trigger('fitbod')">
+  <span class="btn-icon">🏋️</span>
+  <span class="btn-text">
+    <div class="btn-label">Sync Fitbod</div>
+    <div class="btn-desc">Strength training data</div>
+  </span>
+  <div class="spinner" id="spinFitbod"></div>
+</button>
+
+<button class="btn btn-maps" id="btnMaps" onclick="trigger('maps')">
+  <span class="btn-icon">🗺️</span>
+  <span class="btn-text">
+    <div class="btn-label">Sync Route Maps</div>
+    <div class="btn-desc">GPS polylines</div>
+  </span>
+  <div class="spinner" id="spinMaps"></div>
+</button>
+
+<div class="section-label" style="margin-top:1.2rem">Sync everything</div>
+
+<button class="btn btn-all" id="btnAll" onclick="triggerAll()">
+  <span class="btn-icon">🔄</span>
+  <span class="btn-text">
+    <div class="btn-label">Sync All</div>
+    <div class="btn-desc">Strava + Oura + Fitbod + Maps</div>
+  </span>
+  <div class="spinner" id="spinAll"></div>
+</button>
+
+<div class="status-row">
+  <div class="status-card">
+    <div class="s-label">Last sync</div>
+    <div class="s-val" id="lastSync">—</div>
+  </div>
+  <div class="status-card">
+    <div class="s-label">Dashboard</div>
+    <div class="s-val">
+      <a href="https://strava-dashboard-ybm6tua9pghphw56juqitq.streamlit.app/"
+         target="_blank" style="color:#fc4c02;text-decoration:none;font-weight:700">Open ↗</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const REPO = "komootti/strava-dashboard";
+const WORKFLOWS = {
+  strava:  "sync.yml",
+  oura:    "oura_sync.yml",
+  fitbod:  "fitbod_sync.yml",
+  maps:    "polylines_sync.yml",
+};
+const LABELS = {
+  strava: "Strava", oura: "Oura", fitbod: "Fitbod", maps: "Maps"
+};
+
+function getToken() { return localStorage.getItem("gh_sync_token") || ""; }
+
+function saveToken() {
+  const val = document.getElementById("tokenInput").value.trim();
+  if (!val) { showToast("Enter a token first", "error"); return; }
+  localStorage.setItem("gh_sync_token", val);
+  document.getElementById("tokenInput").value = "";
+  updateTokenStatus();
+  showToast("✅ Token saved", "success");
+}
+
+function updateTokenStatus() {
+  const t   = getToken();
+  const el  = document.getElementById("tokenStatus");
+  el.textContent = t
+    ? `✓ Token saved — ends ···${t.slice(-4)}`
+    : "Enter once — never leaves this device";
+  el.className = t ? "token-status ok" : "token-status";
+}
+
+function showToast(msg, type="info", dur=3000) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = "toast", dur);
+}
+
+function setLoading(id, on) {
+  const capId = id.charAt(0).toUpperCase() + id.slice(1);
+  const spin = document.getElementById("spin" + capId);
+  const btn  = document.getElementById("btn"  + capId);
+  if (spin) spin.style.display = on ? "block" : "none";
+  if (btn)  btn.disabled = on;
+}
+
+async function dispatch(workflow) {
+  const r = await fetch(
+    `https://api.github.com/repos/${REPO}/actions/workflows/${workflow}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${getToken()}`,
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ref: "main" })
+    }
+  );
+  return r.status === 204;
+}
+
+async function trigger(type) {
+  if (!getToken()) { showToast("⚠️ Save your GitHub token first", "error", 4000); return; }
+  setLoading(type, true);
+  showToast(`⏳ Triggering ${LABELS[type]} sync...`, "info", 2000);
+  try {
+    const ok = await dispatch(WORKFLOWS[type]);
+    if (ok) {
+      stamp();
+      showToast(`✅ ${LABELS[type]} syncing — ~60s`, "success");
+    } else {
+      showToast(`❌ ${LABELS[type]} failed — check token scope`, "error", 5000);
+    }
+  } catch(e) { showToast("❌ Network error", "error"); }
+  setLoading(type, false);
+}
+
+async function triggerAll() {
+  if (!getToken()) { showToast("⚠️ Save your GitHub token first", "error", 4000); return; }
+  setLoading("all", true);
+  showToast("⏳ Triggering all syncs...", "info", 2000);
+  const order = ["strava", "oura", "fitbod", "maps"];
+  let ok = 0;
+  for (const type of order) {
+    try {
+      const success = await dispatch(WORKFLOWS[type]);
+      if (success) ok++;
+      await new Promise(r => setTimeout(r, 800));
+    } catch(e) {}
+  }
+  stamp();
+  showToast(ok === order.length
+    ? "✅ All syncs started — ready in ~2 min"
+    : `⚠️ ${ok}/${order.length} syncs started`, ok === order.length ? "success" : "error", 4000);
+  setLoading("all", false);
+}
+
+function stamp() {
+  const now = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  document.getElementById("lastSync").textContent = now;
+  localStorage.setItem("lastSync", now);
+}
+
+// Init
+updateTokenStatus();
+const ls = localStorage.getItem("lastSync");
+if (ls) document.getElementById("lastSync").textContent = ls;
+</script>
+</body>
+</html>
