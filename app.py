@@ -8,7 +8,7 @@ import io
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Training Dashboard",
+    page_title="Petteri · Training",
     page_icon="🔥",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -17,194 +17,156 @@ st.set_page_config(
 # ── Strava-inspired dark theme ────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
-/* Global reset */
+/* ── Global reset ── */
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Dark background */
+/* ── Background — pure white, no off-white ── */
 .stApp {
-    background-color: #f7f5f2;
+    background-color: #ffffff;
     color: #1a1a1a;
 }
 
-/* Sidebar */
+/* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background-color: #ffffff !important;
-    border-right: 1px solid #e2ddd8;
+    background-color: #fafafa !important;
+    border-right: 1px solid #f0f0f0 !important;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.04) !important;
 }
-[data-testid="stSidebar"] * {
-    color: #333 !important;
+[data-testid="stSidebar"] * { color: #333 !important; }
+[data-testid="stSidebar"] .stSelectbox > div > div {
+    background: #ffffff !important;
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 10px !important;
+    color: #1a1a1a !important;
 }
 
-/* Main content padding */
+/* ── Main container ── */
 .block-container {
     padding: 1.2rem 2rem 1.2rem 2rem !important;
     max-width: 1400px;
 }
 
-/* Metric cards */
+/* ── Metric cards — elevated with 3 shadow levels ── */
 [data-testid="metric-container"] {
     background: #ffffff;
-    border: 1px solid #e2ddd8;
-    border-radius: 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 16px;
     padding: 1.2rem 1.4rem !important;
-    transition: border-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s, transform 0.2s;
 }
 [data-testid="metric-container"]:hover {
-    border-color: #fc4c02;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    transform: translateY(-1px);
 }
 [data-testid="stMetricLabel"] {
-    color: #666 !important;
-    font-size: 0.75rem !important;
-    font-weight: 500 !important;
+    color: #999 !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
 }
 [data-testid="stMetricValue"] {
     color: #1a1a1a !important;
-    font-size: 1.9rem !important;
+    font-size: 2.4rem !important;
     font-weight: 700 !important;
-    line-height: 1.2;
+    font-family: 'DM Mono', monospace !important;
+    line-height: 1.1;
 }
 [data-testid="stMetricDelta"] {
-    font-size: 0.8rem !important;
+    font-size: 0.78rem !important;
 }
 
-/* Section headers */
-h1 {
-    color: #1a1a1a !important;
-    font-size: 1.6rem !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.02em;
-}
+/* ── Section headers — no underline, just weight + spacing ── */
 h2 {
     color: #1a1a1a !important;
-    font-size: 1.05rem !important;
+    font-size: 0.72rem !important;
     font-weight: 700 !important;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-top: 0.8rem !important;
-    margin-bottom: 0.8rem !important;
-    padding-bottom: 3px;
-    border-bottom: 2px solid #fc4c02;
-    display: table;
-    line-height: 1.3;
+    letter-spacing: 0.14em;
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 0;
+    border-bottom: none !important;
+    display: block;
+    color: #888 !important;
 }
-h2::after {
-    content: none;
-}
+
 h3 {
-    color: #c8c4be !important;
-    font-size: 0.9rem !important;
-    font-weight: 500 !important;
-}
-
-/* Divider */
-hr {
-    border-color: #e2ddd8 !important;
-    margin: 1.5rem 0 !important;
-}
-
-/* Dataframe */
-[data-testid="stDataFrame"] {
-    border: 1px solid #e2ddd8;
-    border-radius: 12px;
-    overflow: hidden;
-}
-[data-testid="stDataFrame"] * {
     color: #1a1a1a !important;
-    background: transparent !important;
-    font-family: "DM Sans", sans-serif !important;
-}
-[data-testid="stDataFrame"] [class*="dvn-scroller"] {
-    background: #ffffff !important;
-}
-[data-testid="stDataFrame"] canvas {
-    filter: invert(0) !important;
-}
-/* Force the glide data grid to light mode */
-.stDataFrame [data-testid="stDataFrame"] {
-    --gdg-bg-cell: #ffffff !important;
-    --gdg-bg-cell-medium: #f7f5f2 !important;
-    --gdg-text-dark: #1a1a1a !important;
-    --gdg-text-medium: #555 !important;
-    --gdg-text-light: #888 !important;
-    --gdg-border-color: #e8e4de !important;
-    --gdg-bg-header: #f7f5f2 !important;
-    --gdg-bg-header-has-focus: #f0ede8 !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
 }
 
-/* Sliders */
-[data-testid="stSlider"] > div > div > div {
-    background-color: #fc4c02 !important;
+h1 {
+    color: #1a1a1a !important;
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em;
 }
 
-/* Multiselect tags */
-[data-baseweb="tag"] {
-    background-color: #fc4c02 !important;
-    border-radius: 6px !important;
+/* ── Divider ── */
+hr {
+    border-color: #f0f0f0 !important;
+    margin: 1rem 0 !important;
 }
 
-/* Buttons */
+/* ── Dataframe ── */
+[data-testid="stDataFrame"] {
+    border: 1px solid #f0f0f0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* ── Buttons ── */
 .stButton > button {
     background: #fc4c02 !important;
     color: white !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
     padding: 0.5rem 1.2rem !important;
-    transition: opacity 0.2s !important;
+    transition: opacity 0.2s, transform 0.15s !important;
 }
 .stButton > button:hover {
-    opacity: 0.85 !important;
+    opacity: 0.88 !important;
+    transform: translateY(-1px) !important;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .block-container {
-        padding: 1rem !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.4rem !important;
-    }
-    .record-value {
-        font-size: 1.2rem !important;
-    }
-}
-
-/* Record card style */
+/* ── Record cards ── */
 .record-card {
     background: #ffffff;
-    border: 1px solid #e2ddd8;
-    border-radius: 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 16px;
     padding: 1rem 1.2rem;
     margin-bottom: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
 }
+.record-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
 .record-label {
-    color: #666;
-    font-size: 0.7rem;
+    color: #999;
+    font-size: 0.68rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
 .record-value {
     color: #fc4c02;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
     font-family: 'DM Mono', monospace;
     line-height: 1.2;
 }
-.record-sub {
-    color: #888;
-    font-size: 0.75rem;
-    margin-top: 0.1rem;
-}
+.record-sub { color: #999; font-size: 0.75rem; margin-top: 0.1rem; }
 
-/* Sport badge */
+/* ── Sport badge ── */
 .sport-badge {
     display: inline-block;
     background: #fc4c02;
@@ -214,8 +176,23 @@ hr {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     margin-right: 4px;
+}
+
+/* ── Selectbox ── */
+[data-testid="stSidebar"] .stSelectbox > div > div:hover { border-color: #fc4c02 !important; }
+[data-baseweb="tag"] { background-color: #fc4c02 !important; border-radius: 6px !important; }
+[data-testid="stSlider"] > div > div > div { background-color: #fc4c02 !important; }
+
+/* ── Dark mode support (activated via session state) ── */
+.dark-mode .stApp { background: #0f0f0f !important; color: #e8e8e8 !important; }
+.dark-mode [data-testid="metric-container"] { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .block-container { padding: 1rem !important; }
+    [data-testid="stMetricValue"] { font-size: 1.6rem !important; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -427,7 +404,22 @@ if "selected_year" not in st.session_state:
 
 with st.sidebar:
     st.markdown("## 🔥 Filters")
-    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
+
+    # Dark mode toggle
+    _dark = st.toggle("🌙 Dark mode", value=False, key="dark_mode")
+    if _dark:
+        st.markdown("""<style>
+        .stApp { background-color: #0f0f0f !important; color: #e8e4de !important; }
+        [data-testid="stSidebar"] { background-color: #141414 !important; }
+        [data-testid="metric-container"] { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+        [data-testid="stMetricValue"] { color: #e8e4de !important; }
+        [data-testid="stMetricLabel"] { color: #888 !important; }
+        h1,h2,h3 { color: #e8e4de !important; }
+        .record-card { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+        .record-value { color: #fc4c02 !important; }
+        </style>""", unsafe_allow_html=True)
+
+    st.markdown('<hr style="border:none;border-top:1px solid #f0f0f0;margin:0.8rem 0">', unsafe_allow_html=True)
 
     # ── Year filter ──────────────────────────────────────────────────────────
     st.markdown("""<style>
@@ -499,7 +491,7 @@ st.markdown(f"""
   <div style="color:#999;font-size:0.85rem;margin-top:4px">
     {'📅 ' + selected_year if selected_year != 'All' else df['date'].min().strftime('%b %Y') + ' — ' + df['date'].max().strftime('%b %Y') + ' · ' + str(df['year'].nunique()) + ' years'}
   </div>
-</div>
+</div></div>
 """, unsafe_allow_html=True)
 
 
@@ -656,7 +648,12 @@ if _la_spd:
 _wk_d    = this_wk_km - last_wk_km
 _wk_arr  = "▲" if _wk_d >= 0 else "▼"
 _wk_col  = "#50c850" if _wk_d >= 0 else "#ff5555"
-_wk_badge = f'<span style="color:{_wk_col};font-weight:600">{_wk_arr} {abs(_wk_d):.1f} km vs last week</span>' if last_wk_km > 0 else ""
+_wk_bg    = '#e8f8e8' if _wk_d >= 0 else '#fef2f2'
+_wk_badge = (
+    '<span style="background:' + _wk_bg + ';color:' + _wk_col + ';font-size:0.72rem;font-weight:600;padding:3px 10px;border-radius:999px">' + _wk_arr + ' ' + str(round(abs(_wk_d),1)) + ' km</span>'
+    + '<span style="color:#aaa;font-size:0.72rem"> vs last week</span>'
+) if last_wk_km > 0 else ''
+# next line placeholder
 
 _insights = [i for i in [pace_insight, hr_insight] if i]
 
@@ -1014,6 +1011,12 @@ ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa
 # Single HTML block — all 6 cards in one CSS grid so heights match perfectly
 st.markdown(f"""
 <style>
+.dash-grid-wrap {{
+    background: linear-gradient(135deg, #fff8f5 0%, #f5f0ff 50%, #f0f8ff 100%);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 8px;
+}}
 .dash-grid {{
     display: grid;
     grid-template-columns: 1fr 1fr 1.4fr 1.4fr;
@@ -1022,9 +1025,11 @@ st.markdown(f"""
     width: 100%;
 }}
 .dash-card {{
-    background: #ffffff;
-    border: 1px solid #e2ddd8;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 10px;
     padding: 18px 20px;
     display: flex;
@@ -1100,7 +1105,7 @@ st.markdown(f"""
 }}
 </style>
 
-<div class="dash-grid">
+<div class="dash-grid-wrap"><div class="dash-grid">
 
   
   <div class="dash-card" style="grid-column:1; grid-row:1">
@@ -1574,12 +1579,49 @@ Write like a direct, knowledgeable coach. Use the numbers."""
 st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 # ── Headline metrics ──────────────────────────────────────────────────────────
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Activities",   f"{len(fdf):,}")
-c2.metric("Distance",     f"{end['dist_km'].sum():,.0f} km")
-c3.metric("Elevation",    f"{end['elev_gain_m'].sum()/1000:.1f}k m")
-c4.metric("Moving time",  f"{int(end['moving_min'].sum()//60):,}h")
-c5.metric("Calories",     f"{fdf['calories'].sum()/1000:.0f}k kcal")
+# Animated counters
+_n_acts  = len(fdf)
+_n_km    = int(end['dist_km'].sum())
+_n_elev  = int(end['elev_gain_m'].sum() / 1000)
+_n_h     = int(end['moving_min'].sum() // 60)
+_n_kcal  = int(fdf['calories'].sum() / 1000)
+
+st.components.v1.html(f"""
+<style>
+.ctr-grid {{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; font-family:'Inter',sans-serif; }}
+.ctr-card {{ background:#ffffff; border:1px solid #f0f0f0; border-radius:16px; padding:1.1rem 1.3rem;
+             box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:box-shadow 0.2s, transform 0.2s; }}
+.ctr-card:hover {{ box-shadow:0 8px 24px rgba(0,0,0,0.10); transform:translateY(-2px); }}
+.ctr-label {{ color:#999; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; }}
+.ctr-val {{ color:#1a1a1a; font-size:2rem; font-weight:700; font-family:'DM Mono',monospace; line-height:1; }}
+.ctr-unit {{ color:#aaa; font-size:0.9rem; font-weight:400; margin-left:3px; }}
+</style>
+<div class="ctr-grid">
+  <div class="ctr-card"><div class="ctr-label">Activities</div><div class="ctr-val" data-target="{_n_acts}" data-dec="0">0</div></div>
+  <div class="ctr-card"><div class="ctr-label">Distance</div><div class="ctr-val" data-target="{_n_km}" data-dec="0">0<span class="ctr-unit">km</span></div></div>
+  <div class="ctr-card"><div class="ctr-label">Elevation</div><div class="ctr-val" data-target="{_n_elev}" data-dec="0">0<span class="ctr-unit">k m</span></div></div>
+  <div class="ctr-card"><div class="ctr-label">Moving Time</div><div class="ctr-val" data-target="{_n_h}" data-dec="0">0<span class="ctr-unit">h</span></div></div>
+  <div class="ctr-card"><div class="ctr-label">Calories</div><div class="ctr-val" data-target="{_n_kcal}" data-dec="0">0<span class="ctr-unit">k kcal</span></div></div>
+</div>
+<script>
+document.querySelectorAll('.ctr-val[data-target]').forEach(el => {{
+  const target = +el.dataset.target;
+  const unit = el.querySelector('.ctr-unit') ? el.querySelector('.ctr-unit').outerHTML : '';
+  const dec = +el.dataset.dec;
+  let start = null;
+  const dur = 1200;
+  function step(ts) {{
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const val = (target * ease).toFixed(dec);
+    el.innerHTML = (+val).toLocaleString() + unit;
+    if (p < 1) requestAnimationFrame(step);
+  }}
+  requestAnimationFrame(step);
+}});
+</script>
+""", height=130)
 
 st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
@@ -2123,7 +2165,7 @@ for _, r in recent_acts.iterrows():
     _trows += (
         "<tr>"
         + f'<td style="color:#999;font-size:0.78rem">{r["Date"]}</td>'
-        + f'<td><span style="background:{sport_color}22;color:{sport_color};font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase">{r["sport"]}</span></td>'
+        + f'<td><span style="background:{sport_color}18;color:{sport_color};font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:0.05em">{r["sport"]}</span></td>'
         + f'<td style="color:#1a1a1a;font-weight:500">{str(r["name"])[:35] if pd.notna(r["name"]) else r["sport"]}</td>'
         + f'<td style="color:#333">{r["Km"] if r["Km"] > 0 else "—"}</td>'
         + f'<td style="color:#333">{r["Time"]}</td>'
