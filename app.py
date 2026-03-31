@@ -361,7 +361,7 @@ def lollipop(x, y, color="#fc4c02", name="", unit="km"):
     )
     dot = go.Scatter(
         x=x, y=y, mode="markers", name="",
-        marker=dict(color=color, size=8, line=dict(color="#ffffff", width=2)),
+        marker=dict(color=color, size=9, line=dict(color="#ffffff", width=2.5)),
         showlegend=False,
         hovertemplate=tip,
     )
@@ -1212,6 +1212,16 @@ if not oura_df.empty:
         if v is None: return "#666"
         return "#50c850" if v >= hi else "#ffa500" if v >= lo else "#ff5555"
 
+    def hrv_col(v):
+        """HRV: 40+ green, 35-39 yellow, <35 red"""
+        if v is None: return "#666"
+        return "#50c850" if v >= 40 else "#ffa500" if v >= 35 else "#ff5555"
+
+    def rhr_col(v):
+        """RHR: ≤50 green, 51-55 yellow, 56+ red"""
+        if v is None: return "#666"
+        return "#50c850" if v <= 50 else "#ffa500" if v <= 55 else "#ff5555"
+
     def trend_badge(delta, invert=False, unit=""):
         if delta is None: return ""
         good = delta < 0 if invert else delta > 0
@@ -1230,34 +1240,47 @@ if not oura_df.empty:
     deep_str  = f"{int(o_deep//60)}h {int(o_deep%60):02d}m" if o_deep else "—"
     temp_col  = "#ff5555" if o_temp and abs(o_temp) > 0.5 else "#ffa500" if o_temp and abs(o_temp) > 0.2 else "#50c850"
 
-    def sparkline_svg(values, color, width=90, height=36):
-        """Inline SVG sparkline with all data points shown."""
+    def sparkline_svg(values, color, width=160, height=56):
+        """Smooth cubic bezier sparkline with area fill — matches strength card style."""
         vals = [v for v in values if v is not None and not (isinstance(v, float) and v != v)]
         if len(vals) < 2:
             return ""
         mn, mx = min(vals), max(vals)
         rng = mx - mn if mx != mn else 1
+        pt = 6; pb = 6
         pts = []
         for i, v in enumerate(vals):
             x = round(i / (len(vals)-1) * width, 1)
-            y = round((1 - (v - mn) / rng) * (height - 6)) + 3
+            y = round(pt + (1 - (v - mn) / rng) * (height - pt - pb), 1)
             pts.append((x, y))
-        path = " ".join(f"{x},{y}" for x,y in pts)
-        # Area fill
-        area = f"0,{height} " + path + f" {width},{height}"
+        # Smooth cubic bezier path
+        def smooth(pts):
+            d = f"M {pts[0][0]},{pts[0][1]}"
+            for i in range(1, len(pts)):
+                x0,y0 = pts[i-1]; x1,y1 = pts[i]
+                cx = (x0+x1)/2
+                d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
+            return d
+        sp = smooth(pts)
+        area = f"M 0,{height} L {pts[0][0]},{pts[0][1]} " + " ".join(
+            f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
+            for i in range(1,len(pts))
+        ) + f" L {pts[-1][0]},{height} Z"
+        # Parse color for rgba
+        hx = color.lstrip("#")
+        r,g,b = int(hx[0:2],16),int(hx[2:4],16),int(hx[4:6],16)
         circles = "".join(
-            f'<circle cx="{x}" cy="{y}" r="2" fill="#ffffff" stroke="{color}" stroke-width="1.2"/>' 
+            f'<circle cx="{x}" cy="{y}" r="2.5" fill="#ffffff" stroke="{color}" stroke-width="1.5"/>' 
             for x,y in pts
         )
-        # Last point larger + filled
         xn, yn = pts[-1]
         return (
             f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" ' +
             'xmlns="http://www.w3.org/2000/svg">' +
-            f'<polygon points="{area}" fill="{color}" opacity="0.08"/>' +
-            f'<polyline points="{path}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>' +
+            f'<path d="{area}" fill="rgba({r},{g},{b},0.08)"/>' +
+            f'<path d="{sp}" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round"/>' +
             circles +
-            f'<circle cx="{xn}" cy="{yn}" r="3" fill="{color}"/>' +
+            f'<circle cx="{xn}" cy="{yn}" r="3.5" fill="{color}"/>' +
             '</svg>'
         )
 
@@ -1288,10 +1311,10 @@ if not oura_df.empty:
             f'<span style="color:{scol(o_ready)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_ready) if o_ready else "—"}</span>',
             rmsg, _spark_ready, scol(o_ready), border_color=None)
         + oura_card("HRV",
-            f'<span style="color:#a78bfa;font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_hrv) if o_hrv else "—"}</span><span style="color:#999;font-size:0.85rem"> ms</span>',
+            f'<span style="color:{hrv_col(o_hrv)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_hrv) if o_hrv else "—"}</span><span style="color:#999;font-size:0.85rem"> ms</span>',
             f'{trend_badge(hrv_d, unit=" ms")} vs 7d avg', _spark_hrv, "#a78bfa")
         + oura_card("Resting HR",
-            f'<span style="color:#1a1a1a;font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_rhr) if o_rhr else "—"}</span><span style="color:#999;font-size:0.85rem"> bpm</span>',
+            f'<span style="color:{rhr_col(o_rhr)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_rhr) if o_rhr else "—"}</span><span style="color:#999;font-size:0.85rem"> bpm</span>',
             f'{trend_badge(rhr_d, invert=True, unit=" bpm")} vs 7d avg', _spark_rhr, "#fc4c02")
         + oura_card("Sleep",
             f'<span style="color:{scol(o_sleep)};font-size:2rem;font-weight:700;font-family:DM Mono,monospace">{int(o_sleep) if o_sleep else "—"}</span>',
@@ -1828,7 +1851,7 @@ for sport in SHOW:
     fig2.add_trace(go.Bar(
         x=weekly_pivot["week"], y=weekly_pivot[sport].round(1),
         name=sport,
-        marker=dict(color=SPORT_COLORS.get(sport,"#666"), line=dict(width=0)),
+        marker=dict(color=SPORT_COLORS.get(sport,"#666"), line=dict(width=0), cornerradius=4),
         hovertemplate=sport + ": <b>%{y:.1f} km</b><extra></extra>"))
 fig2.update_layout(**CHART_LAYOUT, barmode="stack", height=320, yaxis_title="km")
 fig2.update_xaxes(**axis_style())
@@ -1887,13 +1910,13 @@ fig_h = go.Figure()
 fig_h.add_trace(go.Bar(
     x=weekly_hrs["week"], y=weekly_hrs["hours"].round(2),
     name="Hours",
-    marker=dict(color="rgba(167,139,250,0.35)", line=dict(width=0)),
+    marker=dict(color="rgba(167,139,250,0.35)", line=dict(width=0), cornerradius=5),
     hovertemplate="<b>%{y:.1f}h</b><extra></extra>",
 ))
 fig_h.add_trace(go.Scatter(
     x=weekly_hrs["week"], y=weekly_hrs["rolling"].round(2),
     mode="lines", name="8-week avg",
-    line=dict(color="#a78bfa", width=2.5),
+    line=dict(color="#a78bfa", width=2.5, shape="spline", smoothing=1.0),
     hovertemplate="Avg: <b>%{y:.1f}h</b><extra></extra>",
 ))
 fig_h.update_layout(**CHART_LAYOUT, height=300, yaxis_title="hours")
