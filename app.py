@@ -1536,8 +1536,9 @@ Write like a direct, knowledgeable coach. Use the numbers."""
                 hovertemplate="<b>%{x|%d %b}</b><br>RHR: <b>%{y:.0f} bpm</b><extra></extra>",
             ))
 
+        _oura_layout = {k:v for k,v in CHART_LAYOUT.items() if k != "legend"}
         fig_o.update_layout(
-            **{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=50)},
+            **{**_oura_layout, "margin": dict(t=10,b=30,l=50,r=50)},
             height=260, barmode="overlay",
             yaxis=dict(**axis_style(), title="HRV (ms)"),
             yaxis2=dict(**axis_style(), title="RHR (bpm)", overlaying="y",
