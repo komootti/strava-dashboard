@@ -180,6 +180,47 @@ body{
   white-space:nowrap;z-index:999;pointer-events:none;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Landscape orientation ─────────────────────────────────────────────── */
+@media (orientation: landscape) and (max-height: 500px) {
+  body {
+    max-width: 100%;
+    padding-bottom: 0;
+    padding-right: 72px; /* space for side nav */
+  }
+
+  /* Side nav instead of bottom nav */
+  .nav {
+    position: fixed;
+    left: auto; right: 0; bottom: 0; top: 0;
+    transform: none;
+    width: 64px; max-width: 64px;
+    height: 100%;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    border-top: none;
+    border-left: 1px solid var(--border);
+    padding: 20px 0;
+  }
+  .nav-btn { font-size: 0.55rem; padding: 10px 4px; }
+  .nav-icon { font-size: 1.4rem; }
+
+  /* Header compact */
+  .hdr { padding: 12px 16px; position: relative; }
+
+  /* Two-column layout for main content */
+  .oura-grid    { grid-template-columns: repeat(4, 1fr); }
+  .m-grid       { grid-template-columns: repeat(4, 1fr); }
+  .goals-row    { grid-template-columns: repeat(4, 1fr); }
+  .load-row     { grid-template-columns: repeat(3, 1fr); }
+
+  /* Map taller in landscape */
+  #actMap { height: 280px; }
+
+  /* Wider sparklines */
+  .oura-card, .m-card { min-width: 0; }
+}
 </style>
 </head>
 <body>
@@ -738,6 +779,18 @@ function renderStats() {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+// Orientation change — invalidate map if visible
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    if(_map) { _map.invalidateSize(); }
+  }, 300);
+});
+window.addEventListener('resize', () => {
+  setTimeout(() => {
+    if(_map) { _map.invalidateSize(); }
+  }, 200);
+});
+
 document.getElementById('hdrDate').textContent=
   new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
 loadAll().catch(e=>{
