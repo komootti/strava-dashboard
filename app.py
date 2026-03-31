@@ -1293,16 +1293,15 @@ if not oura_df.empty:
     def oura_card(label, value_html, sub, spark_vals, spark_color, border_color=None):
         """Compact Oura card: label top-left, sparkline top-right, big value, sub text."""
         border = f"border-left:3px solid {border_color};" if border_color else ""
-        spark  = sparkline_svg(spark_vals, spark_color, width=90, height=36)
+        spark  = sparkline_svg(spark_vals, spark_color, width=160, height=60)
         return (
             f'<div style="background:#ffffff;border:1px solid #e2ddd8;{border}border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">' +
-            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">' +
-            f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-top:2px">{label}</div>' +
-            f'<div>{spark}</div>' +
-            '</div>' +
-            f'<div style="margin:4px 0 6px">{value_html}</div>' +
-            f'<div style="color:#999;font-size:0.7rem">{sub}</div>' +
-            '</div>'
+            f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">{label}</div>' +
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">' +
+            f'<div><div style="margin-bottom:4px">{value_html}</div>' +
+            f'<div style="color:#999;font-size:0.7rem">{sub}</div></div>' +
+            f'<div style="flex-shrink:0">{spark}</div>' +
+            '</div></div>'
         )
 
     html_oura = (
