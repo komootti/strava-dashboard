@@ -1044,6 +1044,43 @@ tsb_arr, tsb_col, tsb_chg = _trend(_tsb_d)
 ring_run  = _ring_svg(_run_pct,  "Running",  _run_2026,  RUN_TARGET,  "km", "#fc4c02")
 ring_ride = _ring_svg(_ride_pct, "Cycling", _ride_2026, RIDE_TARGET, "km", "#ffa500")
 
+# 7-day sparkline data for CTL/ATL/TSB cards
+_spark_days = min(7, len(_daily))
+_ctl_spark = _daily["ctl"].iloc[-_spark_days:].round(1).tolist()
+_atl_spark = _daily["atl"].iloc[-_spark_days:].round(1).tolist()
+_tsb_spark = _daily["tsb"].iloc[-_spark_days:].round(1).tolist()
+
+def _mini_spark(vals, color, invert=False):
+    """Build a compact inline SVG sparkline for CTL/ATL/TSB cards."""
+    if len(vals) < 2: return ""
+    mn, mx = min(vals), max(vals)
+    rng = mx - mn if mx != mn else 1
+    W, H, pt, pb = 110, 52, 16, 4
+    pts = [(round(i/(len(vals)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v)
+           for i,v in enumerate(vals)]
+    def sm(pts):
+        d = f"M {pts[0][0]},{pts[0][1]}"
+        for i in range(1,len(pts)):
+            cx=(pts[i-1][0]+pts[i][0])/2
+            d+=f" C {cx},{pts[i-1][1]} {cx},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
+        return d
+    sp = sm(pts)
+    area = f"M 0,{H} L "+sp[2:]+f" L {pts[-1][0]},{H} Z"
+    hx=color.lstrip("#"); r,g,b=int(hx[0:2],16),int(hx[2:4],16),int(hx[4:6],16)
+    dots = "".join(f'<circle cx="{x}" cy="{y}" r="2" fill="#fff" stroke="{color}" stroke-width="1.2"/>' for x,y,_ in pts)
+    lbls = "".join(f'<text x="{x}" y="{max(y-4,10)}" text-anchor="middle" fill="{color}" font-size="7.5" font-weight="400" font-family="DM Mono,monospace">{v:.1f}</text>' for x,y,v in pts)
+    xn,yn,_=pts[-1]
+    return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
+            f'<path d="{area}" fill="rgba({r},{g},{b},0.07)"/>' +
+            f'<path d="{sp}" fill="none" stroke="{color}" stroke-width="1.6" stroke-linecap="round"/>' +
+            lbls + dots +
+            f'<circle cx="{xn}" cy="{yn}" r="3" fill="{color}"/>' +
+            '</svg>')
+
+_ctl_svg = _mini_spark(_ctl_spark, "#fc4c02")
+_atl_svg = _mini_spark(_atl_spark, "#ffa500")
+_tsb_svg = _mini_spark(_tsb_spark, "#a78bfa")
+
 # Single HTML block — all 6 cards in one CSS grid so heights match perfectly
 st.markdown(f"""
 <style>
@@ -1056,7 +1093,7 @@ st.markdown(f"""
 .dash-grid {{
     display: grid;
     grid-template-columns: 1fr 1fr 1.4fr 1.4fr;
-    grid-template-rows: 145px 145px;
+    grid-template-rows: 175px 175px;
     gap: 10px;
     width: 100%;
 }}
@@ -1145,12 +1182,13 @@ st.markdown(f"""
 
   
   <div class="dash-card" style="grid-column:1; grid-row:1">
-    <div class="card-label">CTL · Fitness</div>
-    <div class="card-trend" style="color:{ctl_col}">{ctl_arr} {ctl_chg:.1f}</div>
-    <div>
-      <div class="card-value">{_ctl:.1f}</div>
-      <div class="card-sub">42-day fitness base</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="card-label">CTL · Fitness</div>
+      <div class="card-trend" style="color:{ctl_col}">{ctl_arr} {ctl_chg:.1f}</div>
     </div>
+    <div class="card-value" style="margin:4px 0 2px">{_ctl:.1f}</div>
+    <div class="card-sub">42-day fitness base</div>
+    <div style="margin-top:6px">{_ctl_svg}</div>
     <div class="card-tooltip">
       <b>Chronic Training Load</b><br>
       Your long-term fitness level.<br><br>
@@ -1160,12 +1198,13 @@ st.markdown(f"""
 
   
   <div class="dash-card" style="grid-column:2; grid-row:1">
-    <div class="card-label">ATL · Fatigue</div>
-    <div class="card-trend" style="color:{atl_col}">{atl_arr} {atl_chg:.1f}</div>
-    <div>
-      <div class="card-value">{_atl:.1f}</div>
-      <div class="card-sub">7-day fatigue load</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="card-label">ATL · Fatigue</div>
+      <div class="card-trend" style="color:{atl_col}">{atl_arr} {atl_chg:.1f}</div>
     </div>
+    <div class="card-value" style="margin:4px 0 2px">{_atl:.1f}</div>
+    <div class="card-sub">7-day fatigue load</div>
+    <div style="margin-top:6px">{_atl_svg}</div>
     <div class="card-tooltip">
       <b>Acute Training Load</b><br>
       Your recent fatigue from training.<br><br>
@@ -1175,12 +1214,13 @@ st.markdown(f"""
 
   
   <div class="dash-card" style="grid-column:1; grid-row:2">
-    <div class="card-label">TSB · Form</div>
-    <div class="card-trend" style="color:{tsb_col}">{tsb_arr} {tsb_chg:.1f}</div>
-    <div>
-      <div class="card-value" style="color:{_tsb_col}">{_tsb:+.1f}</div>
-      <div class="card-sub" style="color:{_tsb_col};font-weight:600">{_tsb_lbl}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="card-label">TSB · Form</div>
+      <div class="card-trend" style="color:{tsb_col}">{tsb_arr} {tsb_chg:.1f}</div>
     </div>
+    <div class="card-value" style="color:{_tsb_col};margin:4px 0 2px">{_tsb:+.1f}</div>
+    <div class="card-sub" style="color:{_tsb_col};font-weight:600">{_tsb_lbl}</div>
+    <div style="margin-top:6px">{_tsb_svg}</div>
     <div class="card-tooltip">
       <b>Training Stress Balance</b><br>
       Fitness minus fatigue = form.<br><br>
@@ -1281,46 +1321,56 @@ if not oura_df.empty:
     deep_str  = f"{int(o_deep//60)}h {int(o_deep%60):02d}m" if o_deep else "—"
     temp_col  = "#ff5555" if o_temp and abs(o_temp) > 0.5 else "#ffa500" if o_temp and abs(o_temp) > 0.2 else "#50c850"
 
-    def sparkline_svg(values, color, width=160, height=56):
-        """Smooth cubic bezier sparkline with area fill — matches strength card style."""
+    def sparkline_svg(values, color, width=160, height=72, fmt=None):
+        """Smooth bezier sparkline with value labels above each point."""
         vals = [v for v in values if v is not None and not (isinstance(v, float) and v != v)]
         if len(vals) < 2:
             return ""
+        if fmt is None:
+            fmt = lambda v: str(int(round(v)))
         mn, mx = min(vals), max(vals)
         rng = mx - mn if mx != mn else 1
-        pt = 6; pb = 6
+        pt = 18; pb = 6  # top padding for value labels
         pts = []
         for i, v in enumerate(vals):
             x = round(i / (len(vals)-1) * width, 1)
             y = round(pt + (1 - (v - mn) / rng) * (height - pt - pb), 1)
-            pts.append((x, y))
-        # Smooth cubic bezier path
+            pts.append((x, y, v))
         def smooth(pts):
             d = f"M {pts[0][0]},{pts[0][1]}"
             for i in range(1, len(pts)):
-                x0,y0 = pts[i-1]; x1,y1 = pts[i]
+                x0,y0 = pts[i-1][0],pts[i-1][1]
+                x1,y1 = pts[i][0],pts[i][1]
                 cx = (x0+x1)/2
                 d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
             return d
         sp = smooth(pts)
-        area = f"M 0,{height} L {pts[0][0]},{pts[0][1]} " + " ".join(
-            f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
-            for i in range(1,len(pts))
-        ) + f" L {pts[-1][0]},{height} Z"
-        # Parse color for rgba
+        area = (f"M 0,{height} L {pts[0][0]},{pts[0][1]} " +
+                " ".join(f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
+                         for i in range(1,len(pts))) +
+                f" L {pts[-1][0]},{height} Z")
         hx = color.lstrip("#")
         r,g,b = int(hx[0:2],16),int(hx[2:4],16),int(hx[4:6],16)
+        # Circles at each point
         circles = "".join(
             f'<circle cx="{x}" cy="{y}" r="2.5" fill="#ffffff" stroke="{color}" stroke-width="1.5"/>' 
-            for x,y in pts
+            for x,y,_ in pts
         )
-        xn, yn = pts[-1]
+        # Value labels above each point — thin, small
+        labels = "".join(
+            f'<text x="{x}" y="{max(y-5, 11)}" text-anchor="middle" ' +
+            f'fill="{color}" font-size="8.5" font-weight="400" ' +
+            f'font-family="DM Mono,monospace" opacity="0.9">{fmt(v)}</text>'
+            for x,y,v in pts
+        )
+        # Last point larger + filled
+        xn,yn,_ = pts[-1]
         return (
             f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" ' +
             'xmlns="http://www.w3.org/2000/svg">' +
-            f'<path d="{area}" fill="rgba({r},{g},{b},0.08)"/>' +
-            f'<path d="{sp}" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round"/>' +
-            circles +
+            f'<path d="{area}" fill="rgba({r},{g},{b},0.07)"/>' +
+            f'<path d="{sp}" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round"/>' +
+            labels + circles +
             f'<circle cx="{xn}" cy="{yn}" r="3.5" fill="{color}"/>' +
             '</svg>'
         )
