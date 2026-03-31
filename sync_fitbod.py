@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Fitbod Sync — GitHub Actions
-Reads WorkoutExport.csv already committed to the repo.
-Validates, normalises, and saves fitbod_data.json for the dashboard.
-Run this after uploading a fresh WorkoutExport.csv to the repo.
+Reads WorkoutExport.csv from the repo and builds fitbod_data.json.
+Handles Fitbod's actual export format: Date, Exercise, Reps, Weight(kg),
+Duration(s), Distance(m), Incline, Resistance, isWarmup, Note, multiplier
 """
 
 import os, json, base64, requests
@@ -30,69 +30,80 @@ df = pd.read_csv(StringIO(r.text))
 print(f"✅ {len(df):,} rows loaded")
 print(f"   Columns: {df.columns.tolist()}")
 
-# ── Normalise columns ─────────────────────────────────────────────────────────
-# Fitbod export columns: Date, Exercise, Reps, Sets, Weight (lbs), Seconds,
-# Distance (miles), Incline, isWarmup, Note, AutoStart
-col_map = {
-    "Date":          "date",
-    "Exercise":      "exercise",
-    "Reps":          "reps",
-    "Sets":          "sets",
-    "Weight (lbs)":  "weight_lbs",
-    "Seconds":       "seconds",
-    "Distance (miles)": "distance_miles",
-    "isWarmup":      "is_warmup",
-    "Note":          "note",
-}
-df = df.rename(columns={k: v for k, v in col_map.items() if k in df.columns})
+# ── Normalise columns to internal names ──────────────────────────────────────
+# Map whatever Fitbod exports to consistent internal names
+col_map = {}
+for col in df.columns:
+    cl = col.lower().strip()
+    if cl == "date":                           col_map[col] = "date"
+    elif cl == "exercise":                     col_map[col] = "exercise"
+    elif cl == "reps":                         col_map[col] = "reps"
+    elif "weight" in cl and "kg" in cl:        col_map[col] = "weight_kg"
+    elif "weight" in cl and "lb" in cl:        col_map[col] = "weight_lbs"
+    elif "weight" in cl:                       col_map[col] = "weight_kg"
+    elif cl in ("sets", "set"):                col_map[col] = "sets"
+    elif "duration" in cl or cl == "seconds":  col_map[col] = "seconds"
+    elif "distance" in cl:                     col_map[col] = "distance"
+    elif "warmup" in cl or "iswarmup" in cl:   col_map[col] = "is_warmup"
+    elif "multiplier" in cl:                   col_map[col] = "multiplier"
+    elif cl == "note":                         col_map[col] = "note"
+
+df = df.rename(columns=col_map)
+print(f"   Mapped columns: {list(col_map.values())}")
+
+# ── Convert weight to kg if needed ───────────────────────────────────────────
+if "weight_lbs" in df.columns and "weight_kg" not in df.columns:
+    df["weight_kg"] = pd.to_numeric(df["weight_lbs"], errors="coerce").fillna(0) * 0.453592
+elif "weight_kg" not in df.columns:
+    df["weight_kg"] = 0.0
+
+df["weight_kg"] = pd.to_numeric(df["weight_kg"], errors="coerce").fillna(0)
+
+# ── Sets: Fitbod may not have a sets column — default to 1 ───────────────────
+if "sets" not in df.columns:
+    df["sets"] = 1
+else:
+    df["sets"] = pd.to_numeric(df["sets"], errors="coerce").fillna(1)
+
+# ── Reps ──────────────────────────────────────────────────────────────────────
+df["reps"] = pd.to_numeric(df.get("reps", 0), errors="coerce").fillna(0)
+
+# ── Multiplier (Fitbod uses this for sets sometimes) ─────────────────────────
+if "multiplier" in df.columns:
+    mult = pd.to_numeric(df["multiplier"], errors="coerce").fillna(1)
+    # If sets column is missing/all 1s, use multiplier as sets
+    if df["sets"].max() <= 1:
+        df["sets"] = mult.clip(lower=1)
+
+df["sets"] = df["sets"].astype(int)
+df["reps"] = df["reps"].astype(int)
+
+# ── Filter warmups ────────────────────────────────────────────────────────────
+if "is_warmup" in df.columns:
+    df = df[~df["is_warmup"].astype(str).str.lower().isin(["true","1","yes"])]
+
+# ── Parse dates ───────────────────────────────────────────────────────────────
 df["date"] = pd.to_datetime(df["date"], errors="coerce")
 df = df.dropna(subset=["date", "exercise"])
-df = df[df.get("is_warmup", False) != True]  # exclude warmup sets
+df = df.sort_values("date")
 
-# Convert weight to kg
-if "weight_lbs" in df.columns:
-    df["weight_kg"] = df["weight_lbs"].fillna(0) * 0.453592
-else:
-    df["weight_kg"] = 0
-
-df["reps"]    = pd.to_numeric(df.get("reps",    0), errors="coerce").fillna(0).astype(int)
-df["sets"]    = pd.to_numeric(df.get("sets",    1), errors="coerce").fillna(1).astype(int)
-df["seconds"] = pd.to_numeric(df.get("seconds", 0), errors="coerce").fillna(0).astype(int)
-
-# Volume = sets × reps × weight_kg
+# ── Volume ────────────────────────────────────────────────────────────────────
 df["volume_kg"] = df["sets"] * df["reps"] * df["weight_kg"]
 
-# ── Muscle group mapping ──────────────────────────────────────────────────────
-UPPER = {
-    "Bench Press","Incline Bench Press","Decline Bench Press",
-    "Dumbbell Bench Press","Push Up","Chest Fly","Cable Fly",
-    "Overhead Press","Arnold Press","Lateral Raise","Front Raise",
-    "Shoulder Press","Military Press","Upright Row",
-    "Pull Up","Chin Up","Lat Pulldown","Seated Row","Bent Over Row",
-    "Barbell Row","Single Arm Row","Face Pull","Cable Row",
-    "Bicep Curl","Hammer Curl","Preacher Curl","Cable Curl",
-    "Tricep Pushdown","Skull Crusher","Tricep Dip","Close Grip Bench",
-    "Dip","Diamond Push Up",
-}
-LOWER = {
-    "Squat","Back Squat","Front Squat","Goblet Squat","Box Squat",
-    "Leg Press","Hack Squat","Bulgarian Split Squat","Split Squat",
-    "Deadlift","Romanian Deadlift","Sumo Deadlift","Stiff Leg Deadlift",
-    "Leg Curl","Leg Extension","Calf Raise","Seated Calf Raise",
-    "Lunge","Walking Lunge","Reverse Lunge","Step Up",
-    "Hip Thrust","Glute Bridge","Leg Abduction","Leg Adduction",
-}
-CORE = {
-    "Plank","Side Plank","Ab Wheel","Crunch","Sit Up",
-    "Hanging Leg Raise","Cable Crunch","Russian Twist","Dead Bug",
-    "Pallof Press","Bird Dog","Back Extension","Hyperextension",
-}
+# ── Muscle group classification ───────────────────────────────────────────────
+UPPER_KW = ["bench","chest","fly","press","push","pull","row","lat","cable","curl",
+            "tricep","bicep","dip","shoulder","military","arnold","upright","face pull",
+            "pulldown","pullup","pull-up","chin","overhead","raise","extension arm"]
+LOWER_KW = ["squat","deadlift","leg","lunge","calf","hip thrust","glute","step up",
+            "hack","bulgarian","split squat","rdl","sumo","stiff","romanian"]
+CORE_KW  = ["plank","crunch","ab ","core","sit up","russian","pallof","bird dog",
+            "dead bug","hyperextension","back extension","oblique","hanging leg"]
 
 def classify(exercise):
-    ex = str(exercise).strip()
-    if any(e.lower() in ex.lower() for e in UPPER): return "Upper"
-    if any(e.lower() in ex.lower() for e in LOWER): return "Lower"
-    if any(e.lower() in ex.lower() for e in CORE):  return "Core"
+    ex = str(exercise).lower()
+    if any(k in ex for k in LOWER_KW): return "Lower"
+    if any(k in ex for k in UPPER_KW): return "Upper"
+    if any(k in ex for k in CORE_KW):  return "Core"
     return "Other"
 
 df["muscle_group"] = df["exercise"].apply(classify)
@@ -104,39 +115,34 @@ print(f"   Date range: {df['date'].min().date()} → {df['date'].max().date()}")
 print(f"   Exercises: {df['exercise'].nunique()} unique")
 print(f"   Muscle groups: {df['muscle_group'].value_counts().to_dict()}")
 
-# ── Build output JSON ─────────────────────────────────────────────────────────
 def ts(d):
-    """Convert Timestamp/date to ISO string."""
     try: return d.isoformat()
     except: return str(d)
 
+# ── Build output JSON ─────────────────────────────────────────────────────────
 output = {
-    "generated":     datetime.utcnow().isoformat(),
-    "total_sets":    int(len(df)),
-    "total_sessions":int(df["date"].dt.normalize().nunique()),
-    "date_min":      ts(df["date"].min()),
-    "date_max":      ts(df["date"].max()),
+    "generated":      datetime.utcnow().isoformat(),
+    "total_sets":     int(len(df)),
+    "total_sessions": int(df["date"].dt.normalize().nunique()),
+    "date_min":       ts(df["date"].min()),
+    "date_max":       ts(df["date"].max()),
 
-    # Raw rows for detailed views (last 365 days)
     "sets": df[df["date"] >= (df["date"].max() - pd.Timedelta(days=365))][
-        ["date","exercise","sets","reps","weight_kg","weight_lbs","volume_kg","muscle_group","week","month","year"]
+        ["date","exercise","sets","reps","weight_kg","volume_kg","muscle_group","week","month","year"]
     ].assign(
         date=lambda x: x["date"].dt.strftime("%Y-%m-%d"),
         week=lambda x: x["week"].dt.strftime("%Y-%m-%d"),
         month=lambda x: x["month"].dt.strftime("%Y-%m-%d"),
     ).to_dict(orient="records"),
 
-    # Weekly volume per muscle group
     "weekly_volume": df.groupby(["week","muscle_group"])["volume_kg"]
         .sum().reset_index()
         .assign(week=lambda x: x["week"].dt.strftime("%Y-%m-%d"))
         .rename(columns={"volume_kg":"volume"})
         .to_dict(orient="records"),
 
-    # Per-exercise max weight over time (top 20 exercises by frequency)
     "top_exercises": df["exercise"].value_counts().head(20).index.tolist(),
 
-    # Personal records per exercise
     "records": df.groupby("exercise").agg(
         max_weight_kg=("weight_kg","max"),
         max_reps=("reps","max"),
@@ -148,7 +154,6 @@ output = {
      .sort_values("total_volume", ascending=False)
      .to_dict(orient="records"),
 
-    # Session list (most recent 90 days)
     "sessions": df.groupby(df["date"].dt.normalize()).agg(
         exercises=("exercise","nunique"),
         total_sets=("sets","sum"),
