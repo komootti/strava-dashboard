@@ -788,27 +788,39 @@ Keep both sections concise and direct. No bullet points. No headers in your resp
         oura_ctx += "\n\nWeight the recovery data heavily. If readiness < 70 or HRV is below 7d average, recommend easy or rest regardless of TSB."
         prompt += oura_ctx
 
-    try:
-        resp = _req.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 400,
-                "messages": [{"role": "user", "content": prompt}]
-            },
-            timeout=20
-        )
-        if resp.status_code == 200:
-            return resp.json()["content"][0]["text"].strip()
-        else:
-            return f"ERROR {resp.status_code}: {resp.text[:200]}"
-    except Exception as e:
-        return f"EXCEPTION: {str(e)[:200]}"
+    import time as _time
+    for _attempt in range(3):  # retry up to 3 times
+        try:
+            resp = _req.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 400,
+                    "messages": [{"role": "user", "content": prompt}]
+                },
+                timeout=25
+            )
+            if resp.status_code == 200:
+                return resp.json()["content"][0]["text"].strip()
+            elif resp.status_code in (529, 503, 502, 500):
+                # Transient server-side overload — wait and retry
+                if _attempt < 2:
+                    _time.sleep(3 + _attempt * 2)
+                    continue
+                return None  # Give up silently after 3 tries — not user's fault
+            else:
+                return f"ERROR {resp.status_code}: {resp.text[:200]}"
+        except Exception as e:
+            if _attempt < 2:
+                _time.sleep(2)
+                continue
+            return f"EXCEPTION: {str(e)[:200]}"
+    return None
 
 # Compute inputs for AI
 _recent_14 = df[df["date"] >= (df["date"].max() - pd.Timedelta(days=14))]
@@ -866,16 +878,18 @@ else:
             oura_sleep_h=_og("total_sleep_min") if _o is not None else None,
             oura_temp=_og("temperature_deviation") if _o is not None else None,
         )
-    if not _ai_text or _ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION"):
-        _err = _ai_text or "No response"
+    if _ai_text and (_ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION")):
+        # Only show error card for real errors, not silent retries (None)
         st.markdown(
-            '<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:3px solid #ff5555;' +
-            'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
-            f'✦ API error: {_err}' +
+            '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:3px solid #ff9966;' +
+            'border-radius:10px;padding:0.8rem 1.2rem;margin-bottom:1rem;color:#999;font-size:0.78rem">' +
+            f'✦ Athlete intelligence unavailable: {_ai_text[:120]}' +
             '</div>',
             unsafe_allow_html=True
         )
         _ai_text = None
+    elif not _ai_text:
+        pass  # Silent fail (overload/timeout) — show nothing rather than an error card
 
 if _api_key and _ai_text:
     _paras = [p.strip() for p in _ai_text.split("\n\n") if p.strip()]
@@ -1987,29 +2001,237 @@ else:
         # ── Weekly volume + Progressive overload side by side ──────────────────
         fb_col1, fb_col2 = st.columns([3, 2])
 
-        with fb_col1:
-            st.markdown("### Weekly Volume by Muscle Group")
-            if len(fb_weekly) > 0:
-                # Last 52 weeks
-                cutoff_fb = fb_weekly["week"].max() - pd.Timedelta(weeks=52)
-                fw = fb_weekly[fb_weekly["week"] >= cutoff_fb]
-                fig_fbw = go.Figure()
-                for grp in ["Upper","Lower","Core","Other"]:
-                    gd = fw[fw["muscle_group"]==grp]
-                    if len(gd) == 0: continue
-                    fig_fbw.add_trace(go.Bar(
-                        x=gd["week"], y=gd["volume"].round(0), name=grp,
-                        marker=dict(color=MUSCLE_COLORS[grp], line=dict(width=0)),
-                        hovertemplate=f"{grp}: <b>%{{y:,.0f}} kg</b><extra></extra>",
-                    ))
-                fig_fbw.update_layout(**CHART_LAYOUT, barmode="stack", height=280,
-                                      yaxis_title="Volume (kg)")
-                fig_fbw.update_xaxes(**axis_style())
-                fig_fbw.update_yaxes(**axis_style())
-                st.plotly_chart(fig_fbw, use_container_width=True)
+        # ── Upper Body Weekly Dashboard ───────────────────────────────────────
+        st.markdown("### Upper Body Volume")
 
-        with fb_col2:
-            st.markdown("### Muscle Group Balance")
+        if len(fb_weekly) > 0:
+            # Prepare 6-week trend data
+            _w6_cutoff = fb_weekly["week"].max() - pd.Timedelta(weeks=6)
+            _w52_cutoff = fb_weekly["week"].max() - pd.Timedelta(weeks=52)
+
+            upper_w52 = fb_weekly[(fb_weekly["muscle_group"]=="Upper") &
+                                   (fb_weekly["week"] >= _w52_cutoff)].copy()
+            upper_w6  = upper_w52[upper_w52["week"] >= _w6_cutoff].copy()
+
+            fig_upper = go.Figure()
+
+            # Bar chart — last 52 weeks
+            fig_upper.add_trace(go.Bar(
+                x=upper_w52["week"], y=upper_w52["volume"].round(0),
+                name="Weekly volume",
+                marker=dict(color="rgba(252,76,2,0.25)", line=dict(width=0)),
+                hovertemplate="<b>%{x|%d %b}</b><br>Upper: <b>%{y:,.0f} kg</b><extra></extra>",
+            ))
+
+            # 6-week trend line with data point labels
+            if len(upper_w6) > 0:
+                fig_upper.add_trace(go.Scatter(
+                    x=upper_w6["week"],
+                    y=upper_w6["volume"].round(0),
+                    mode="lines+markers+text",
+                    name="6-week trend",
+                    line=dict(color="#fc4c02", width=2.5),
+                    marker=dict(size=8, color="#fc4c02",
+                                line=dict(color="#ffffff", width=2)),
+                    text=upper_w6["volume"].round(0).astype(int).astype(str) + " kg",
+                    textposition="top center",
+                    textfont=dict(size=10, color="#fc4c02", family="DM Mono"),
+                    hovertemplate="<b>%{x|%d %b}</b><br>Upper: <b>%{y:,.0f} kg</b><extra></extra>",
+                ))
+
+            fig_upper.update_layout(
+                **{**CHART_LAYOUT, "margin": dict(t=30,b=30,l=50,r=20)},
+                height=300, yaxis_title="Volume (kg)",
+                legend=dict(orientation="h", y=1.08)
+            )
+            fig_upper.update_xaxes(**axis_style())
+            fig_upper.update_yaxes(**axis_style())
+            st.plotly_chart(fig_upper, use_container_width=True)
+
+            # Upper body sub-metrics
+            _u_last  = upper_w6["volume"].iloc[-1] if len(upper_w6) > 0 else 0
+            _u_prev  = upper_w6["volume"].iloc[-2] if len(upper_w6) > 1 else 0
+            _u_avg6  = upper_w6["volume"].mean() if len(upper_w6) > 0 else 0
+            _u_trend = _u_last - _u_prev
+            _u_col   = "#50c850" if _u_trend >= 0 else "#ff5555"
+            _u_arr   = "▲" if _u_trend > 0 else "▼" if _u_trend < 0 else "—"
+            uc1, uc2, uc3, uc4 = st.columns(4)
+            uc1.metric("This week", f"{int(_u_last):,} kg")
+            uc2.metric("vs prev week", f"{_u_arr} {abs(int(_u_trend)):,} kg",
+                       delta=f"{_u_trend:+.0f}")
+            uc3.metric("6-week avg", f"{int(_u_avg6):,} kg")
+            top_upper = fb_sets[fb_sets["muscle_group"]=="Upper"]["exercise"].value_counts().index[0] if len(fb_sets[fb_sets["muscle_group"]=="Upper"]) > 0 else "—"
+            uc4.metric("Top exercise", top_upper[:20])
+
+        st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
+
+        # ── Lower Body Weekly Dashboard ───────────────────────────────────────
+        st.markdown("### Lower Body Volume")
+
+        if len(fb_weekly) > 0:
+            lower_w52 = fb_weekly[(fb_weekly["muscle_group"]=="Lower") &
+                                   (fb_weekly["week"] >= _w52_cutoff)].copy()
+            lower_w6  = lower_w52[lower_w52["week"] >= _w6_cutoff].copy()
+
+            fig_lower = go.Figure()
+
+            fig_lower.add_trace(go.Bar(
+                x=lower_w52["week"], y=lower_w52["volume"].round(0),
+                name="Weekly volume",
+                marker=dict(color="rgba(255,165,0,0.25)", line=dict(width=0)),
+                hovertemplate="<b>%{x|%d %b}</b><br>Lower: <b>%{y:,.0f} kg</b><extra></extra>",
+            ))
+
+            if len(lower_w6) > 0:
+                fig_lower.add_trace(go.Scatter(
+                    x=lower_w6["week"],
+                    y=lower_w6["volume"].round(0),
+                    mode="lines+markers+text",
+                    name="6-week trend",
+                    line=dict(color="#ffa500", width=2.5),
+                    marker=dict(size=8, color="#ffa500",
+                                line=dict(color="#ffffff", width=2)),
+                    text=lower_w6["volume"].round(0).astype(int).astype(str) + " kg",
+                    textposition="top center",
+                    textfont=dict(size=10, color="#e07000", family="DM Mono"),
+                    hovertemplate="<b>%{x|%d %b}</b><br>Lower: <b>%{y:,.0f} kg</b><extra></extra>",
+                ))
+
+            fig_lower.update_layout(
+                **{**CHART_LAYOUT, "margin": dict(t=30,b=30,l=50,r=20)},
+                height=300, yaxis_title="Volume (kg)",
+                legend=dict(orientation="h", y=1.08)
+            )
+            fig_lower.update_xaxes(**axis_style())
+            fig_lower.update_yaxes(**axis_style())
+            st.plotly_chart(fig_lower, use_container_width=True)
+
+            _l_last  = lower_w6["volume"].iloc[-1] if len(lower_w6) > 0 else 0
+            _l_prev  = lower_w6["volume"].iloc[-2] if len(lower_w6) > 1 else 0
+            _l_avg6  = lower_w6["volume"].mean() if len(lower_w6) > 0 else 0
+            _l_trend = _l_last - _l_prev
+            lc1, lc2, lc3, lc4 = st.columns(4)
+            lc1.metric("This week", f"{int(_l_last):,} kg")
+            lc2.metric("vs prev week", f"{'▲' if _l_trend>=0 else '▼'} {abs(int(_l_trend)):,} kg",
+                       delta=f"{_l_trend:+.0f}")
+            lc3.metric("6-week avg", f"{int(_l_avg6):,} kg")
+            top_lower = fb_sets[fb_sets["muscle_group"]=="Lower"]["exercise"].value_counts().index[0] if len(fb_sets[fb_sets["muscle_group"]=="Lower"]) > 0 else "—"
+            lc4.metric("Top exercise", top_lower[:20])
+
+        st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
+
+        # ── AI Strength Insights ──────────────────────────────────────────────
+        st.markdown("### Strength Intelligence")
+
+        @st.cache_data(ttl=86400, show_spinner=False)
+        def get_strength_analysis(api_key, upper_6w_json, lower_6w_json,
+                                  top_exercises_json, total_sessions,
+                                  upper_lower_ratio, last_session_date):
+            import requests as _rq, time as _t
+            prompt = f"""You are a strength and conditioning coach analysing an athlete's training data.
+
+UPPER BODY — last 6 weeks volume (kg per week):
+{upper_6w_json}
+
+LOWER BODY — last 6 weeks volume (kg per week):
+{lower_6w_json}
+
+CONTEXT:
+- Upper:Lower volume ratio (all time): {upper_lower_ratio:.1f}:1
+- Total strength sessions logged: {total_sessions}
+- Last session: {last_session_date}
+- Most trained exercises: {top_exercises_json}
+
+Write TWO short paragraphs (no headers, no bullets):
+
+1. PROGRESS ANALYSIS (3-4 sentences): What does the 6-week trend show for upper and lower body? Is volume increasing, decreasing or stagnant? Are there any notable patterns or gaps?
+
+2. FOCUS RECOMMENDATIONS (3-4 sentences): Based on the volume ratio and exercise mix, what muscle groups or body parts need more attention? Be specific — name exercises and target rep ranges or volume targets.
+
+Write like a knowledgeable coach. Use the numbers. Be direct."""
+
+            for attempt in range(3):
+                try:
+                    resp = _rq.post(
+                        "https://api.anthropic.com/v1/messages",
+                        headers={"x-api-key": api_key,
+                                 "anthropic-version": "2023-06-01",
+                                 "Content-Type": "application/json"},
+                        json={"model": "claude-sonnet-4-20250514",
+                              "max_tokens": 350,
+                              "messages": [{"role": "user", "content": prompt}]},
+                        timeout=25
+                    )
+                    if resp.status_code == 200:
+                        return resp.json()["content"][0]["text"].strip()
+                    elif resp.status_code in (529, 503, 502, 500):
+                        if attempt < 2: _t.sleep(3 + attempt * 2); continue
+                        return None
+                    else:
+                        return f"ERROR {resp.status_code}: {resp.text[:150]}"
+                except Exception as e:
+                    if attempt < 2: _t.sleep(2); continue
+                    return None
+            return None
+
+        _sa_key = st.secrets.get("ANTHROPIC_API_KEY","") if hasattr(st,"secrets") else ""
+        if _sa_key and len(fb_weekly) > 0:
+            import json as _json
+
+            _u6 = upper_w6[["week","volume"]].assign(
+                week=lambda x: x["week"].dt.strftime("%d %b"),
+                volume=lambda x: x["volume"].round(0).astype(int)
+            ).to_dict(orient="records") if len(upper_w6) > 0 else []
+
+            _l6 = lower_w6[["week","volume"]].assign(
+                week=lambda x: x["week"].dt.strftime("%d %b"),
+                volume=lambda x: x["volume"].round(0).astype(int)
+            ).to_dict(orient="records") if len(lower_w6) > 0 else []
+
+            _u_total = fb_sets[fb_sets["muscle_group"]=="Upper"]["volume_kg"].sum()
+            _l_total = fb_sets[fb_sets["muscle_group"]=="Lower"]["volume_kg"].sum()
+            _ratio   = _u_total / max(_l_total, 1)
+            _top_ex  = fb_sets.groupby("exercise")["volume_kg"].sum().nlargest(8).index.tolist()
+            _last_s  = fb_sessions["date"].max().strftime("%d %b %Y") if len(fb_sessions) > 0 else "unknown"
+            _cache_k = f"strength_ai_{fb_sessions['date'].max().strftime('%Y%m%d') if len(fb_sessions)>0 else '0'}"
+
+            with st.spinner("✦ Generating strength insights..."):
+                _strength_text = get_strength_analysis(
+                    _sa_key,
+                    _json.dumps(_u6),
+                    _json.dumps(_l6),
+                    _json.dumps(_top_ex),
+                    fitbod_data["total_sessions"],
+                    _ratio,
+                    _last_s
+                )
+
+            if _strength_text and not _strength_text.startswith("ERROR"):
+                _s_paras = [p.strip() for p in _strength_text.split("\n\n") if p.strip()]
+                _s_analysis = _s_paras[0] if len(_s_paras) > 0 else ""
+                _s_focus    = _s_paras[1] if len(_s_paras) > 1 else ""
+                st.markdown(
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">' +
+                    '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
+                    '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
+                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_s_analysis}</div>' +
+                    '</div>' +
+                    '<div style="background:#f5f0ff;border:1px solid #d8c8ff;border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
+                    '<div style="color:#7c3aed;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
+                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_s_focus}</div>' +
+                    '</div>' +
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+        elif not _sa_key:
+            st.caption("Add ANTHROPIC_API_KEY to Streamlit secrets to enable strength insights.")
+
+        st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
+
+        # ── Muscle Group Balance (pie) ─────────────────────────────────────────
+        fb_col1, fb_col2 = st.columns([1, 1])
+        with fb_col1:
+            st.markdown("### All-time Balance")
             vol_grp = fb_sets.groupby("muscle_group")["volume_kg"].sum().reset_index()
             if len(vol_grp) > 0:
                 fig_pie = go.Figure(go.Pie(
@@ -2024,13 +2246,37 @@ else:
                     hole=0.45,
                     hovertemplate="<b>%{label}</b><br>%{value:,.0f} kg · %{percent}<extra></extra>",
                 ))
-                fig_pie.update_layout(**CHART_LAYOUT, height=280,
+                fig_pie.update_layout(**CHART_LAYOUT, height=260,
                     annotations=[dict(
                         text=f"{total_vol/1000:.1f}t",
                         x=0.5, y=0.5, showarrow=False,
                         font=dict(size=14, color="#1a1a1a", family="DM Mono")
                     )])
                 st.plotly_chart(fig_pie, use_container_width=True)
+
+        with fb_col2:
+            st.markdown("### Weekly Sets by Group")
+            freq_data = fb_sets.copy()
+            freq_data["week"] = freq_data["date"].dt.to_period("W").dt.start_time
+            cutoff_freq = freq_data["week"].max() - pd.Timedelta(weeks=12)
+            freq_grp = freq_data[freq_data["week"] >= cutoff_freq].groupby(
+                ["week","muscle_group"])["sets"].sum().reset_index()
+            fig_freq = go.Figure()
+            for group in ["Upper","Lower","Core"]:
+                gd = freq_grp[freq_grp["muscle_group"]==group]
+                if len(gd) == 0: continue
+                fig_freq.add_trace(go.Bar(
+                    x=gd["week"], y=gd["sets"], name=group,
+                    marker=dict(color=MUSCLE_COLORS[group], line=dict(width=0)),
+                    hovertemplate=f"{group}: <b>%{{y}} sets</b><extra></extra>",
+                ))
+            fig_freq.update_layout(**CHART_LAYOUT, barmode="group", height=260,
+                                   yaxis_title="Sets per week")
+            fig_freq.update_xaxes(**axis_style())
+            fig_freq.update_yaxes(**axis_style())
+            st.plotly_chart(fig_freq, use_container_width=True)
+
+        del fb_col1, fb_col2
 
         # ── Progressive overload ───────────────────────────────────────────────
         st.markdown("### Progressive Overload")
