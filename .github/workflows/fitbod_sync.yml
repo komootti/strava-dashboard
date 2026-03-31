@@ -1,0 +1,31 @@
+name: Fitbod Sync
+
+on:
+  workflow_dispatch:   # manual trigger from sync page
+  push:
+    paths:
+      - "WorkoutExport.csv"   # auto-trigger when CSV is uploaded
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas
+
+      - name: Run Fitbod sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO:  ${{ github.repository }}
+        run: python sync_fitbod.py
