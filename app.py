@@ -1311,6 +1311,74 @@ if not oura_df.empty:
 
     st.markdown(html_oura, unsafe_allow_html=True)
 
+    # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
+    if fitbod_data:
+        _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
+        _fbs = pd.DataFrame(fitbod_data.get("sets", []))
+        if len(_fbw) > 0 and len(_fbs) > 0:
+            _fbw["week"] = pd.to_datetime(_fbw["week"])
+            _fbs["date"] = pd.to_datetime(_fbs["date"])
+            _w6c  = _fbw["week"].max() - pd.Timedelta(weeks=6)
+            _u6   = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]>=_w6c)].sort_values("week")
+            _l6   = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]>=_w6c)].sort_values("week")
+
+            def _sv(df, i): return int(df["volume"].iloc[i]) if len(df) > abs(i) else 0
+            _ul, _up = _sv(_u6,-1), _sv(_u6,-2)
+            _ll, _lp = _sv(_l6,-1), _sv(_l6,-2)
+            _ua6 = int(_u6["volume"].mean()) if len(_u6)>0 else 0
+            _la6 = int(_l6["volume"].mean()) if len(_l6)>0 else 0
+            _ud, _ld = _ul-_up, _ll-_lp
+            def _va(d): return ("▲","#50c850") if d>0 else ("▼","#ff5555") if d<0 else ("—","#aaa")
+            _uarr,_ucol = _va(_ud); _larr,_lcol = _va(_ld)
+            _utop = _fbs[_fbs["muscle_group"]=="Upper"]["exercise"].value_counts()
+            _ltop = _fbs[_fbs["muscle_group"]=="Lower"]["exercise"].value_counts()
+            _utop_ex = _utop.index[0][:22] if len(_utop)>0 else "—"
+            _ltop_ex = _ltop.index[0][:22] if len(_ltop)>0 else "—"
+
+            def _str_spark(w6, lc):
+                if len(w6)<2: return ""
+                vs = w6["volume"].round(0).tolist()
+                ds = w6["week"].dt.strftime("%-d %b").tolist()
+                W,H,pb,pt = 260,82,20,16
+                mn,mx = min(vs),max(vs)
+                rng = mx-mn if mx!=mn else 1
+                pts = [(round(i/(len(vs)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v, d)
+                       for i,(v,d) in enumerate(zip(vs,ds))]
+                path = " ".join(f"{x},{y}" for x,y,_,_ in pts)
+                area = f"0,{H-pb} " + path + f" {W},{H-pb}"
+                circ = "".join(f'<circle cx="{x}" cy="{y}" r="4" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
+                vals = "".join(f'<text x="{x}" y="{max(y-7,pt-1)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="600" font-family="DM Mono">{int(v):,}</text>' for x,y,v,_ in pts)
+                dats = "".join(f'<text x="{x}" y="{H-4}" text-anchor="middle" fill="#bbb" font-size="8" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
+                return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
+                        f'<polygon points="{area}" fill="{lc}" opacity="0.07"/>' +
+                        f'<polyline points="{path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linejoin="round"/>' +
+                        circ + vals + dats + '</svg>')
+
+            _su = _str_spark(_u6,"#fc4c02"); _sl = _str_spark(_l6,"#d97706")
+            _usub = f'<span style="color:{_ucol};font-weight:600">{_uarr} {abs(_ud):,} kg</span> vs prev · 6w avg {_ua6:,} kg'
+            _lsub = f'<span style="color:{_lcol};font-weight:600">{_larr} {abs(_ld):,} kg</span> vs prev · 6w avg {_la6:,} kg'
+
+            st.markdown(
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0">' +
+                '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">' +
+                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Upper Body · This Week</div>' +
+                f'<div style="color:#aaa;font-size:0.65rem">{_utop_ex}</div></div>' +
+                f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.1;margin-bottom:4px">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:#888;font-size:0.72rem;margin-bottom:8px">{_usub}</div>' +
+                f'<div>{_su}</div></div>' +
+                '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">' +
+                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Lower Body · This Week</div>' +
+                f'<div style="color:#aaa;font-size:0.65rem">{_ltop_ex}</div></div>' +
+                f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.1;margin-bottom:4px">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:#888;font-size:0.72rem;margin-bottom:8px">{_lsub}</div>' +
+                f'<div>{_sl}</div></div>' +
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+
     # 30-day HRV + RHR trend chart
     chart_o = recent_30[["date","hrv_avg","resting_hr"]].copy()
     chart_o = chart_o[chart_o["hrv_avg"].notna() | chart_o["resting_hr"].notna()]
@@ -2000,125 +2068,6 @@ else:
 
         # ── Weekly volume + Progressive overload side by side ──────────────────
         fb_col1, fb_col2 = st.columns([3, 2])
-
-        # ── Upper Body Weekly Dashboard ───────────────────────────────────────
-        st.markdown("### Upper Body Volume")
-
-        if len(fb_weekly) > 0:
-            # Prepare 6-week trend data
-            _w6_cutoff = fb_weekly["week"].max() - pd.Timedelta(weeks=6)
-            _w52_cutoff = fb_weekly["week"].max() - pd.Timedelta(weeks=52)
-
-            upper_w52 = fb_weekly[(fb_weekly["muscle_group"]=="Upper") &
-                                   (fb_weekly["week"] >= _w52_cutoff)].copy()
-            upper_w6  = upper_w52[upper_w52["week"] >= _w6_cutoff].copy()
-
-            fig_upper = go.Figure()
-
-            # Bar chart — last 52 weeks
-            fig_upper.add_trace(go.Bar(
-                x=upper_w52["week"], y=upper_w52["volume"].round(0),
-                name="Weekly volume",
-                marker=dict(color="rgba(252,76,2,0.25)", line=dict(width=0)),
-                hovertemplate="<b>%{x|%d %b}</b><br>Upper: <b>%{y:,.0f} kg</b><extra></extra>",
-            ))
-
-            # 6-week trend line with data point labels
-            if len(upper_w6) > 0:
-                fig_upper.add_trace(go.Scatter(
-                    x=upper_w6["week"],
-                    y=upper_w6["volume"].round(0),
-                    mode="lines+markers+text",
-                    name="6-week trend",
-                    line=dict(color="#fc4c02", width=2.5),
-                    marker=dict(size=8, color="#fc4c02",
-                                line=dict(color="#ffffff", width=2)),
-                    text=upper_w6["volume"].round(0).astype(int).astype(str) + " kg",
-                    textposition="top center",
-                    textfont=dict(size=10, color="#fc4c02", family="DM Mono"),
-                    hovertemplate="<b>%{x|%d %b}</b><br>Upper: <b>%{y:,.0f} kg</b><extra></extra>",
-                ))
-
-            fig_upper.update_layout(
-                **{**CHART_LAYOUT, "margin": dict(t=30,b=30,l=50,r=20)},
-                height=300, yaxis_title="Volume (kg)",
-                legend=dict(orientation="h", y=1.08)
-            )
-            fig_upper.update_xaxes(**axis_style())
-            fig_upper.update_yaxes(**axis_style())
-            st.plotly_chart(fig_upper, use_container_width=True)
-
-            # Upper body sub-metrics
-            _u_last  = upper_w6["volume"].iloc[-1] if len(upper_w6) > 0 else 0
-            _u_prev  = upper_w6["volume"].iloc[-2] if len(upper_w6) > 1 else 0
-            _u_avg6  = upper_w6["volume"].mean() if len(upper_w6) > 0 else 0
-            _u_trend = _u_last - _u_prev
-            _u_col   = "#50c850" if _u_trend >= 0 else "#ff5555"
-            _u_arr   = "▲" if _u_trend > 0 else "▼" if _u_trend < 0 else "—"
-            uc1, uc2, uc3, uc4 = st.columns(4)
-            uc1.metric("This week", f"{int(_u_last):,} kg")
-            uc2.metric("vs prev week", f"{_u_arr} {abs(int(_u_trend)):,} kg",
-                       delta=f"{_u_trend:+.0f}")
-            uc3.metric("6-week avg", f"{int(_u_avg6):,} kg")
-            top_upper = fb_sets[fb_sets["muscle_group"]=="Upper"]["exercise"].value_counts().index[0] if len(fb_sets[fb_sets["muscle_group"]=="Upper"]) > 0 else "—"
-            uc4.metric("Top exercise", top_upper[:20])
-
-        st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
-
-        # ── Lower Body Weekly Dashboard ───────────────────────────────────────
-        st.markdown("### Lower Body Volume")
-
-        if len(fb_weekly) > 0:
-            lower_w52 = fb_weekly[(fb_weekly["muscle_group"]=="Lower") &
-                                   (fb_weekly["week"] >= _w52_cutoff)].copy()
-            lower_w6  = lower_w52[lower_w52["week"] >= _w6_cutoff].copy()
-
-            fig_lower = go.Figure()
-
-            fig_lower.add_trace(go.Bar(
-                x=lower_w52["week"], y=lower_w52["volume"].round(0),
-                name="Weekly volume",
-                marker=dict(color="rgba(255,165,0,0.25)", line=dict(width=0)),
-                hovertemplate="<b>%{x|%d %b}</b><br>Lower: <b>%{y:,.0f} kg</b><extra></extra>",
-            ))
-
-            if len(lower_w6) > 0:
-                fig_lower.add_trace(go.Scatter(
-                    x=lower_w6["week"],
-                    y=lower_w6["volume"].round(0),
-                    mode="lines+markers+text",
-                    name="6-week trend",
-                    line=dict(color="#ffa500", width=2.5),
-                    marker=dict(size=8, color="#ffa500",
-                                line=dict(color="#ffffff", width=2)),
-                    text=lower_w6["volume"].round(0).astype(int).astype(str) + " kg",
-                    textposition="top center",
-                    textfont=dict(size=10, color="#e07000", family="DM Mono"),
-                    hovertemplate="<b>%{x|%d %b}</b><br>Lower: <b>%{y:,.0f} kg</b><extra></extra>",
-                ))
-
-            fig_lower.update_layout(
-                **{**CHART_LAYOUT, "margin": dict(t=30,b=30,l=50,r=20)},
-                height=300, yaxis_title="Volume (kg)",
-                legend=dict(orientation="h", y=1.08)
-            )
-            fig_lower.update_xaxes(**axis_style())
-            fig_lower.update_yaxes(**axis_style())
-            st.plotly_chart(fig_lower, use_container_width=True)
-
-            _l_last  = lower_w6["volume"].iloc[-1] if len(lower_w6) > 0 else 0
-            _l_prev  = lower_w6["volume"].iloc[-2] if len(lower_w6) > 1 else 0
-            _l_avg6  = lower_w6["volume"].mean() if len(lower_w6) > 0 else 0
-            _l_trend = _l_last - _l_prev
-            lc1, lc2, lc3, lc4 = st.columns(4)
-            lc1.metric("This week", f"{int(_l_last):,} kg")
-            lc2.metric("vs prev week", f"{'▲' if _l_trend>=0 else '▼'} {abs(int(_l_trend)):,} kg",
-                       delta=f"{_l_trend:+.0f}")
-            lc3.metric("6-week avg", f"{int(_l_avg6):,} kg")
-            top_lower = fb_sets[fb_sets["muscle_group"]=="Lower"]["exercise"].value_counts().index[0] if len(fb_sets[fb_sets["muscle_group"]=="Lower"]) > 0 else "—"
-            lc4.metric("Top exercise", top_lower[:20])
-
-        st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
 
         # ── AI Strength Insights ──────────────────────────────────────────────
         st.markdown("### Strength Intelligence")
