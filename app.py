@@ -1194,7 +1194,14 @@ if not oura_df.empty:
     o_sleep_h= osafe(today_o, "total_sleep_min")
     o_deep   = osafe(today_o, "deep_sleep_min")
     o_temp   = osafe(today_o, "temperature_deviation")
-    o_resp   = osafe(today_o, "respiratory_rate")
+    o_resp      = osafe(today_o, "respiratory_rate")
+    # Activity score fallback — often None for current day, use most recent available
+    o_act_score = None
+    for _oi in range(min(3, len(oura_df))):
+        _v = osafe(oura_df.iloc[_oi], "activity_score")
+        if _v is not None:
+            o_act_score = _v
+            break
 
     hrv_7avg = recent_7["hrv_avg"].dropna().mean() if "hrv_avg" in recent_7.columns else None
     rhr_7avg = recent_7["resting_hr"].dropna().mean() if "resting_hr" in recent_7.columns else None
@@ -1304,7 +1311,7 @@ if not oura_df.empty:
 
         + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
-        + f'<div style="color:{scol(osafe(today_o,"activity_score"))};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(osafe(today_o,"activity_score")) if osafe(today_o,"activity_score") is not None else "—"}</div>'
+        + f'<div style="color:{scol(o_act_score)};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(o_act_score) if o_act_score is not None else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Daily activity balance</div></div>'
         + '</div>'
     )
@@ -1330,11 +1337,6 @@ if not oura_df.empty:
             _ud, _ld = _ul-_up, _ll-_lp
             def _va(d): return ("▲","#50c850") if d>0 else ("▼","#ff5555") if d<0 else ("—","#aaa")
             _uarr,_ucol = _va(_ud); _larr,_lcol = _va(_ld)
-            _utop = _fbs[_fbs["muscle_group"]=="Upper"]["exercise"].value_counts()
-            _ltop = _fbs[_fbs["muscle_group"]=="Lower"]["exercise"].value_counts()
-            _utop_ex = _utop.index[0][:22] if len(_utop)>0 else "—"
-            _ltop_ex = _ltop.index[0][:22] if len(_ltop)>0 else "—"
-
             def _str_spark(w6, lc):
                 if len(w6)<2: return ""
                 vs = w6["volume"].round(0).tolist()
@@ -1361,19 +1363,23 @@ if not oura_df.empty:
             st.markdown(
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0">' +
                 '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">' +
-                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Upper Body · This Week</div>' +
-                f'<div style="color:#aaa;font-size:0.65rem">{_utop_ex}</div></div>' +
-                f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.1;margin-bottom:4px">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
-                f'<div style="color:#888;font-size:0.72rem;margin-bottom:8px">{_usub}</div>' +
-                f'<div>{_su}</div></div>' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                '<div>' +
+                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
+                f'<div style="color:#1a1a1a;font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
+                '</div>' +
+                f'<div style="flex-shrink:0;margin-left:8px">{_su}</div>' +
+                '</div></div>' +
                 '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
-                '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">' +
-                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Lower Body · This Week</div>' +
-                f'<div style="color:#aaa;font-size:0.65rem">{_ltop_ex}</div></div>' +
-                f'<div style="color:#1a1a1a;font-size:2.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1.1;margin-bottom:4px">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
-                f'<div style="color:#888;font-size:0.72rem;margin-bottom:8px">{_lsub}</div>' +
-                f'<div>{_sl}</div></div>' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                '<div>' +
+                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
+                f'<div style="color:#1a1a1a;font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
+                '</div>' +
+                f'<div style="flex-shrink:0;margin-left:8px">{_sl}</div>' +
+                '</div></div>' +
                 '</div>',
                 unsafe_allow_html=True
             )
@@ -2126,16 +2132,20 @@ Write like a knowledgeable coach. Use the numbers. Be direct."""
         _sa_key = st.secrets.get("ANTHROPIC_API_KEY","") if hasattr(st,"secrets") else ""
         if _sa_key and len(fb_weekly) > 0:
             import json as _json
+            # Recompute 6-week data for AI (using fb_weekly which is in scope here)
+            _aiw6c = fb_weekly["week"].max() - pd.Timedelta(weeks=6)
+            _ai_u6 = fb_weekly[(fb_weekly["muscle_group"]=="Upper") & (fb_weekly["week"]>=_aiw6c)].sort_values("week")
+            _ai_l6 = fb_weekly[(fb_weekly["muscle_group"]=="Lower") & (fb_weekly["week"]>=_aiw6c)].sort_values("week")
 
-            _u6 = upper_w6[["week","volume"]].assign(
+            _u6 = _ai_u6[["week","volume"]].assign(
                 week=lambda x: x["week"].dt.strftime("%d %b"),
                 volume=lambda x: x["volume"].round(0).astype(int)
-            ).to_dict(orient="records") if len(upper_w6) > 0 else []
+            ).to_dict(orient="records") if len(_ai_u6) > 0 else []
 
-            _l6 = lower_w6[["week","volume"]].assign(
+            _l6 = _ai_l6[["week","volume"]].assign(
                 week=lambda x: x["week"].dt.strftime("%d %b"),
                 volume=lambda x: x["volume"].round(0).astype(int)
-            ).to_dict(orient="records") if len(lower_w6) > 0 else []
+            ).to_dict(orient="records") if len(_ai_l6) > 0 else []
 
             _u_total = fb_sets[fb_sets["muscle_group"]=="Upper"]["volume_kg"].sum()
             _l_total = fb_sets[fb_sets["muscle_group"]=="Lower"]["volume_kg"].sum()
