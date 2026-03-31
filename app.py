@@ -690,6 +690,42 @@ _card_right = (
 
 # ── Latest activity map + info side by side ──────────────────────────────────
 _la_poly = _polylines.get(str(int(latest_act["activity_id"])), "")
+if not _la_poly and fitbod_data:
+    # No GPS activity — show Fitbod last session as fallback card
+    _fb_sess_tmp = pd.DataFrame(fitbod_data.get("sessions",[]))
+    _fb_sets_tmp = pd.DataFrame(fitbod_data.get("sets",[]))
+    if len(_fb_sess_tmp) > 0 and len(_fb_sets_tmp) > 0:
+        _fb_sess_tmp["date"] = pd.to_datetime(_fb_sess_tmp["date"])
+        _fb_sets_tmp["date"] = pd.to_datetime(_fb_sets_tmp["date"])
+        _last_fb = _fb_sess_tmp.iloc[0]
+        _last_fb_date = _last_fb["date"].strftime("%a %d %b %Y")
+        _last_fb_sets = _fb_sets_tmp[_fb_sets_tmp["date"].dt.date == _last_fb["date"].date()]
+        _top_moves = _last_fb_sets.groupby("exercise")["sets"].sum().nlargest(5).reset_index()
+        _move_pills = "".join([
+            f'<span style="background:#f5f0ff;color:#7c3aed;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px;margin-right:6px;margin-bottom:4px;display:inline-block">'
+            f'{r["exercise"][:22]} · {int(r["sets"])}×</span>'
+            for _, r in _top_moves.iterrows()
+        ])
+        _fb_vol = f"{_last_fb['total_volume']/1000:.1f}t" if _last_fb.get("total_volume",0) > 0 else "—"
+        _fb_grps = ", ".join(_last_fb["muscle_groups"]) if isinstance(_last_fb.get("muscle_groups"), list) else "—"
+        st.markdown(
+            '<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:4px solid #a78bfa;'
+            'border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:0.8rem;box-shadow:0 2px 8px rgba(0,0,0,0.06)">'
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
+            f'<div style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Latest Strength Session · {_last_fb_date}</div>'
+            '<span style="background:#f5f0ff;color:#7c3aed;font-size:0.62rem;font-weight:700;padding:3px 10px;border-radius:999px">STRENGTH</span>'
+            '</div>'
+            f'<div style="display:flex;gap:24px;margin-bottom:12px">'
+            f'<div><div style="color:#1a1a1a;font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_fb_vol}</div><div style="color:#aaa;font-size:0.7rem">total volume</div></div>'
+            f'<div><div style="color:#1a1a1a;font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{int(_last_fb["total_sets"])}</div><div style="color:#aaa;font-size:0.7rem">sets</div></div>'
+            f'<div><div style="color:#1a1a1a;font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{int(_last_fb["exercises"])}</div><div style="color:#aaa;font-size:0.7rem">exercises</div></div>'
+            f'<div><div style="color:#888;font-size:0.9rem;font-weight:600;margin-top:4px">{_fb_grps}</div><div style="color:#aaa;font-size:0.7rem">muscle groups</div></div>'
+            '</div>'
+            f'<div style="display:flex;flex-wrap:wrap;gap:4px">{_move_pills}</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
 if _la_poly:
     _la_coords = decode_polyline(_la_poly)
     if _la_coords:
@@ -1041,11 +1077,11 @@ st.markdown(f"""
     display: block;
 }}
 .card-label {{
-    color: #bbb;
+    color: #888;
     font-size: 0.6rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
 }}
 .card-value {{
     font-size: 2.2rem;
@@ -1056,7 +1092,7 @@ st.markdown(f"""
 }}
 .card-sub {{
     font-size: 0.7rem;
-    color: #aaa;
+    color: #999;
     margin-top: 5px;
 }}
 .card-trend {{
@@ -1072,12 +1108,12 @@ st.markdown(f"""
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
-    background: #ffffff;
+    background: #1a1a1a;
     border: 1px solid #fc4c02;
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 0.75rem;
-    color: #ffffff;
+    color: #f0f0f0;
     width: 220px;
     z-index: 999;
     line-height: 1.5;
@@ -1629,7 +1665,7 @@ st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0
 st.markdown("## Training Consistency")
 
 ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
-               "Nordic Ski","Swim","Rowing","E-Bike Ride"}
+               "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training","Workout","Crossfit"}
 
 @st.cache_data
 def build_heatmap_data(_df):
