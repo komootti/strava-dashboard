@@ -1341,19 +1341,40 @@ if not oura_df.empty:
                 if len(w6)<2: return ""
                 vs = w6["volume"].round(0).tolist()
                 ds = w6["week"].dt.strftime("%-d %b").tolist()
-                W,H,pb,pt = 260,82,20,16
+                W,H,pb,pt = 240,90,22,18
+
+                def _fmt_k(v):
+                    return f"{v/1000:.1f}K" if v >= 1000 else str(int(v))
+
                 mn,mx = min(vs),max(vs)
                 rng = mx-mn if mx!=mn else 1
                 pts = [(round(i/(len(vs)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v, d)
                        for i,(v,d) in enumerate(zip(vs,ds))]
                 path = " ".join(f"{x},{y}" for x,y,_,_ in pts)
                 area = f"0,{H-pb} " + path + f" {W},{H-pb}"
-                circ = "".join(f'<circle cx="{x}" cy="{y}" r="4" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
-                vals = "".join(f'<text x="{x}" y="{max(y-7,pt-1)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="600" font-family="DM Mono">{int(v):,}</text>' for x,y,v,_ in pts)
-                dats = "".join(f'<text x="{x}" y="{H-4}" text-anchor="middle" fill="#bbb" font-size="8" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
+                # Smooth curve using cubic bezier through points
+                def _smooth(pts):
+                    if len(pts) < 2: return ""
+                    d = f"M {pts[0][0]},{pts[0][1]}"
+                    for i in range(1, len(pts)):
+                        x0,y0 = pts[i-1][0],pts[i-1][1]
+                        x1,y1 = pts[i][0],pts[i][1]
+                        cx = (x0+x1)/2
+                        d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
+                    return d
+                smooth_path = _smooth(pts)
+                smooth_area = f"M 0,{H-pb} L {pts[0][0]},{pts[0][1]} " + " ".join(
+                    f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
+                    for i in range(1,len(pts))
+                ) + f" L {pts[-1][0]},{H-pb} Z"
+                circ = "".join(f'<circle cx="{x}" cy="{y}" r="3.5" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
+                vals = "".join(f'<text x="{x}" y="{max(y-8,pt-2)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="400" font-family="DM Mono,monospace">{_fmt_k(v)}</text>' for x,y,v,_ in pts)
+                dats = "".join(f'<text x="{x}" y="{H-5}" text-anchor="middle" fill="#bbb" font-size="7.5" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
+                lc_rgba = lc.replace("#","")
+                r,g,b = int(lc_rgba[0:2],16),int(lc_rgba[2:4],16),int(lc_rgba[4:6],16)
                 return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
-                        f'<polygon points="{area}" fill="{lc}" opacity="0.07"/>' +
-                        f'<polyline points="{path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linejoin="round"/>' +
+                        f'<path d="{smooth_area}" fill="rgba({r},{g},{b},0.08)"/>' +
+                        f'<path d="{smooth_path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
                         circ + vals + dats + '</svg>')
 
             _su = _str_spark(_u6,"#fc4c02"); _sl = _str_spark(_l6,"#d97706")
@@ -1384,35 +1405,145 @@ if not oura_df.empty:
                 unsafe_allow_html=True
             )
 
+    st.markdown("### Strength Intelligence")
 
-    # 30-day HRV + RHR trend chart
+    @st.cache_data(ttl=86400, show_spinner=False)
+    def get_strength_analysis(api_key, upper_6w_json, lower_6w_json,
+                              top_exercises_json, total_sessions,
+                              upper_lower_ratio, last_session_date):
+        import requests as _rq, time as _t
+        prompt = f"""You are a strength and conditioning coach analysing training data.
+
+UPPER BODY — last 6 weeks volume (kg per week): {upper_6w_json}
+LOWER BODY — last 6 weeks volume (kg per week): {lower_6w_json}
+Upper:Lower ratio (all time): {upper_lower_ratio:.1f}:1
+Total sessions: {total_sessions} · Last session: {last_session_date}
+Top exercises by volume: {top_exercises_json}
+
+Write TWO short paragraphs (no headers, no bullets):
+1. PROGRESS (3-4 sentences): What do the 6-week trends show? Is volume up, down or flat? Any notable patterns?
+2. FOCUS (3-4 sentences): What muscle groups need more attention? Name specific exercises and targets.
+Write like a direct, knowledgeable coach. Use the numbers."""
+        for attempt in range(3):
+            try:
+                resp = _rq.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key": api_key,
+                             "anthropic-version": "2023-06-01",
+                             "Content-Type": "application/json"},
+                    json={"model": "claude-sonnet-4-20250514",
+                          "max_tokens": 350,
+                          "messages": [{"role": "user", "content": prompt}]},
+                    timeout=25
+                )
+                if resp.status_code == 200:
+                    return resp.json()["content"][0]["text"].strip()
+                elif resp.status_code in (529, 503, 502, 500):
+                    if attempt < 2: _t.sleep(3 + attempt * 2); continue
+                    return None
+                else:
+                    return f"ERROR {resp.status_code}"
+            except Exception:
+                if attempt < 2: _t.sleep(2); continue
+                return None
+        return None
+
+    _sa_key = st.secrets.get("ANTHROPIC_API_KEY","") if hasattr(st,"secrets") else ""
+    if _sa_key and fitbod_data:
+        import json as _json
+        _fbw2 = pd.DataFrame(fitbod_data.get("weekly_volume",[]))
+        _fbs2 = pd.DataFrame(fitbod_data.get("sets",[]))
+        if len(_fbw2) > 0 and len(_fbs2) > 0:
+            _fbw2["week"] = pd.to_datetime(_fbw2["week"])
+            _fbs2["date"] = pd.to_datetime(_fbs2["date"])
+            _w6c2  = _fbw2["week"].max() - pd.Timedelta(weeks=6)
+            _au6   = _fbw2[(_fbw2["muscle_group"]=="Upper")&(_fbw2["week"]>=_w6c2)].sort_values("week")
+            _al6   = _fbw2[(_fbw2["muscle_group"]=="Lower")&(_fbw2["week"]>=_w6c2)].sort_values("week")
+            _u6j   = _au6[["week","volume"]].assign(week=lambda x:x["week"].dt.strftime("%d %b"),volume=lambda x:x["volume"].round(0).astype(int)).to_dict(orient="records") if len(_au6)>0 else []
+            _l6j   = _al6[["week","volume"]].assign(week=lambda x:x["week"].dt.strftime("%d %b"),volume=lambda x:x["volume"].round(0).astype(int)).to_dict(orient="records") if len(_al6)>0 else []
+            _ut    = _fbs2[_fbs2["muscle_group"]=="Upper"]["volume_kg"].sum()
+            _lt    = _fbs2[_fbs2["muscle_group"]=="Lower"]["volume_kg"].sum()
+            _ratio2= _ut / max(_lt, 1)
+            _topex = _fbs2.groupby("exercise")["volume_kg"].sum().nlargest(8).index.tolist()
+            _sess2 = pd.DataFrame(fitbod_data.get("sessions",[]))
+            _sess2["date"] = pd.to_datetime(_sess2["date"]) if len(_sess2)>0 else _sess2
+            _lasts = _sess2["date"].max().strftime("%d %b %Y") if len(_sess2)>0 else "unknown"
+            with st.spinner("✦ Generating strength insights..."):
+                _stext = get_strength_analysis(
+                    _sa_key, _json.dumps(_u6j), _json.dumps(_l6j),
+                    _json.dumps(_topex), fitbod_data["total_sessions"],
+                    _ratio2, _lasts
+                )
+            if _stext and not _stext.startswith("ERROR"):
+                _sp = [p.strip() for p in _stext.split("\n\n") if p.strip()]
+                _san = _sp[0] if len(_sp)>0 else ""
+                _sfo = _sp[1] if len(_sp)>1 else ""
+                st.markdown(
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">' +
+                    '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
+                    '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
+                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_san}</div></div>' +
+                    '<div style="background:#f5f0ff;border:1px solid #d8c8ff;border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
+                    '<div style="color:#7c3aed;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
+                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_sfo}</div></div>' +
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+    elif not _sa_key:
+        st.caption("Add ANTHROPIC_API_KEY to Streamlit secrets to enable strength insights.")
+
+
+    # 30-day HRV + RHR trend chart — modern rounded bars + smooth lines
     chart_o = recent_30[["date","hrv_avg","resting_hr"]].copy()
     chart_o = chart_o[chart_o["hrv_avg"].notna() | chart_o["resting_hr"].notna()]
 
     if len(chart_o) > 3:
         chart_o["hrv_roll"] = chart_o["hrv_avg"].rolling(7, min_periods=1).mean()
         fig_o = go.Figure()
+
+        # HRV bars — rounded top via marker line trick, soft purple
         fig_o.add_trace(go.Bar(
             x=chart_o["date"], y=chart_o["hrv_avg"].round(1), name="HRV",
-            marker=dict(color="rgba(167,139,250,0.4)", line=dict(width=0)),
-            hovertemplate="<b>%{x|%d %b}</b><br>HRV: <b>%{y:.0f} ms</b><extra></extra>"))
+            marker=dict(
+                color="rgba(167,139,250,0.25)",
+                line=dict(width=0),
+                cornerradius=6,
+            ),
+            hovertemplate="<b>%{x|%d %b}</b><br>HRV: <b>%{y:.0f} ms</b><extra></extra>",
+        ))
+
+        # HRV 7-day smooth line with gradient feel
         fig_o.add_trace(go.Scatter(
             x=chart_o["date"], y=chart_o["hrv_roll"].round(1), name="HRV 7d avg",
-            mode="lines", line=dict(color="#a78bfa", width=2.5),
-            hovertemplate="7d avg: <b>%{y:.0f} ms</b><extra></extra>"))
+            mode="lines",
+            line=dict(color="#a78bfa", width=3, shape="spline", smoothing=1.2),
+            fill="tozeroy",
+            fillcolor="rgba(167,139,250,0.06)",
+            hovertemplate="7d avg: <b>%{y:.0f} ms</b><extra></extra>",
+        ))
+
+        # Resting HR — smooth spline, bold orange
         if chart_o["resting_hr"].notna().sum() > 3:
             fig_o.add_trace(go.Scatter(
-                x=chart_o["date"], y=chart_o["resting_hr"], name="Resting HR",
+                x=chart_o["date"], y=chart_o["resting_hr"].round(1), name="Resting HR",
                 mode="lines+markers", yaxis="y2",
-                line=dict(color="#fc4c02", width=1.5, dash="dot"),
-                marker=dict(size=4, color="#fc4c02"),
-                hovertemplate="<b>%{x|%d %b}</b><br>RHR: <b>%{y:.0f} bpm</b><extra></extra>"))
+                line=dict(color="#fc4c02", width=2.5, shape="spline", smoothing=1.0),
+                marker=dict(
+                    size=5, color="#fc4c02",
+                    line=dict(color="#ffffff", width=1.5),
+                    symbol="circle",
+                ),
+                hovertemplate="<b>%{x|%d %b}</b><br>RHR: <b>%{y:.0f} bpm</b><extra></extra>",
+            ))
+
         fig_o.update_layout(
             **{**CHART_LAYOUT, "margin": dict(t=10,b=30,l=50,r=50)},
-            height=260,
+            height=260, barmode="overlay",
             yaxis=dict(**axis_style(), title="HRV (ms)"),
             yaxis2=dict(**axis_style(), title="RHR (bpm)", overlaying="y",
                         side="right", showgrid=False),
+            legend=dict(orientation="h", y=1.08, font=dict(color="#888",size=11),
+                        bgcolor="rgba(0,0,0,0)"),
         )
         fig_o.update_xaxes(**axis_style())
         st.plotly_chart(fig_o, use_container_width=True)
@@ -2076,114 +2207,6 @@ else:
         fb_col1, fb_col2 = st.columns([3, 2])
 
         # ── AI Strength Insights ──────────────────────────────────────────────
-        st.markdown("### Strength Intelligence")
-
-        @st.cache_data(ttl=86400, show_spinner=False)
-        def get_strength_analysis(api_key, upper_6w_json, lower_6w_json,
-                                  top_exercises_json, total_sessions,
-                                  upper_lower_ratio, last_session_date):
-            import requests as _rq, time as _t
-            prompt = f"""You are a strength and conditioning coach analysing an athlete's training data.
-
-UPPER BODY — last 6 weeks volume (kg per week):
-{upper_6w_json}
-
-LOWER BODY — last 6 weeks volume (kg per week):
-{lower_6w_json}
-
-CONTEXT:
-- Upper:Lower volume ratio (all time): {upper_lower_ratio:.1f}:1
-- Total strength sessions logged: {total_sessions}
-- Last session: {last_session_date}
-- Most trained exercises: {top_exercises_json}
-
-Write TWO short paragraphs (no headers, no bullets):
-
-1. PROGRESS ANALYSIS (3-4 sentences): What does the 6-week trend show for upper and lower body? Is volume increasing, decreasing or stagnant? Are there any notable patterns or gaps?
-
-2. FOCUS RECOMMENDATIONS (3-4 sentences): Based on the volume ratio and exercise mix, what muscle groups or body parts need more attention? Be specific — name exercises and target rep ranges or volume targets.
-
-Write like a knowledgeable coach. Use the numbers. Be direct."""
-
-            for attempt in range(3):
-                try:
-                    resp = _rq.post(
-                        "https://api.anthropic.com/v1/messages",
-                        headers={"x-api-key": api_key,
-                                 "anthropic-version": "2023-06-01",
-                                 "Content-Type": "application/json"},
-                        json={"model": "claude-sonnet-4-20250514",
-                              "max_tokens": 350,
-                              "messages": [{"role": "user", "content": prompt}]},
-                        timeout=25
-                    )
-                    if resp.status_code == 200:
-                        return resp.json()["content"][0]["text"].strip()
-                    elif resp.status_code in (529, 503, 502, 500):
-                        if attempt < 2: _t.sleep(3 + attempt * 2); continue
-                        return None
-                    else:
-                        return f"ERROR {resp.status_code}: {resp.text[:150]}"
-                except Exception as e:
-                    if attempt < 2: _t.sleep(2); continue
-                    return None
-            return None
-
-        _sa_key = st.secrets.get("ANTHROPIC_API_KEY","") if hasattr(st,"secrets") else ""
-        if _sa_key and len(fb_weekly) > 0:
-            import json as _json
-            # Recompute 6-week data for AI (using fb_weekly which is in scope here)
-            _aiw6c = fb_weekly["week"].max() - pd.Timedelta(weeks=6)
-            _ai_u6 = fb_weekly[(fb_weekly["muscle_group"]=="Upper") & (fb_weekly["week"]>=_aiw6c)].sort_values("week")
-            _ai_l6 = fb_weekly[(fb_weekly["muscle_group"]=="Lower") & (fb_weekly["week"]>=_aiw6c)].sort_values("week")
-
-            _u6 = _ai_u6[["week","volume"]].assign(
-                week=lambda x: x["week"].dt.strftime("%d %b"),
-                volume=lambda x: x["volume"].round(0).astype(int)
-            ).to_dict(orient="records") if len(_ai_u6) > 0 else []
-
-            _l6 = _ai_l6[["week","volume"]].assign(
-                week=lambda x: x["week"].dt.strftime("%d %b"),
-                volume=lambda x: x["volume"].round(0).astype(int)
-            ).to_dict(orient="records") if len(_ai_l6) > 0 else []
-
-            _u_total = fb_sets[fb_sets["muscle_group"]=="Upper"]["volume_kg"].sum()
-            _l_total = fb_sets[fb_sets["muscle_group"]=="Lower"]["volume_kg"].sum()
-            _ratio   = _u_total / max(_l_total, 1)
-            _top_ex  = fb_sets.groupby("exercise")["volume_kg"].sum().nlargest(8).index.tolist()
-            _last_s  = fb_sessions["date"].max().strftime("%d %b %Y") if len(fb_sessions) > 0 else "unknown"
-            _cache_k = f"strength_ai_{fb_sessions['date'].max().strftime('%Y%m%d') if len(fb_sessions)>0 else '0'}"
-
-            with st.spinner("✦ Generating strength insights..."):
-                _strength_text = get_strength_analysis(
-                    _sa_key,
-                    _json.dumps(_u6),
-                    _json.dumps(_l6),
-                    _json.dumps(_top_ex),
-                    fitbod_data["total_sessions"],
-                    _ratio,
-                    _last_s
-                )
-
-            if _strength_text and not _strength_text.startswith("ERROR"):
-                _s_paras = [p.strip() for p in _strength_text.split("\n\n") if p.strip()]
-                _s_analysis = _s_paras[0] if len(_s_paras) > 0 else ""
-                _s_focus    = _s_paras[1] if len(_s_paras) > 1 else ""
-                st.markdown(
-                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">' +
-                    '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
-                    '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
-                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_s_analysis}</div>' +
-                    '</div>' +
-                    '<div style="background:#f5f0ff;border:1px solid #d8c8ff;border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
-                    '<div style="color:#7c3aed;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
-                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_s_focus}</div>' +
-                    '</div>' +
-                    '</div>',
-                    unsafe_allow_html=True
-                )
-        elif not _sa_key:
-            st.caption("Add ANTHROPIC_API_KEY to Streamlit secrets to enable strength insights.")
 
         st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
 
