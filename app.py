@@ -1055,7 +1055,7 @@ def _mini_spark(vals, color, invert=False):
     if len(vals) < 2: return ""
     mn, mx = min(vals), max(vals)
     rng = mx - mn if mx != mn else 1
-    W, H, pt, pb = 110, 52, 16, 4
+    W, H, pt, pb = 190, 58, 16, 4
     pts = [(round(i/(len(vals)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v)
            for i,v in enumerate(vals)]
     def sm(pts):
@@ -1093,7 +1093,7 @@ st.markdown(f"""
 .dash-grid {{
     display: grid;
     grid-template-columns: 1fr 1fr 1.4fr 1.4fr;
-    grid-template-rows: 175px 175px;
+    grid-template-rows: 188px 188px;
     gap: 10px;
     width: 100%;
 }}
@@ -1845,7 +1845,7 @@ for _, row in day_df.iterrows():
         cur_streak = 0
 
 s1, s2, s3, s4 = st.columns(4)
-s1.metric("Active days",   f"{active_days}")
+s1.metric("Training days", f"{active_days}")
 s2.metric("Rest days",     f"{total_days - active_days}")
 s3.metric("Longest streak", f"{max_streak} days")
 s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
