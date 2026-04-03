@@ -1796,9 +1796,7 @@ for _, row in day_df.iterrows():
     if row["tss"] > 0:
         title += " load"
     cells.append(f'<rect x="{x}" y="{y}" width="{cell_size}" height="{cell_size}" '                 f'rx="2" fill="{col}"><title>{title}</title></rect>')
-    # Also add a visible label for today's cell if tss > 0
-    if row["tss"] > 0 and row["date"].date() == pd.Timestamp.now().date():
-        cells.append(f'<text x="{x+cell_size//2}" y="{y-3}" text-anchor="middle" fill="#fc4c02" font-size="7" font-family="DM Sans">{row["tss"]:.0f}</text>')
+    # today's cell highlighted via SVG title tooltip only
 
 # Month labels
 month_labels = []
