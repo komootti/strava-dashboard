@@ -1717,11 +1717,13 @@ st.markdown("## Training Consistency")
 ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
                "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training","Workout","Crossfit"}
 
-@st.cache_data
+@st.cache_data(ttl=300)  # 5-min cache so today's activities appear
 def build_heatmap_data(_df):
     end = _df[_df["sport"].isin(ENDURANCE_H)].copy()
     end["tss"] = end["rel_effort"].fillna(
         end["moving_min"] * (end["avg_hr"].fillna(130) / 150) ** 2 * 0.5)
+    # Ensure any activity shows at least a minimal TSS so it gets coloured
+    end["tss"] = end["tss"].clip(lower=1)
     daily = end.groupby(end["date"].dt.normalize()).agg(
         tss=("tss","sum"), acts=("moving_min","count")).reset_index()
     daily.columns = ["date","tss","acts"]
