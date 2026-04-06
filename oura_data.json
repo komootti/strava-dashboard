@@ -3,10 +3,10 @@
     "date": "2026-04-06",
     "readiness_score": 93,
     "readiness_contributors": {
-      "activity_balance": 91,
+      "activity_balance": 88,
       "body_temperature": 97,
       "hrv_balance": 96,
-      "previous_day_activity": 91,
+      "previous_day_activity": 88,
       "previous_night": 100,
       "recovery_index": 81,
       "resting_heart_rate": 100,
@@ -78,8 +78,8 @@
     "waketime": "2026-04-05T07:19:30.000+02:00",
     "activity_score": 87,
     "steps": 21871,
-    "active_calories": 669,
-    "total_calories": 2865,
+    "active_calories": 788,
+    "total_calories": 2985,
     "target_calories": 400
   },
   {
