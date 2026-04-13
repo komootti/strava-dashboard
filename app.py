@@ -2622,12 +2622,9 @@ else:
                                               for i in range(len(vols))],
                                 hovertemplate="%{x}<br><b>%{y:.0f} kg</b><extra></extra>",
                             ))
-                            fig_ex.update_layout(
-                                **CHART_LAYOUT,
-                                height=140,
-                                margin=dict(l=0,r=0,t=0,b=0),
-                                showlegend=False,
-                            )
+                            _ex_layout = {**CHART_LAYOUT, 'height':140,
+                                'margin':dict(l=0,r=0,t=0,b=0), 'showlegend':False}
+                            fig_ex.update_layout(**_ex_layout)
                             fig_ex.update_xaxes(showgrid=False, showticklabels=True,
                                                 tickfont=dict(size=9), tickangle=0)
                             fig_ex.update_yaxes(showgrid=False, showticklabels=False)
