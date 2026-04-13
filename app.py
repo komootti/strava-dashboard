@@ -521,7 +521,7 @@ with st.sidebar:
         /* ── Force white text on dark backgrounds ── */
         [style*="color:{_card_text}"], [style*="color: #1a1a1a"] { color: #e2e2e2 !important; }
         [style*="color:#888"], [style*="color: #888"] { color: #666 !important; }
-        [style*="color:#333"], [style*="color: #333"] { color: #ccc !important; }
+        [style*="color:{_card_text}"], [style*="color: #333"] { color: #ccc !important; }
         [style*="color:#555"], [style*="color: #555"] { color: #777 !important; }
         /* ── Override inline styles more aggressively ── */
         /* Activity card, oura cards, strength cards, table wrappers */
@@ -1074,13 +1074,13 @@ if _api_key and _ai_text:
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#fc4c02;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">✦ Activity Analysis</div>'
-        + f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_analysis}</div>'
+        + f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_analysis}</div>'
         + '</div>'
         + '<div style="background:{_card_tint_g};border:1px solid {_border_g};border-left:4px solid #50c850;'
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#50c850;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">▶ Recommended Next Session</div>'
-        + f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_recommend}</div>'
+        + f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_recommend}</div>'
         + '</div>'
         + '</div>',
         unsafe_allow_html=True
@@ -1143,7 +1143,7 @@ def _ring_svg(pct, label, current, target, unit, color="#fc4c02", r=72):
     stroke-dasharray="{dash:.1f} {gap:.1f}"
     stroke-dashoffset="{circ*0.25:.1f}"
     stroke-linecap="round"/>
-  <text x="90" y="80" text-anchor="middle" fill="#1a1a1a"
+  <text x="90" y="80" text-anchor="middle" fill="{_card_text}"
     font-size="26" font-weight="700" font-family="DM Mono,monospace">{current:.0f}</text>
   <text x="90" y="100" text-anchor="middle" fill="#666"
     font-size="13" font-family="DM Sans,sans-serif">{unit} of {target}</text>
@@ -1224,9 +1224,9 @@ _tsb_svg = _mini_spark(_tsb_spark, "#a78bfa")
 st.markdown(f"""
 <style>
 .dash-grid-wrap {{
-    background: linear-gradient(135deg, #fff8f5 0%, #f5f0ff 50%, #f0f8ff 100%);
-    border-radius: 20px;
-    padding: 16px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
     margin-bottom: 8px;
 }}
 .dash-grid {{
@@ -1264,7 +1264,7 @@ st.markdown(f"""
     font-weight: 700;
     font-family: 'DM Mono', monospace;
     line-height: 1;
-    color: #1a1a1a;
+    color: {_card_text};
 }}
 .card-sub {{
     font-size: 0.7rem;
@@ -1297,8 +1297,8 @@ st.markdown(f"""
     box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }}
 .ring-card {{
-    background: #ffffff;
-    border: 1px solid #e8e4de;
+    background: {_card_bg};
+    border: 1px solid {_card_border};
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -1526,7 +1526,7 @@ if not oura_df.empty:
         spark  = sparkline_svg(spark_vals, spark_color, width=160, height=60)
         return (
             f'<div style="background:{_card_bg};border:1px solid {_card_border};{border}border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">' +
-            f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">{label}</div>' +
+            f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">{label}</div>' +
             f'<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">' +
             f'<div><div style="margin-bottom:4px">{value_html}</div>' +
             f'<div style="color:#999;font-size:0.7rem">{sub}</div></div>' +
@@ -1552,19 +1552,19 @@ if not oura_df.empty:
 
         + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
         + f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
+        + f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
         + f'<div style="color:{temp_col};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_temp:+.2f}°C" if o_temp is not None else "—"}</div>'
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">deviation from baseline</div></div>'
+        + f'<div style="color:{_card_sub};font-size:0.7rem;margin-top:2px">deviation from baseline</div></div>'
 
         + f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
+        + f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
         + f'<div style="color:{_card_text};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
+        + f'<div style="color:{_card_sub};font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
 
         + f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:10px;padding:14px 16px">'
-        + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
+        + f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
         + f'<div style="color:{scol(o_act_score)};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(o_act_score) if o_act_score is not None else "—"}</div>'
-        + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Daily activity balance</div></div>'
+        + f'<div style="color:{_card_sub};font-size:0.7rem;margin-top:2px">Daily activity balance</div></div>'
         + '</div>'
     )
 
@@ -1638,7 +1638,7 @@ if not oura_df.empty:
                 '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
-                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
+                '<div style="margin-top:16px;color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
                 f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
                 f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
                 '</div>' +
@@ -1647,7 +1647,7 @@ if not oura_df.empty:
                 '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
-                '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
+                '<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
                 f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
                 f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
                 '</div>' +
@@ -1657,6 +1657,7 @@ if not oura_df.empty:
                 unsafe_allow_html=True
             )
 
+    st.markdown('<div style="margin-top:1rem"></div>', unsafe_allow_html=True)
     st.markdown("### Strength Intelligence")
 
     @st.cache_data(ttl=86400, show_spinner=False)
@@ -1734,10 +1735,10 @@ Write like a direct, knowledgeable coach. Use the numbers."""
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">' +
                     '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
                     '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
-                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_san}</div></div>' +
+                    f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_san}</div></div>' +
                     '<div style="background:#f5f0ff;border:1px solid #d8c8ff;border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
                     '<div style="color:#7c3aed;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
-                    f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_sfo}</div></div>' +
+                    f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_sfo}</div></div>' +
                     '</div>',
                     unsafe_allow_html=True
                 )
@@ -1817,9 +1818,9 @@ st.components.v1.html(f"""
 .ctr-card {{ background:{_card_bg}; border:1px solid {_card_border}; border-radius:16px; padding:1.1rem 1.3rem;
              box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:box-shadow 0.2s, transform 0.2s; }}
 .ctr-card:hover {{ box-shadow:0 8px 24px rgba(0,0,0,0.10); transform:translateY(-2px); }}
-.ctr-label {{ color:#999; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; }}
-.ctr-val {{ color:#1a1a1a; font-size:2rem; font-weight:700; font-family:'DM Mono',monospace; line-height:1; }}
-.ctr-unit {{ color:#aaa; font-size:0.9rem; font-weight:400; margin-left:3px; }}
+.ctr-label {{ color:{_card_sub}; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; }}
+.ctr-val {{ color:{_card_text}; font-size:2rem; font-weight:700; font-family:'DM Mono',monospace; line-height:1; }}
+.ctr-unit {{ color:{_card_sub}; font-size:0.9rem; font-weight:400; margin-left:3px; }}
 </style>
 <div class="ctr-grid">
   <div class="ctr-card"><div class="ctr-label">Activities</div><div class="ctr-val" data-target="{_n_acts}" data-dec="0">0</div></div>
@@ -2030,7 +2031,7 @@ def activity_detail_html(row, extra_stat="", extra_label=""):
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div>
       <div style="color:#666;font-size:0.65rem;margin-bottom:2px">{date_str}</div>
-      <div style="color:#333;font-weight:600;margin-bottom:4px">{name}</div>
+      <div style="color:{_card_text};font-weight:600;margin-bottom:4px">{name}</div>
       <div style="color:#888">{stats}</div>
     </div>
     <a href="{strava}" target="_blank"
@@ -2391,12 +2392,12 @@ for _, r in recent_acts.iterrows():
         "<tr>"
         + f'<td style="color:#999;font-size:0.78rem">{r["Date"]}</td>'
         + f'<td><span style="background:{sport_color}18;color:{sport_color};font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:0.05em">{r["sport"]}</span></td>'
-        + f'<td style="color:#1a1a1a;font-weight:500">{str(r["name"])[:35] if pd.notna(r["name"]) else r["sport"]}</td>'
-        + f'<td style="color:#333">{r["Km"] if r["Km"] > 0 else "—"}</td>'
-        + f'<td style="color:#333">{r["Time"]}</td>'
-        + f'<td style="color:#333">{r["Pace"]}</td>'
-        + f'<td style="color:#333">{r["HR"]}</td>'
-        + f'<td style="color:#333">{r["Elev"]}</td>'
+        + f'<td style="color:{_card_text};font-weight:500">{str(r["name"])[:35] if pd.notna(r["name"]) else r["sport"]}</td>'
+        + f'<td style="color:{_card_text}">{r["Km"] if r["Km"] > 0 else "—"}</td>'
+        + f'<td style="color:{_card_text}">{r["Time"]}</td>'
+        + f'<td style="color:{_card_text}">{r["Pace"]}</td>'
+        + f'<td style="color:{_card_text}">{r["HR"]}</td>'
+        + f'<td style="color:{_card_text}">{r["Elev"]}</td>'
         + "</tr>"
     )
 st.markdown(
@@ -2607,11 +2608,11 @@ else:
                     last = pd.to_datetime(row["last_date"]).strftime("%d %b %Y") if row.get("last_date") else "—"
                     rows_r += (
                         "<tr>"
-                        + f'<td style="color:#1a1a1a;font-weight:500">{row["exercise"]}</td>'
+                        + f'<td style="color:{_card_text};font-weight:500">{row["exercise"]}</td>'
                         + f'<td><span style="background:{col}22;color:{col};font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px">{grp}</span></td>'
                         + f'<td style="color:#fc4c02;font-weight:700;font-family:DM Mono,monospace">{row["max_weight_kg"]:.1f} kg</td>'
-                        + f'<td style="color:#333">{int(row["max_reps"])}</td>'
-                        + f'<td style="color:#333">{int(row["total_sets"]):,}</td>'
+                        + f'<td style="color:{_card_text}">{int(row["max_reps"])}</td>'
+                        + f'<td style="color:{_card_text}">{int(row["total_sets"]):,}</td>'
                         + f'<td style="color:#999;font-size:0.78rem">{last}</td>'
                         + "</tr>"
                     )
@@ -2639,8 +2640,8 @@ else:
                 rows_sess += (
                     "<tr>"
                     + f'<td style="color:#999;font-size:0.78rem">{row["date"].strftime("%d %b %Y")}</td>'
-                    + f'<td style="color:#1a1a1a;font-weight:500">{groups}</td>'
-                    + f'<td style="color:#333">{int(row["exercises"])} exercises · {int(row["total_sets"])} sets</td>'
+                    + f'<td style="color:{_card_text};font-weight:500">{groups}</td>'
+                    + f'<td style="color:{_card_text}">{int(row["exercises"])} exercises · {int(row["total_sets"])} sets</td>'
                     + f'<td style="color:#fc4c02;font-weight:600;font-family:DM Mono,monospace">{row["total_volume"]/1000:.2f}t</td>'
                     + "</tr>"
                 )
