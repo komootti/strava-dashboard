@@ -879,18 +879,24 @@ if _la_poly:
                     + effort_lbl + '</span>'
                 ) if effort_lbl else ""
                 st.markdown(
-                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;'
-                    'padding:1.2rem;height:220px;display:flex;flex-direction:column;justify-content:space-between;'
-                    'box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
-                    '<div>'
-                    + f'<div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">{la_sport} · {la_date}</div>'
-                    + f'<div style="color:{_card_text};font-size:1.2rem;font-weight:700;margin-bottom:8px">{la_name}</div>'
-                    + f'<div style="color:#555;font-size:0.82rem;line-height:1.8">{stats_line}</div>'
-                    + '</div>'
-                    + f'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #f0ede8">'
+                    f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;'
+                    f'padding:1.4rem;height:220px;display:flex;flex-direction:column;justify-content:space-between;'
+                    f'box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
+                    + f'<div>'
+                    + f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+                    + f'<div style="color:#fc4c02;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">{la_sport} · {la_date}</div>'
                     + _effort_tag
-                    + f'<a href="{_strava_url}" target="_blank" style="color:#fc4c02;font-size:0.75rem;font-weight:600;text-decoration:none">View on Strava ↗</a>'
-                    + '</div></div>',
+                    + '</div>'
+                    + f'<div style="color:{_card_text};font-size:1.1rem;font-weight:700;margin-bottom:14px;line-height:1.3">{la_name}</div>'
+                    + f'<div style="display:flex;gap:18px;flex-wrap:wrap">'
+                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{la_dist:.1f}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">km</div></div>' if la_dist > 0 else '')
+                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{int(la_mins//60)}h{int(la_mins%60):02d}m</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">time</div></div>' if la_mins > 0 else '')
+                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{la_pace_s}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">pace</div></div>' if la_pace_s else '')
+                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{int(la_elev_v)}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">m ↑</div></div>' if la_elev_v > 10 else '')
+                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{int(la_hr_v)}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">bpm</div></div>' if la_hr_v > 0 else '')
+                    + '</div></div>'
+                    + f'<a href="{_strava_url}" target="_blank" style="color:#fc4c02;font-size:0.72rem;font-weight:600;text-decoration:none">View on Strava ↗</a>'
+                    + '</div>',
                     unsafe_allow_html=True
                 )
             with _c2:
@@ -1634,11 +1640,12 @@ if not oura_df.empty:
             _lsub = f'<span style="color:{_lcol};font-weight:600">{_larr} {abs(_ld):,} kg</span> vs prev · 6w avg {_la6:,} kg'
 
             st.markdown(
-                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0">' +
+                f'<hr style="border:none;border-top:1px solid {_card_border};margin:24px 0">' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">' +
                 '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
-                '<div style="margin-top:16px;color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
+            f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
                 f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
                 f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
                 '</div>' +
@@ -1736,8 +1743,8 @@ Write like a direct, knowledgeable coach. Use the numbers."""
                     '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
                     '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
                     f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_san}</div></div>' +
-                    '<div style="background:#f5f0ff;border:1px solid #d8c8ff;border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
-                    '<div style="color:#7c3aed;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
+                    f'<div style="background:{_card_tint_p};border:1px solid {_border_p};border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
+                    '<div style="color:#a78bfa;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
                     f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_sfo}</div></div>' +
                     '</div>',
                     unsafe_allow_html=True
