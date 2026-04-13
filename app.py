@@ -414,32 +414,66 @@ with st.sidebar:
         .stApp > div { background-color: #0d0d0d !important; }
         [data-testid="stAppViewContainer"] { background-color: #0d0d0d !important; }
         [data-testid="stHeader"] { background-color: #0d0d0d !important; }
+        [data-testid="stMain"] { background-color: #0d0d0d !important; }
+        [data-testid="block-container"] { background-color: #0d0d0d !important; }
+
+        /* ── Sidebar ── */
         [data-testid="stSidebar"] { background-color: #111111 !important; border-right: 1px solid #222 !important; }
         [data-testid="stSidebar"] * { color: #aaa !important; }
         [data-testid="stSidebar"] .stSelectbox > div > div { background: #1a1a1a !important; border-color: #333 !important; color: #e2e2e2 !important; }
-        section[data-testid="stSidebar"] hr { border-color: #222 !important; }
 
         /* ── Typography ── */
-        h1,h2,h3,h4,p,span,div,label { color: #e2e2e2 !important; }
-        .stMarkdown p { color: #aaa !important; }
+        h1,h2,h3,h4,p,span,div,label,td,th { color: #e2e2e2 !important; }
+        hr { border-color: #222 !important; }
 
-        /* ── Dash cards (CTL/ATL/TSB/This Week) ── */
-        .dash-card {
-            background: #161616 !important;
-            border: 1px solid #252525 !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+        /* ── ALL white/light background elements → dark ── */
+        div[style*="background:#ffffff"],
+        div[style*="background: #ffffff"],
+        div[style*="background:white"],
+        div[style*="background: white"],
+        div[style*="background:#fff8f5"],
+        div[style*="background:#f7f5f2"],
+        div[style*="background:#f5f0ff"],
+        div[style*="background:#f7f7f7"],
+        div[style*="background:#f0fdf0"],
+        div[style*="background:#f5fbf5"],
+        span[style*="background:#ffffff"],
+        span[style*="background:#f5f0ff"],
+        span[style*="background:#f0fdf0"] {
+            background: #1a1a1a !important;
         }
+        /* Keep accent borders but darken bg */
+        div[style*="border-left:4px solid #fc4c02"],
+        div[style*="border-left: 4px solid #fc4c02"] { background: #1e120e !important; }
+        div[style*="border-left:4px solid #a78bfa"],
+        div[style*="border-left: 4px solid #a78bfa"] { background: #130f1e !important; }
+        div[style*="border-left:4px solid #50c8"] { background: #0d1a0d !important; }
+
+        /* ── All borders → dark ── */
+        div[style*="border:1px solid #e"],
+        div[style*="border: 1px solid #e"],
+        div[style*="border:1px solid #f"],
+        div[style*="border: 1px solid #f"] { border-color: #2a2a2a !important; }
+        div[style*="border-bottom:1px solid #e"],
+        div[style*="border-bottom: 1px solid #e"] { border-bottom-color: #2a2a2a !important; }
+
+        /* ── Dash cards (CTL/ATL/TSB) ── */
+        .dash-card { background: #161616 !important; border: 1px solid #252525 !important; box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important; }
         .card-label { color: #666 !important; }
-        .card-value { color: #e2e2e2 !important; }
+        .card-value { color: #ffffff !important; }
         .card-sub   { color: #555 !important; }
         .card-tooltip { background: #1e1e1e !important; border-color: #333 !important; color: #ccc !important; }
+        .card-tooltip * { color: #ccc !important; }
 
         /* ── Goal rings ── */
         .ring-card  { background: #161616 !important; border-color: #252525 !important; }
         .ring-label { color: #aaa !important; }
 
-        /* ── Oura recovery cards ── */
-        [class*="oura"] { background: #161616 !important; border-color: #252525 !important; }
+        /* ── Counter grid (all-time stats) ── */
+        .ctr-card  { background: #161616 !important; border-color: #252525 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; }
+        .ctr-label { color: #666 !important; }
+        .ctr-val   { color: #ffffff !important; }
+        .ctr-unit  { color: #555 !important; }
 
         /* ── Record cards ── */
         .record-card  { background: #161616 !important; border: 1px solid #252525 !important; }
@@ -447,50 +481,36 @@ with st.sidebar:
         .record-value { color: #fc4c02 !important; }
         .record-sub   { color: #555 !important; }
 
-        /* ── Counter grid ── */
-        .ctr-card  { background: #161616 !important; border-color: #252525 !important; }
-        .ctr-label { color: #666 !important; }
-        .ctr-val   { color: #e2e2e2 !important; }
-        .ctr-unit  { color: #555 !important; }
+        /* ── Heatmap ── */
+        .hm-cell { background: #1a1a1a !important; }
+        .hm-select li:hover { background: #2a2a2a !important; }
 
-        /* ── All custom HTML cards ── */
-        div[style*="background:#ffffff"],
-        div[style*="background: #ffffff"],
-        div[style*="background:white"],
-        div[style*="background: white"] {
-            background: #161616 !important;
-            border-color: #252525 !important;
-        }
-        div[style*="border: 1px solid #e"],
-        div[style*="border:1px solid #e"] {
-            border-color: #252525 !important;
-        }
+        /* ── Tables ── */
+        table { background: #161616 !important; }
+        tr { border-bottom: 1px solid #222 !important; }
+        tr:hover { background: #1e1e1e !important; }
+        td, th { color: #aaa !important; border-color: #222 !important; }
 
-        /* ── Plotly charts ── */
-        .js-plotly-plot .plotly { background: transparent !important; }
+        /* ── Plotly ── */
         .js-plotly-plot .bg { fill: #161616 !important; }
+        .js-plotly-plot .gridlayer path { stroke: #2a2a2a !important; }
 
         /* ── Streamlit widgets ── */
         [data-testid="stSelectbox"] > div > div { background: #1a1a1a !important; border-color: #333 !important; color: #e2e2e2 !important; }
-        [data-testid="stMetricValue"] { color: #e2e2e2 !important; }
+        [data-testid="stMetricValue"] { color: #ffffff !important; }
         [data-testid="stMetricLabel"] { color: #666 !important; }
         [data-testid="metric-container"] { background: #161616 !important; border-color: #252525 !important; }
-        .stTabs [data-baseweb="tab-list"] { background: #161616 !important; }
-        .stTabs [data-baseweb="tab"] { color: #888 !important; }
+        .stTabs [data-baseweb="tab-list"] { background: #111 !important; border-bottom: 1px solid #222 !important; }
+        .stTabs [data-baseweb="tab"] { color: #666 !important; }
         .stTabs [aria-selected="true"] { color: #fc4c02 !important; border-bottom-color: #fc4c02 !important; }
         [data-testid="stDataFrame"] { background: #161616 !important; }
-        hr { border-color: #222 !important; }
+        .stMarkdown p { color: #aaa !important; }
 
-        /* ── Activity table rows ── */
-        tr { background: #161616 !important; border-bottom: 1px solid #222 !important; }
-        td, th { color: #aaa !important; border-color: #222 !important; }
-
-        /* ── Section headers ── */
-        [style*="color:#888"], [style*="color: #888"] { color: #555 !important; }
+        /* ── Force white text on dark backgrounds ── */
         [style*="color:#1a1a1a"], [style*="color: #1a1a1a"] { color: #e2e2e2 !important; }
-        [style*="background:#f7f7f7"], [style*="background: #f7f7f7"] { background: #161616 !important; }
-        [style*="background:#ffffff"] { background: #161616 !important; }
-        [style*="border-bottom:1px solid #e"], [style*="border-bottom: 1px solid #e"] { border-bottom-color: #252525 !important; }
+        [style*="color:#888"], [style*="color: #888"] { color: #666 !important; }
+        [style*="color:#333"], [style*="color: #333"] { color: #ccc !important; }
+        [style*="color:#555"], [style*="color: #555"] { color: #777 !important; }
         </style>""", unsafe_allow_html=True)
 
     st.markdown('<hr style="border:none;border-top:1px solid #f0f0f0;margin:0.8rem 0">', unsafe_allow_html=True)
