@@ -409,14 +409,88 @@ with st.sidebar:
     _dark = st.toggle("🌙 Dark mode", value=False, key="dark_mode")
     if _dark:
         st.markdown("""<style>
-        .stApp { background-color: #0f0f0f !important; color: #e8e4de !important; }
-        [data-testid="stSidebar"] { background-color: #141414 !important; }
-        [data-testid="metric-container"] { background: #1a1a1a !important; border-color: #2a2a2a !important; }
-        [data-testid="stMetricValue"] { color: #e8e4de !important; }
-        [data-testid="stMetricLabel"] { color: #888 !important; }
-        h1,h2,h3 { color: #e8e4de !important; }
-        .record-card { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+        /* ── Base ── */
+        .stApp { background-color: #0d0d0d !important; color: #e2e2e2 !important; }
+        .stApp > div { background-color: #0d0d0d !important; }
+        [data-testid="stAppViewContainer"] { background-color: #0d0d0d !important; }
+        [data-testid="stHeader"] { background-color: #0d0d0d !important; }
+        [data-testid="stSidebar"] { background-color: #111111 !important; border-right: 1px solid #222 !important; }
+        [data-testid="stSidebar"] * { color: #aaa !important; }
+        [data-testid="stSidebar"] .stSelectbox > div > div { background: #1a1a1a !important; border-color: #333 !important; color: #e2e2e2 !important; }
+        section[data-testid="stSidebar"] hr { border-color: #222 !important; }
+
+        /* ── Typography ── */
+        h1,h2,h3,h4,p,span,div,label { color: #e2e2e2 !important; }
+        .stMarkdown p { color: #aaa !important; }
+
+        /* ── Dash cards (CTL/ATL/TSB/This Week) ── */
+        .dash-card {
+            background: #161616 !important;
+            border: 1px solid #252525 !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+        }
+        .card-label { color: #666 !important; }
+        .card-value { color: #e2e2e2 !important; }
+        .card-sub   { color: #555 !important; }
+        .card-tooltip { background: #1e1e1e !important; border-color: #333 !important; color: #ccc !important; }
+
+        /* ── Goal rings ── */
+        .ring-card  { background: #161616 !important; border-color: #252525 !important; }
+        .ring-label { color: #aaa !important; }
+
+        /* ── Oura recovery cards ── */
+        [class*="oura"] { background: #161616 !important; border-color: #252525 !important; }
+
+        /* ── Record cards ── */
+        .record-card  { background: #161616 !important; border: 1px solid #252525 !important; }
+        .record-label { color: #666 !important; }
         .record-value { color: #fc4c02 !important; }
+        .record-sub   { color: #555 !important; }
+
+        /* ── Counter grid ── */
+        .ctr-card  { background: #161616 !important; border-color: #252525 !important; }
+        .ctr-label { color: #666 !important; }
+        .ctr-val   { color: #e2e2e2 !important; }
+        .ctr-unit  { color: #555 !important; }
+
+        /* ── All custom HTML cards ── */
+        div[style*="background:#ffffff"],
+        div[style*="background: #ffffff"],
+        div[style*="background:white"],
+        div[style*="background: white"] {
+            background: #161616 !important;
+            border-color: #252525 !important;
+        }
+        div[style*="border: 1px solid #e"],
+        div[style*="border:1px solid #e"] {
+            border-color: #252525 !important;
+        }
+
+        /* ── Plotly charts ── */
+        .js-plotly-plot .plotly { background: transparent !important; }
+        .js-plotly-plot .bg { fill: #161616 !important; }
+
+        /* ── Streamlit widgets ── */
+        [data-testid="stSelectbox"] > div > div { background: #1a1a1a !important; border-color: #333 !important; color: #e2e2e2 !important; }
+        [data-testid="stMetricValue"] { color: #e2e2e2 !important; }
+        [data-testid="stMetricLabel"] { color: #666 !important; }
+        [data-testid="metric-container"] { background: #161616 !important; border-color: #252525 !important; }
+        .stTabs [data-baseweb="tab-list"] { background: #161616 !important; }
+        .stTabs [data-baseweb="tab"] { color: #888 !important; }
+        .stTabs [aria-selected="true"] { color: #fc4c02 !important; border-bottom-color: #fc4c02 !important; }
+        [data-testid="stDataFrame"] { background: #161616 !important; }
+        hr { border-color: #222 !important; }
+
+        /* ── Activity table rows ── */
+        tr { background: #161616 !important; border-bottom: 1px solid #222 !important; }
+        td, th { color: #aaa !important; border-color: #222 !important; }
+
+        /* ── Section headers ── */
+        [style*="color:#888"], [style*="color: #888"] { color: #555 !important; }
+        [style*="color:#1a1a1a"], [style*="color: #1a1a1a"] { color: #e2e2e2 !important; }
+        [style*="background:#f7f7f7"], [style*="background: #f7f7f7"] { background: #161616 !important; }
+        [style*="background:#ffffff"] { background: #161616 !important; }
+        [style*="border-bottom:1px solid #e"], [style*="border-bottom: 1px solid #e"] { border-bottom-color: #252525 !important; }
         </style>""", unsafe_allow_html=True)
 
     st.markdown('<hr style="border:none;border-top:1px solid #f0f0f0;margin:0.8rem 0">', unsafe_allow_html=True)
