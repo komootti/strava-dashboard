@@ -803,7 +803,7 @@ function renderToday() {
       <div class="lf-left">
         <div class="load-lbl">CTL · Fitness <span style="font-size:0.55rem;color:#ddd">${_tload?'✓':'~'}</span></div>
         <div class="load-val" style="color:var(--orange)">${ctl.toFixed(1)}</div>
-        <div class="load-sub">42-day base</div>
+        <div class="load-sub">42-day base${_tload?.computed_to?' · to '+_tload.computed_to.slice(5):''}</div>
       </div>
       <div class="lf-right">${spark(ctl7,'#fc4c02',180,64)}</div>
     </div>
