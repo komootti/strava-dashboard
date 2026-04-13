@@ -199,6 +199,7 @@ last_42['tss']  = last_42['tss'].round(1)
 
 payload_json = {
     'generated': datetime.utcnow().isoformat(),
+    'computed_to': pd.Timestamp.now().normalize().strftime('%Y-%m-%d'),
     'ctl': ctl,
     'atl': atl,
     'tsb': tsb,
