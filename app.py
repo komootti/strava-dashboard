@@ -407,6 +407,18 @@ with st.sidebar:
 
     # Dark mode toggle
     _dark = st.toggle("🌙 Dark mode", value=False, key="dark_mode")
+    # Card colors adapt to dark mode — used in all HTML card f-strings
+    _card_bg     = "#161616" if _dark else "#ffffff"
+    _card_border = "#2a2a2a" if _dark else "#e2ddd8"
+    _card_bg2    = "#1e1e1e" if _dark else "#f7f7f7"
+    _card_text   = "#e2e2e2" if _dark else "#1a1a1a"
+    _card_sub    = "#666666" if _dark else "#888888"
+    _card_tint_o = "#1e120e" if _dark else "#fff8f5"
+    _card_tint_p = "#130f1e" if _dark else "#f5f0ff"
+    _card_tint_g = "#0d1a0d" if _dark else "#f0fdf0"
+    _border_o    = "#3d1f0e" if _dark else "#fce0d0"
+    _border_p    = "#2a1f3d" if _dark else "#e2ddd8"
+    _border_g    = "#1a3d1a" if _dark else "#c8ecc8"
     if _dark:
         st.markdown("""<style>
         /* ── Base ── */
@@ -427,7 +439,7 @@ with st.sidebar:
         hr { border-color: #222 !important; }
 
         /* ── ALL white/light background elements → dark ── */
-        div[style*="background:#ffffff"],
+        div[style*="background:{_card_bg}"],
         div[style*="background: #ffffff"],
         div[style*="background:white"],
         div[style*="background: white"],
@@ -437,7 +449,7 @@ with st.sidebar:
         div[style*="background:#f7f7f7"],
         div[style*="background:#f0fdf0"],
         div[style*="background:#f5fbf5"],
-        span[style*="background:#ffffff"],
+        span[style*="background:{_card_bg}"],
         span[style*="background:#f5f0ff"],
         span[style*="background:#f0fdf0"] {
             background: #1a1a1a !important;
@@ -507,10 +519,43 @@ with st.sidebar:
         .stMarkdown p { color: #aaa !important; }
 
         /* ── Force white text on dark backgrounds ── */
-        [style*="color:#1a1a1a"], [style*="color: #1a1a1a"] { color: #e2e2e2 !important; }
+        [style*="color:{_card_text}"], [style*="color: #1a1a1a"] { color: #e2e2e2 !important; }
         [style*="color:#888"], [style*="color: #888"] { color: #666 !important; }
         [style*="color:#333"], [style*="color: #333"] { color: #ccc !important; }
         [style*="color:#555"], [style*="color: #555"] { color: #777 !important; }
+        /* ── Override inline styles more aggressively ── */
+        /* Activity card, oura cards, strength cards, table wrappers */
+        .element-container div[style*="border:1px solid #e"],
+        .element-container div[style*="border: 1px solid #e"],
+        .element-container div[style*="border:1px solid #f"],
+        .stMarkdown div[style*="background:{_card_bg}"],
+        .stMarkdown div[style*="background: #ffffff"],
+        .stMarkdown div[style*="background:#fff"],
+        .element-container div[style*="background:{_card_bg}"],
+        .element-container div[style*="background:#fff8f5"],
+        .element-container div[style*="background:#f7f5f2"],
+        .element-container div[style*="background:#f5fbf5"],
+        .element-container div[style*="background:#f0fdf0"],
+        .element-container div[style*="background:#f5f0ff"] {
+            background: #161616 !important;
+            border-color: #2a2a2a !important;
+            color: #e2e2e2 !important;
+        }
+        /* Text colors inside dark cards */
+        .element-container div[style*="background:{_card_bg}"] *,
+        .element-container div[style*="background:#fff8f5"] *,
+        .element-container div[style*="background:#f5fbf5"] * {
+            color: #e2e2e2 !important;
+        }
+        /* Sub-labels stay dimmed */
+        .element-container div[style*="color:#888"] { color: #666 !important; }
+        .element-container div[style*="color:#aaa"] { color: #555 !important; }
+        .element-container span[style*="color:#888"] { color: #666 !important; }
+        .element-container span[style*="color:#aaa"] { color: #555 !important; }
+        /* Section headers */
+        .stMarkdown h2, .stMarkdown h3 { color: #e2e2e2 !important; }
+        /* Streamlit columns */
+        [data-testid="column"] { background: transparent !important; }
         </style>""", unsafe_allow_html=True)
 
     st.markdown('<hr style="border:none;border-top:1px solid #f0f0f0;margin:0.8rem 0">', unsafe_allow_html=True)
@@ -796,23 +841,23 @@ if not _la_poly and fitbod_data:
         _last_fb_sets = _fb_sets_tmp[_fb_sets_tmp["date"].dt.date == _last_fb["date"].date()]
         _top_moves = _last_fb_sets.groupby("exercise")["sets"].sum().nlargest(5).reset_index()
         _move_pills = "".join([
-            f'<span style="background:#f5f0ff;color:#7c3aed;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px;margin-right:6px;margin-bottom:4px;display:inline-block">'
+            f'<span style="background:{_card_tint_p};color:#7c3aed;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:999px;margin-right:6px;margin-bottom:4px;display:inline-block">'
             f'{r["exercise"][:22]} · {int(r["sets"])}×</span>'
             for _, r in _top_moves.iterrows()
         ])
         _fb_vol = f"{_last_fb['total_volume']/1000:.1f}t" if _last_fb.get("total_volume",0) > 0 else "—"
         _fb_grps = ", ".join(_last_fb["muscle_groups"]) if isinstance(_last_fb.get("muscle_groups"), list) else "—"
         st.markdown(
-            '<div style="background:#ffffff;border:1px solid #e2ddd8;border-left:4px solid #a78bfa;'
+            '<div style="background:{_card_bg};border:1px solid {_card_border};border-left:4px solid #a78bfa;'
             'border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:0.8rem;box-shadow:0 2px 8px rgba(0,0,0,0.06)">'
             '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
             f'<div style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Latest Strength Session · {_last_fb_date}</div>'
-            '<span style="background:#f5f0ff;color:#7c3aed;font-size:0.62rem;font-weight:700;padding:3px 10px;border-radius:999px">STRENGTH</span>'
+            '<span style="background:{_card_tint_p};color:#7c3aed;font-size:0.62rem;font-weight:700;padding:3px 10px;border-radius:999px">STRENGTH</span>'
             '</div>'
             f'<div style="display:flex;gap:24px;margin-bottom:12px">'
-            f'<div><div style="color:#1a1a1a;font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_fb_vol}</div><div style="color:#aaa;font-size:0.7rem">total volume</div></div>'
-            f'<div><div style="color:#1a1a1a;font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{int(_last_fb["total_sets"])}</div><div style="color:#aaa;font-size:0.7rem">sets</div></div>'
-            f'<div><div style="color:#1a1a1a;font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{int(_last_fb["exercises"])}</div><div style="color:#aaa;font-size:0.7rem">exercises</div></div>'
+            f'<div><div style="color:{_card_text};font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_fb_vol}</div><div style="color:#aaa;font-size:0.7rem">total volume</div></div>'
+            f'<div><div style="color:{_card_text};font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{int(_last_fb["total_sets"])}</div><div style="color:#aaa;font-size:0.7rem">sets</div></div>'
+            f'<div><div style="color:{_card_text};font-size:1.8rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{int(_last_fb["exercises"])}</div><div style="color:#aaa;font-size:0.7rem">exercises</div></div>'
             f'<div><div style="color:#888;font-size:0.9rem;font-weight:600;margin-top:4px">{_fb_grps}</div><div style="color:#aaa;font-size:0.7rem">muscle groups</div></div>'
             '</div>'
             f'<div style="display:flex;flex-wrap:wrap;gap:4px">{_move_pills}</div>'
@@ -834,12 +879,12 @@ if _la_poly:
                     + effort_lbl + '</span>'
                 ) if effort_lbl else ""
                 st.markdown(
-                    '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;'
+                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;'
                     'padding:1.2rem;height:220px;display:flex;flex-direction:column;justify-content:space-between;'
                     'box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
                     '<div>'
                     + f'<div style="color:#999;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">{la_sport} · {la_date}</div>'
-                    + f'<div style="color:#1a1a1a;font-size:1.2rem;font-weight:700;margin-bottom:8px">{la_name}</div>'
+                    + f'<div style="color:{_card_text};font-size:1.2rem;font-weight:700;margin-bottom:8px">{la_name}</div>'
                     + f'<div style="color:#555;font-size:0.82rem;line-height:1.8">{stats_line}</div>'
                     + '</div>'
                     + f'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #f0ede8">'
@@ -978,7 +1023,7 @@ _api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, "secrets") els
 
 if not _api_key:
     st.markdown(
-        '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;' +
+        '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:4px solid #fc4c02;' +
         'border-radius:10px;padding:1rem 1.2rem;margin-bottom:1rem;color:#888;font-size:0.82rem">' +
         '✦ Add <code>ANTHROPIC_API_KEY</code> to Streamlit secrets to enable athlete intelligence.' +
         '</div>',
@@ -1008,7 +1053,7 @@ else:
     if _ai_text and (_ai_text.startswith("ERROR") or _ai_text.startswith("EXCEPTION")):
         # Only show error card for real errors, not silent retries (None)
         st.markdown(
-            '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:3px solid #ff9966;' +
+            '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:3px solid #ff9966;' +
             'border-radius:10px;padding:0.8rem 1.2rem;margin-bottom:1rem;color:#999;font-size:0.78rem">' +
             f'✦ Athlete intelligence unavailable: {_ai_text[:120]}' +
             '</div>',
@@ -1025,13 +1070,13 @@ if _api_key and _ai_text:
 
     st.markdown(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">'
-        + '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;'
+        + '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:4px solid #fc4c02;'
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#fc4c02;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">✦ Activity Analysis</div>'
         + f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_analysis}</div>'
         + '</div>'
-        + '<div style="background:#f5fbf5;border:1px solid #c8ecc8;border-left:4px solid #50c850;'
+        + '<div style="background:{_card_tint_g};border:1px solid {_border_g};border-left:4px solid #50c850;'
         + 'border-radius:10px;padding:1rem 1.2rem">'
         + '<div style="color:#50c850;font-size:0.62rem;font-weight:700;text-transform:uppercase;'
         + 'letter-spacing:0.1em;margin-bottom:8px">▶ Recommended Next Session</div>'
@@ -1480,7 +1525,7 @@ if not oura_df.empty:
         border = f"border-left:3px solid {border_color};" if border_color else ""
         spark  = sparkline_svg(spark_vals, spark_color, width=160, height=60)
         return (
-            f'<div style="background:#ffffff;border:1px solid #e2ddd8;{border}border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">' +
+            f'<div style="background:{_card_bg};border:1px solid {_card_border};{border}border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">' +
             f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">{label}</div>' +
             f'<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px">' +
             f'<div><div style="margin-bottom:4px">{value_html}</div>' +
@@ -1506,17 +1551,17 @@ if not oura_df.empty:
         + '</div>'
 
         + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
-        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
+        + f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:10px;padding:14px 16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Body Temp</div>'
         + f'<div style="color:{temp_col};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_temp:+.2f}°C" if o_temp is not None else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">deviation from baseline</div></div>'
 
-        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
+        + f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:10px;padding:14px 16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Respiratory Rate</div>'
-        + f'<div style="color:#1a1a1a;font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
+        + f'<div style="color:{_card_text};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{f"{o_resp:.1f}" if o_resp else "—"} br/min</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">avg during sleep</div></div>'
 
-        + f'<div style="background:#ffffff;border:1px solid #e8e4de;border-radius:10px;padding:14px 16px">'
+        + f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:10px;padding:14px 16px">'
         + f'<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Activity Score</div>'
         + f'<div style="color:{scol(o_act_score)};font-size:1.5rem;font-weight:700;font-family:DM Mono,monospace;margin-top:4px">{int(o_act_score) if o_act_score is not None else "—"}</div>'
         + f'<div style="color:#888;font-size:0.7rem;margin-top:2px">Daily activity balance</div></div>'
@@ -1590,20 +1635,20 @@ if not oura_df.empty:
 
             st.markdown(
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0">' +
-                '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
                 '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
-                f'<div style="color:#1a1a1a;font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
                 f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
                 '</div>' +
                 f'<div style="flex-shrink:0;margin-left:8px">{_su}</div>' +
                 '</div></div>' +
-                '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
                 '<div style="color:#999;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
-                f'<div style="color:#1a1a1a;font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
                 f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
                 '</div>' +
                 f'<div style="flex-shrink:0;margin-left:8px">{_sl}</div>' +
@@ -1687,7 +1732,7 @@ Write like a direct, knowledgeable coach. Use the numbers."""
                 _sfo = _sp[1] if len(_sp)>1 else ""
                 st.markdown(
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">' +
-                    '<div style="background:#fff8f5;border:1px solid #fce0d0;border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
+                    '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
                     '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
                     f'<div style="color:#333;font-size:0.85rem;line-height:1.6">{_san}</div></div>' +
                     '<div style="background:#f5f0ff;border:1px solid #d8c8ff;border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
@@ -1769,7 +1814,7 @@ _n_kcal  = int(fdf['calories'].sum() / 1000)
 st.components.v1.html(f"""
 <style>
 .ctr-grid {{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; font-family:'Inter',sans-serif; }}
-.ctr-card {{ background:#ffffff; border:1px solid #f0f0f0; border-radius:16px; padding:1.1rem 1.3rem;
+.ctr-card {{ background:{_card_bg}; border:1px solid {_card_border}; border-radius:16px; padding:1.1rem 1.3rem;
              box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:box-shadow 0.2s, transform 0.2s; }}
 .ctr-card:hover {{ box-shadow:0 8px 24px rgba(0,0,0,0.10); transform:translateY(-2px); }}
 .ctr-label {{ color:#999; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:6px; }}
@@ -1944,7 +1989,7 @@ s2.metric("Rest days",     f"{total_days - active_days}")
 s3.metric("Longest streak", f"{max_streak} days")
 s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
 
-st.markdown(f'<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;padding:1rem 1.2rem;overflow-x:auto;box-shadow:0 1px 4px rgba(0,0,0,0.06);-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:1rem 1.2rem;overflow-x:auto;box-shadow:0 1px 4px rgba(0,0,0,0.06);-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='font-size:0.72rem;color:#444;margin-top:4px'>Hover over any square to see the training load. Colour = training stress: dark = rest, orange = hard session.</div>", unsafe_allow_html=True)
 
@@ -2111,11 +2156,11 @@ if len(weekly_hrs) >= 2:
       <div style="color:#666;font-size:0.68rem;font-weight:600;text-transform:uppercase;
                   letter-spacing:0.12em;margin-bottom:6px">This week</div>
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="color:#1a1a1a;font-size:2rem;font-weight:700;
+        <div style="color:{_card_text};font-size:2rem;font-weight:700;
                     font-family:'DM Mono',monospace;line-height:1;min-width:120px">
           {this_h}h&nbsp;{this_m:02d}m
         </div>
-        <div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:8px;
+        <div style="background:{_card_bg};border:1px solid {_card_border};border-radius:8px;
                     padding:6px 14px;display:inline-flex;align-items:center;gap:8px">
           <span style="color:{delta_col};font-size:0.95rem;font-weight:700">{arrow} {dlt_h}h {dlt_m:02d}m</span>
           <span style="color:#555;font-size:0.78rem">({abs(delta_pct):.0f}%) vs last week</span>
@@ -2355,7 +2400,7 @@ for _, r in recent_acts.iterrows():
         + "</tr>"
     )
 st.markdown(
-    '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
     '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.83rem">' +
     '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">' +
     '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Date</th>' +
@@ -2571,7 +2616,7 @@ else:
                         + "</tr>"
                     )
                 st.markdown(
-                    '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;overflow:hidden">'
+                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden">'
                     '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.82rem">'
                     '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">'
                     '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Exercise</th>'
@@ -2600,7 +2645,7 @@ else:
                     + "</tr>"
                 )
             st.markdown(
-                '<div style="background:#ffffff;border:1px solid #e2ddd8;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
+                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
                 '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.83rem">'
                 '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">'
                 '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Date</th>'
