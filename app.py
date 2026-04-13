@@ -888,12 +888,14 @@ if _la_poly:
                     + _effort_tag
                     + '</div>'
                     + f'<div style="color:{_card_text};font-size:1.1rem;font-weight:700;margin-bottom:14px;line-height:1.3">{la_name}</div>'
-                    + f'<div style="display:flex;gap:18px;flex-wrap:wrap">'
-                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{la_dist:.1f}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">km</div></div>' if la_dist > 0 else '')
-                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{int(la_mins//60)}h{int(la_mins%60):02d}m</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">time</div></div>' if la_mins > 0 else '')
-                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{la_pace_s}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">pace</div></div>' if la_pace_s else '')
-                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{int(la_elev_v)}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">m ↑</div></div>' if la_elev_v > 10 else '')
-                    + (f'<div><div style="color:{_card_text};font-size:1.85rem;font-weight:700;font-family:\"DM Mono\",monospace;line-height:1">{int(la_hr_v)}</div><div style="color:#888;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px">bpm</div></div>' if la_hr_v > 0 else '')
+                    + f'<div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;margin-top:4px">'
+                    + (''.join(filter(None, [
+                        (f'<div style="padding:0 14px 0 0;border-right:1px solid {_card_border}"><div style="color:{_card_text};font-size:1.6rem;font-weight:300;font-family:\"DM Mono\",monospace;line-height:1;letter-spacing:-0.02em">{la_dist:.1f}</div><div style="color:#888;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px">km</div></div>' if la_dist > 0 else None),
+                        (f'<div style="padding:0 14px;border-right:1px solid {_card_border}"><div style="color:{_card_text};font-size:1.6rem;font-weight:300;font-family:\"DM Mono\",monospace;line-height:1;letter-spacing:-0.02em">{int(la_mins//60)}h {int(la_mins%60):02d}m</div><div style="color:#888;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px">time</div></div>' if la_mins > 0 else None),
+                        (f'<div style="padding:0 14px;border-right:1px solid {_card_border}"><div style="color:{_card_text};font-size:1.6rem;font-weight:300;font-family:\"DM Mono\",monospace;line-height:1;letter-spacing:-0.02em">{la_pace_s}</div><div style="color:#888;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px">pace</div></div>' if la_pace_s else None),
+                        (f'<div style="padding:0 14px;border-right:1px solid {_card_border}"><div style="color:{_card_text};font-size:1.6rem;font-weight:300;font-family:\"DM Mono\",monospace;line-height:1;letter-spacing:-0.02em">{int(la_elev_v)}</div><div style="color:#888;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px">m elev</div></div>' if la_elev_v > 10 else None),
+                        (f'<div style="padding:0 0 0 14px"><div style="color:{_card_text};font-size:1.6rem;font-weight:300;font-family:\"DM Mono\",monospace;line-height:1;letter-spacing:-0.02em">{int(la_hr_v)}</div><div style="color:#888;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px">bpm</div></div>' if la_hr_v > 0 else None),
+                    ])))
                     + '</div></div>'
                     + f'<a href="{_strava_url}" target="_blank" style="color:#fc4c02;font-size:0.72rem;font-weight:600;text-decoration:none">View on Strava ↗</a>'
                     + '</div>',
@@ -2145,6 +2147,10 @@ hr_w["hours"] = hr_w["moving_min"] / 60
 
 weekly_hrs = (hr_w.groupby("week")["hours"].sum().reset_index()
               .sort_values("week"))
+# Always include current week so 'this week' shows 0 if no activity yet
+_cur_week_start = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
+if _cur_week_start not in weekly_hrs["week"].values:
+    weekly_hrs = pd.concat([weekly_hrs, pd.DataFrame({"week":[_cur_week_start],"hours":[0.0]})], ignore_index=True).sort_values("week")
 weekly_hrs = weekly_hrs[weekly_hrs["week"] >= (fdf["date"].max() - pd.Timedelta(weeks=weeks_back))]
 
 # Week-over-week delta
