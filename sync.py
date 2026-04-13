@@ -175,7 +175,7 @@ end_df['tss'] = end_df['Relative Effort'].fillna(
 # Daily TSS
 daily = end_df.groupby(end_df['_date'].dt.normalize())['tss'].sum().reset_index()
 daily.columns = ['date', 'tss']
-full_range = pd.date_range(daily['date'].min(), daily['date'].max(), freq='D')
+full_range = pd.date_range(daily['date'].min(), pd.Timestamp.now().normalize(), freq='D')
 daily = daily.set_index('date').reindex(full_range, fill_value=0).reset_index()
 daily.columns = ['date', 'tss']
 
