@@ -22,6 +22,73 @@ st.markdown("""
 /* ── Global reset ── */
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography — lighter, more refined ── */
+h1 {
+    font-weight: 300 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.1 !important;
+}
+h2 {
+    font-weight: 300 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.2 !important;
+}
+h3 {
+    font-weight: 400 !important;
+    letter-spacing: -0.01em !important;
+}
+h4 {
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+}
+/* Streamlit markdown headers */
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    font-weight: 300 !important;
+    letter-spacing: -0.02em !important;
+}
+/* Sidebar nav labels */
+[data-testid="stSidebar"] label {
+    font-weight: 400 !important;
+    letter-spacing: 0.02em !important;
+}
+/* Metric labels */
+[data-testid="stMetricLabel"] {
+    font-weight: 400 !important;
+    letter-spacing: 0.05em !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase !important;
+}
+[data-testid="stMetricValue"] {
+    font-weight: 300 !important;
+    letter-spacing: -0.02em !important;
+}
+/* Selectbox and widget labels */
+.stSelectbox label, .stMultiSelect label, .stSlider label {
+    font-weight: 400 !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+}
+/* Caption text */
+.stCaption {
+    font-weight: 300 !important;
+    font-size: 0.78rem !important;
+}
+/* Tab labels */
+.stTabs [data-baseweb="tab"] {
+    font-weight: 400 !important;
+    letter-spacing: 0.03em !important;
+    font-size: 0.82rem !important;
+}
+/* Body paragraphs */
+.stMarkdown p {
+    font-weight: 300 !important;
+    line-height: 1.65 !important;
 }
 
 /* ── Background — pure white, no off-white ── */
@@ -1263,9 +1330,9 @@ st.markdown(f"""
 .card-label {{
     color: #888;
     font-size: 0.6rem;
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
 }}
 .card-value {{
     font-size: 2.2rem;
@@ -1276,6 +1343,7 @@ st.markdown(f"""
 }}
 .card-sub {{
     font-size: 0.7rem;
+    font-weight: 300;
     color: #999;
     margin-top: 5px;
 }}
