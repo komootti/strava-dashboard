@@ -743,10 +743,15 @@ function renderToday() {
     const k=wk.toISOString().slice(0,10);
     wMap[k]=(wMap[k]||0)+a._mins/60;
   });
+  // Always include current week (even if 0 hours) so thisWkH reflects this week
+  const _now2=new Date(); const _mon=new Date(_now2);
+  _mon.setDate(_now2.getDate()-((_now2.getDay()+6)%7));
+  const _thisWkKey=_mon.toISOString().slice(0,10);
+  if(!wMap[_thisWkKey]) wMap[_thisWkKey]=0;
   const wKeys=Object.keys(wMap).sort();
   const wVals=wKeys.map(k=>wMap[k]);
   const wLabels=wKeys.map(k=>{const d=new Date(k);return `${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;});
-  const thisWkH=wVals.length?wVals[wVals.length-1]:0;
+  const thisWkH=wMap[_thisWkKey]||0;
 
   const polyStr=_poly[act._id]||'';
   const hasMap=polyStr.length>5;
