@@ -503,7 +503,7 @@ _end2_pre["tss"] = _end2_pre["rel_effort"].fillna(
 _daily_pre = _end2_pre.groupby(_end2_pre["date"].dt.normalize())["tss"].sum().reset_index()
 _daily_pre.columns = ["date","tss"]
 _daily_pre["date"] = pd.to_datetime(_daily_pre["date"])
-_full_pre = pd.date_range(_daily_pre["date"].min(), _daily_pre["date"].max(), freq="D")
+_full_pre = pd.date_range(_daily_pre["date"].min(), pd.Timestamp.now().normalize(), freq="D")
 _daily_pre = _daily_pre.set_index("date").reindex(_full_pre, fill_value=0).reset_index()
 _daily_pre.columns = ["date","tss"]
 _daily_pre["ctl"] = _daily_pre["tss"].ewm(span=42, adjust=False).mean()
