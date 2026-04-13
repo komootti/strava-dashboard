@@ -2627,10 +2627,10 @@ else:
                                 height=140,
                                 margin=dict(l=0,r=0,t=0,b=0),
                                 showlegend=False,
-                                xaxis=dict(showgrid=False, showticklabels=True,
-                                           tickfont=dict(size=9), tickangle=0),
-                                yaxis=dict(showgrid=False, showticklabels=False),
                             )
+                            fig_ex.update_xaxes(showgrid=False, showticklabels=True,
+                                                tickfont=dict(size=9), tickangle=0)
+                            fig_ex.update_yaxes(showgrid=False, showticklabels=False)
                             st.markdown(
                                 f'<div style="background:{_card_bg};border:1px solid {_card_border};'
                                 f'border-radius:12px;padding:14px 16px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:4px">'
