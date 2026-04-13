@@ -2564,50 +2564,92 @@ else:
 
         del fb_col1, fb_col2
 
-        # ── Progressive overload ───────────────────────────────────────────────
+        # ── Progressive overload — volume per session, top exercises ─────────
         st.markdown("### Progressive Overload")
+        st.caption("Volume trend (sets × reps × weight) across last 8 sessions · top exercises by frequency")
+
         top_ex = fitbod_data.get("top_exercises", fb_sets["exercise"].value_counts().head(15).index.tolist())
         avail_ex = [e for e in top_ex if e in fb_sets["exercise"].values]
+
         if avail_ex:
-            ex_col, _ = st.columns([2,3])
-            with ex_col:
-                sel_ex = st.selectbox("Select exercise", avail_ex, key="fb_exercise_main")
+            # Build per-exercise session volume for all top exercises
+            po_rows = []
+            for ex in avail_ex[:12]:
+                ex_data = fb_sets[fb_sets["exercise"] == ex].copy()
+                # Volume per session date
+                ex_sess = ex_data.groupby(ex_data["date"].dt.normalize()).agg(
+                    volume=("volume_kg", "sum"),
+                    max_weight=("weight_kg", "max"),
+                    total_sets=("sets", "sum"),
+                ).reset_index().sort_values("date")
+                if len(ex_sess) < 2:
+                    continue
+                last8 = ex_sess.tail(8)
+                vol_first = last8["volume"].iloc[0]
+                vol_latest = last8["volume"].iloc[-1]
+                change = vol_latest - vol_first
+                change_pct = (change / vol_first * 100) if vol_first > 0 else 0
+                po_rows.append({
+                    "exercise": ex,
+                    "sessions": last8,
+                    "vol_latest": vol_latest,
+                    "max_weight": last8["max_weight"].iloc[-1],
+                    "change": change,
+                    "change_pct": change_pct,
+                    "n_sessions": len(ex_sess),
+                })
 
-            ex_data = fb_sets[fb_sets["exercise"]==sel_ex].copy()
-            ex_max  = ex_data.groupby(ex_data["date"].dt.normalize()).agg(
-                max_weight=("weight_kg","max"),
-                total_sets=("sets","sum"),
-                total_reps=("reps","sum"),
-            ).reset_index().sort_values("date")
-
-            if len(ex_max) > 1:
-                ex_max["roll"] = ex_max["max_weight"].rolling(4, min_periods=1).mean()
-                fig_po = go.Figure()
-                fig_po.add_trace(go.Scatter(
-                    x=ex_max["date"], y=ex_max["max_weight"].round(1),
-                    mode="lines+markers", name="Max weight",
-                    line=dict(color="#fc4c02", width=2.5),
-                    marker=dict(size=6, color="#fc4c02", line=dict(color="#ffffff",width=1.5)),
-                    fill="tozeroy", fillcolor="rgba(252,76,2,0.06)",
-                    hovertemplate="<b>%{x|%d %b %Y}</b><br>Max: <b>%{y:.1f} kg</b><extra></extra>",
-                ))
-                fig_po.add_trace(go.Scatter(
-                    x=ex_max["date"], y=ex_max["roll"].round(1),
-                    mode="lines", name="4-session avg",
-                    line=dict(color="#ffa500", width=1.5, dash="dot"),
-                    hovertemplate="Avg: <b>%{y:.1f} kg</b><extra></extra>",
-                ))
-                fig_po.update_layout(**CHART_LAYOUT, height=260, yaxis_title="kg")
-                fig_po.update_xaxes(**axis_style())
-                fig_po.update_yaxes(**axis_style())
-                st.plotly_chart(fig_po, use_container_width=True)
-
-                pr_c1, pr_c2, pr_c3, pr_c4 = st.columns(4)
-                pr_c1.metric("Personal Record", f"{ex_max['max_weight'].max():.1f} kg")
-                pr_c2.metric("Latest session",  f"{ex_max['max_weight'].iloc[-1]:.1f} kg")
-                gain = ex_max["max_weight"].iloc[-1] - ex_max["max_weight"].iloc[0]
-                pr_c3.metric("All-time progress", f"{gain:+.1f} kg")
-                pr_c4.metric("Sessions logged", f"{len(ex_max)}")
+            if po_rows:
+                # Show as card grid — 2 per row
+                cols_per_row = 2
+                for row_i in range(0, len(po_rows), cols_per_row):
+                    row_cols = st.columns(cols_per_row)
+                    for col_i, col in enumerate(row_cols):
+                        if row_i + col_i >= len(po_rows):
+                            break
+                        p = po_rows[row_i + col_i]
+                        with col:
+                            arrow = "▲" if p["change"] >= 0 else "▼"
+                            col_accent = "#22c55e" if p["change"] >= 0 else "#ef4444"
+                            # Sparkline of session volumes
+                            vols = p["sessions"]["volume"].tolist()
+                            dates = p["sessions"]["date"].dt.strftime("%d %b").tolist()
+                            fig_ex = go.Figure()
+                            fig_ex.add_trace(go.Bar(
+                                x=dates, y=[round(v,0) for v in vols],
+                                marker_color=[col_accent if i==len(vols)-1
+                                              else "rgba(252,76,2,0.25)"
+                                              for i in range(len(vols))],
+                                hovertemplate="%{x}<br><b>%{y:.0f} kg</b><extra></extra>",
+                            ))
+                            fig_ex.update_layout(
+                                **CHART_LAYOUT,
+                                height=140,
+                                margin=dict(l=0,r=0,t=0,b=0),
+                                showlegend=False,
+                                xaxis=dict(showgrid=False, showticklabels=True,
+                                           tickfont=dict(size=9), tickangle=0),
+                                yaxis=dict(showgrid=False, showticklabels=False),
+                            )
+                            st.markdown(
+                                f'<div style="background:{_card_bg};border:1px solid {_card_border};'
+                                f'border-radius:12px;padding:14px 16px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:4px">'
+                                f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+                                f'<div style="color:{_card_text};font-size:0.88rem;font-weight:600;line-height:1.2">{p["exercise"]}</div>'
+                                f'<div style="text-align:right">'
+                                f'<div style="color:{col_accent};font-size:0.78rem;font-weight:700">{arrow} {abs(p["change_pct"]):.0f}%</div>'
+                                f'<div style="color:{_card_sub};font-size:0.65rem">{p["n_sessions"]} sessions</div>'
+                                f'</div></div>'
+                                f'<div style="display:flex;gap:16px;margin-bottom:8px">'
+                                f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["vol_latest"]/1000:.2f}t</div>'
+                                f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">vol this session</div></div>'
+                                f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["max_weight"]:.1f} kg</div>'
+                                f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">max weight</div></div>'
+                                f'</div>'
+                                f'</div>',
+                                unsafe_allow_html=True
+                            )
+                            st.plotly_chart(fig_ex, use_container_width=True)
 
         # ── Personal records table ────────────────────────────────────────────
         if len(fb_records) > 0:
