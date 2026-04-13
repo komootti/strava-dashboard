@@ -520,7 +520,7 @@ _ENDURANCE_PRE = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
                   "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training"}
 _end_h_pre   = df[df["sport"].isin(_ENDURANCE_PRE)].copy()
 _last_date_p = df["date"].max()
-_wk_start_p  = _last_date_p.normalize() - pd.Timedelta(days=_last_date_p.dayofweek)
+_wk_start_p  = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
 _prev_start_p= _wk_start_p - pd.Timedelta(weeks=1)
 _this_h = _end_h_pre[_end_h_pre["date"] >= _wk_start_p]["moving_min"].sum() / 60
 _last_h = _end_h_pre[(_end_h_pre["date"] >= _prev_start_p) &
@@ -958,7 +958,7 @@ _end2["tss"] = _end2["rel_effort"].fillna(
 _daily = _end2.groupby(_end2["date"].dt.normalize())["tss"].sum().reset_index()
 _daily.columns = ["date","tss"]
 _daily["date"] = pd.to_datetime(_daily["date"])
-_full = pd.date_range(_daily["date"].min(), _daily["date"].max(), freq="D")
+_full = pd.date_range(_daily["date"].min(), pd.Timestamp.now().normalize(), freq="D")
 _daily = _daily.set_index("date").reindex(_full, fill_value=0).reset_index()
 _daily.columns = ["date","tss"]
 _daily["ctl"] = _daily["tss"].ewm(span=42, adjust=False).mean()
@@ -972,7 +972,7 @@ _ENDURANCE_H = {"Run","Ride","Virtual Ride","Virtual Run","Walk","Hike",
                 "Nordic Ski","Swim","Rowing","E-Bike Ride","Weight Training","Workout"}
 _end_h = df[df["sport"].isin(_ENDURANCE_H)].copy()
 _last_date  = df["date"].max()
-_wk_start   = _last_date.normalize() - pd.Timedelta(days=_last_date.dayofweek)
+_wk_start   = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
 _prev_start = _wk_start - pd.Timedelta(weeks=1)
 _this_h = _end_h[_end_h["date"] >= _wk_start]["moving_min"].sum() / 60
 _last_h = _end_h[(_end_h["date"] >= _prev_start) & (_end_h["date"] < _wk_start)]["moving_min"].sum() / 60
