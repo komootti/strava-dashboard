@@ -1656,7 +1656,7 @@ if not oura_df.empty:
                 '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
                 '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
                 '<div>' +
-                '<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
+                f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
                 f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
                 f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
                 '</div>' +
@@ -1742,11 +1742,11 @@ Write like a direct, knowledgeable coach. Use the numbers."""
                 _sfo = _sp[1] if len(_sp)>1 else ""
                 st.markdown(
                     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">' +
-                    '<div style="background:{_card_tint_o};border:1px solid {_border_o};border-left:4px solid #fc4c02;border-radius:12px;padding:1rem 1.2rem">' +
-                    '<div style="color:#fc4c02;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
+                    f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:1rem 1.2rem;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                    f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">✦ Progress Analysis</div>' +
                     f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_san}</div></div>' +
-                    f'<div style="background:{_card_tint_p};border:1px solid {_border_p};border-left:4px solid #a78bfa;border-radius:12px;padding:1rem 1.2rem">' +
-                    '<div style="color:#a78bfa;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
+                    f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:1rem 1.2rem;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                    f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">▶ Focus Recommendations</div>' +
                     f'<div style="color:{_card_text};font-size:0.85rem;line-height:1.6">{_sfo}</div></div>' +
                     '</div>',
                     unsafe_allow_html=True
