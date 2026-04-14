@@ -1805,8 +1805,11 @@ Write like a direct, knowledgeable coach. Use the numbers."""
         fb_records_local  = pd.DataFrame(fitbod_data.get("records", []))
         fb_sessions_local = pd.DataFrame(fitbod_data.get("sessions", []))
         if len(fb_sets_local) > 0:
-            fb_sets_local["date"]   = pd.to_datetime(fb_sets_local["date"])
-            fb_sets_local["volume_kg"] = fb_sets_local.get("volume_kg", fb_sets_local["sets"] * fb_sets_local["reps"] * fb_sets_local["weight_kg"])
+            fb_sets_local["date"] = pd.to_datetime(fb_sets_local["date"])
+            if "volume_kg" not in fb_sets_local.columns:
+                fb_sets_local["volume_kg"] = fb_sets_local["sets"] * fb_sets_local["reps"] * fb_sets_local["weight_kg"]
+        if len(fb_sessions_local) > 0:
+            fb_sessions_local["date"] = pd.to_datetime(fb_sessions_local["date"])
         fb_sets     = fb_sets_local
         fb_records  = fb_records_local
         fb_sessions = fb_sessions_local
