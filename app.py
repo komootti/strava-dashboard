@@ -1796,6 +1796,7 @@ Write like a direct, knowledgeable coach. Use the numbers."""
         st.caption("Add ANTHROPIC_API_KEY to Streamlit secrets to enable strength insights.")
 
 
+
         # ── Personal records table ────────────────────────────────────────────
         if len(fb_records) > 0:
             with st.expander("📋 Personal Records — all exercises", expanded=False):
