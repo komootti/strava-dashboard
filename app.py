@@ -1953,100 +1953,102 @@ Write like a direct, knowledgeable coach. Use the numbers."""
 
 
 
-    # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
-    if fitbod_data:
-        _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
-        _fbs = pd.DataFrame(fitbod_data.get("sets", []))
-        if len(_fbw) > 0 and len(_fbs) > 0:
-            _fbw["week"] = pd.to_datetime(_fbw["week"])
-            _fbs["date"] = pd.to_datetime(_fbs["date"])
-            # Use current week start so 'This Week' reflects actual current week
-            _now_wk = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
-            _w6c  = _now_wk - pd.Timedelta(weeks=6)
-            _u6   = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]>=_w6c)].sort_values("week")
-            _l6   = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]>=_w6c)].sort_values("week")
 
-            def _sv(df, i): return int(df["volume"].iloc[i]) if len(df) > abs(i) else 0
-            # Get current week's volume (may be 0 if not trained yet this week)
-            _u_cur = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]==_now_wk)]
-            _l_cur = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]==_now_wk)]
-            _ul = int(_u_cur["volume"].iloc[0]) if len(_u_cur) > 0 else 0
-            _ll = int(_l_cur["volume"].iloc[0]) if len(_l_cur) > 0 else 0
-            _up = _sv(_u6,-2) if _ul > 0 else _sv(_u6,-1)
-            _lp = _sv(_l6,-2) if _ll > 0 else _sv(_l6,-1)
-            _ua6 = int(_u6["volume"].mean()) if len(_u6)>0 else 0
-            _la6 = int(_l6["volume"].mean()) if len(_l6)>0 else 0
-            _ud, _ld = _ul-_up, _ll-_lp
-            def _va(d): return ("▲","#50c850") if d>0 else ("▼","#ff5555") if d<0 else ("—","#aaa")
-            _uarr,_ucol = _va(_ud); _larr,_lcol = _va(_ld)
-            def _str_spark(w6, lc):
-                if len(w6)<2: return ""
-                vs = w6["volume"].round(0).tolist()
-                ds = w6["week"].dt.strftime("%-d %b").tolist()
-                W,H,pb,pt = 240,90,22,18
+        # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
+        if fitbod_data:
+            _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
+            _fbs = pd.DataFrame(fitbod_data.get("sets", []))
+            if len(_fbw) > 0 and len(_fbs) > 0:
+                _fbw["week"] = pd.to_datetime(_fbw["week"])
+                _fbs["date"] = pd.to_datetime(_fbs["date"])
+                # Use current week start so 'This Week' reflects actual current week
+                _now_wk = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
+                _w6c  = _now_wk - pd.Timedelta(weeks=6)
+                _u6   = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]>=_w6c)].sort_values("week")
+                _l6   = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]>=_w6c)].sort_values("week")
 
-                def _fmt_k(v):
-                    return f"{v/1000:.1f}K" if v >= 1000 else str(int(v))
+                def _sv(df, i): return int(df["volume"].iloc[i]) if len(df) > abs(i) else 0
+                # Get current week's volume (may be 0 if not trained yet this week)
+                _u_cur = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]==_now_wk)]
+                _l_cur = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]==_now_wk)]
+                _ul = int(_u_cur["volume"].iloc[0]) if len(_u_cur) > 0 else 0
+                _ll = int(_l_cur["volume"].iloc[0]) if len(_l_cur) > 0 else 0
+                _up = _sv(_u6,-2) if _ul > 0 else _sv(_u6,-1)
+                _lp = _sv(_l6,-2) if _ll > 0 else _sv(_l6,-1)
+                _ua6 = int(_u6["volume"].mean()) if len(_u6)>0 else 0
+                _la6 = int(_l6["volume"].mean()) if len(_l6)>0 else 0
+                _ud, _ld = _ul-_up, _ll-_lp
+                def _va(d): return ("▲","#50c850") if d>0 else ("▼","#ff5555") if d<0 else ("—","#aaa")
+                _uarr,_ucol = _va(_ud); _larr,_lcol = _va(_ld)
+                def _str_spark(w6, lc):
+                    if len(w6)<2: return ""
+                    vs = w6["volume"].round(0).tolist()
+                    ds = w6["week"].dt.strftime("%-d %b").tolist()
+                    W,H,pb,pt = 240,90,22,18
 
-                mn,mx = min(vs),max(vs)
-                rng = mx-mn if mx!=mn else 1
-                pts = [(round(i/(len(vs)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v, d)
-                       for i,(v,d) in enumerate(zip(vs,ds))]
-                path = " ".join(f"{x},{y}" for x,y,_,_ in pts)
-                area = f"0,{H-pb} " + path + f" {W},{H-pb}"
-                # Smooth curve using cubic bezier through points
-                def _smooth(pts):
-                    if len(pts) < 2: return ""
-                    d = f"M {pts[0][0]},{pts[0][1]}"
-                    for i in range(1, len(pts)):
-                        x0,y0 = pts[i-1][0],pts[i-1][1]
-                        x1,y1 = pts[i][0],pts[i][1]
-                        cx = (x0+x1)/2
-                        d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
-                    return d
-                smooth_path = _smooth(pts)
-                smooth_area = f"M 0,{H-pb} L {pts[0][0]},{pts[0][1]} " + " ".join(
-                    f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
-                    for i in range(1,len(pts))
-                ) + f" L {pts[-1][0]},{H-pb} Z"
-                circ = "".join(f'<circle cx="{x}" cy="{y}" r="3.5" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
-                vals = "".join(f'<text x="{x}" y="{max(y-8,pt-2)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="400" font-family="DM Mono,monospace">{_fmt_k(v)}</text>' for x,y,v,_ in pts)
-                dats = "".join(f'<text x="{x}" y="{H-5}" text-anchor="middle" fill="#bbb" font-size="7.5" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
-                lc_rgba = lc.replace("#","")
-                r,g,b = int(lc_rgba[0:2],16),int(lc_rgba[2:4],16),int(lc_rgba[4:6],16)
-                return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
-                        f'<path d="{smooth_area}" fill="rgba({r},{g},{b},0.08)"/>' +
-                        f'<path d="{smooth_path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                        circ + vals + dats + '</svg>')
+                    def _fmt_k(v):
+                        return f"{v/1000:.1f}K" if v >= 1000 else str(int(v))
 
-            _su = _str_spark(_u6,"#fc4c02"); _sl = _str_spark(_l6,"#d97706")
-            _usub = f'<span style="color:{_ucol};font-weight:600">{_uarr} {abs(_ud):,} kg</span> vs prev · 6w avg {_ua6:,} kg'
-            _lsub = f'<span style="color:{_lcol};font-weight:600">{_larr} {abs(_ld):,} kg</span> vs prev · 6w avg {_la6:,} kg'
+                    mn,mx = min(vs),max(vs)
+                    rng = mx-mn if mx!=mn else 1
+                    pts = [(round(i/(len(vs)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v, d)
+                           for i,(v,d) in enumerate(zip(vs,ds))]
+                    path = " ".join(f"{x},{y}" for x,y,_,_ in pts)
+                    area = f"0,{H-pb} " + path + f" {W},{H-pb}"
+                    # Smooth curve using cubic bezier through points
+                    def _smooth(pts):
+                        if len(pts) < 2: return ""
+                        d = f"M {pts[0][0]},{pts[0][1]}"
+                        for i in range(1, len(pts)):
+                            x0,y0 = pts[i-1][0],pts[i-1][1]
+                            x1,y1 = pts[i][0],pts[i][1]
+                            cx = (x0+x1)/2
+                            d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
+                        return d
+                    smooth_path = _smooth(pts)
+                    smooth_area = f"M 0,{H-pb} L {pts[0][0]},{pts[0][1]} " + " ".join(
+                        f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
+                        for i in range(1,len(pts))
+                    ) + f" L {pts[-1][0]},{H-pb} Z"
+                    circ = "".join(f'<circle cx="{x}" cy="{y}" r="3.5" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
+                    vals = "".join(f'<text x="{x}" y="{max(y-8,pt-2)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="400" font-family="DM Mono,monospace">{_fmt_k(v)}</text>' for x,y,v,_ in pts)
+                    dats = "".join(f'<text x="{x}" y="{H-5}" text-anchor="middle" fill="#bbb" font-size="7.5" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
+                    lc_rgba = lc.replace("#","")
+                    r,g,b = int(lc_rgba[0:2],16),int(lc_rgba[2:4],16),int(lc_rgba[4:6],16)
+                    return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
+                            f'<path d="{smooth_area}" fill="rgba({r},{g},{b},0.08)"/>' +
+                            f'<path d="{smooth_path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                            circ + vals + dats + '</svg>')
 
-            st.markdown(
-                f'<hr style="border:none;border-top:1px solid {_card_border};margin:24px 0">' +
-                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">' +
-                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
-                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-                '<div>' +
-            f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
-                f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
-                f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
-                '</div>' +
-                f'<div style="flex-shrink:0;margin-left:8px">{_su}</div>' +
-                '</div></div>' +
-                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
-                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-                '<div>' +
-                f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
-                f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
-                f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
-                '</div>' +
-                f'<div style="flex-shrink:0;margin-left:8px">{_sl}</div>' +
-                '</div></div>' +
-                '</div>',
-                unsafe_allow_html=True
-            )
+                _su = _str_spark(_u6,"#fc4c02"); _sl = _str_spark(_l6,"#d97706")
+                _usub = f'<span style="color:{_ucol};font-weight:600">{_uarr} {abs(_ud):,} kg</span> vs prev · 6w avg {_ua6:,} kg'
+                _lsub = f'<span style="color:{_lcol};font-weight:600">{_larr} {abs(_ld):,} kg</span> vs prev · 6w avg {_la6:,} kg'
+
+                st.markdown(
+                    f'<hr style="border:none;border-top:1px solid {_card_border};margin:24px 0">' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">' +
+                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                    '<div>' +
+                f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
+                    f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                    f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
+                    '</div>' +
+                    f'<div style="flex-shrink:0;margin-left:8px">{_su}</div>' +
+                    '</div></div>' +
+                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                    '<div>' +
+                    f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
+                    f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                    f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
+                    '</div>' +
+                    f'<div style="flex-shrink:0;margin-left:8px">{_sl}</div>' +
+                    '</div></div>' +
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+
 
 
 st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
@@ -2153,15 +2155,17 @@ all_days   = pd.date_range(year_start, year_end, freq="D")
 # Merge with activity data
 day_df = pd.DataFrame({"date": all_days})
 day_df = day_df.merge(daily_data, on="date", how="left").fillna({"tss":0,"acts":0})
+# Bins calibrated to Strava Relative Effort scale (typical session = 5-25)
+# Old TrainingPeaks TSS bins (25/75/150) were too high for this data
 day_df["level"] = pd.cut(day_df["tss"],
-    bins=[-0.1, 0, 25, 75, 150, 9999],
+    bins=[-0.1, 0, 8, 20, 40, 9999],
     labels=[0,1,2,3,4]).astype(int)
 day_df["dow"]   = day_df["date"].dt.dayofweek  # 0=Mon
 day_df["week"]  = (day_df["date"] - year_start).dt.days // 7
 
 # Colours: dark bg → light orange gradient
 COLOURS = ["#f0ede8","#ffd4b8","#ffaa77","#ff6622","#fc4c02"]
-LABELS  = ["Rest","Light","Moderate","Hard","Very hard"]
+LABELS  = ["Rest","Easy","Moderate","Hard","Peak"]
 DOW_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
 # Build SVG heatmap
@@ -2234,8 +2238,11 @@ for _, row in day_df.iterrows():
 s1, s2, s3, s4 = st.columns(4)
 s1.metric("Training days", f"{active_days}")
 s2.metric("Rest days",     f"{total_days - active_days}")
-s3.metric("Longest streak", f"{max_streak} days")
-s4.metric("Consistency",   f"{active_days/total_days*100:.0f}%")
+# Avg days/week more useful than longest streak for balanced training
+_yr_weeks = max(1, total_days // 7)
+_avg_days_wk = round(active_days / _yr_weeks, 1)
+s3.metric("Avg days/week", f"{_avg_days_wk}")
+s4.metric("Active days",   f"{active_days/total_days*100:.0f}%")
 
 st.markdown(f'<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:1rem 1.2rem;overflow-x:auto;box-shadow:0 1px 4px rgba(0,0,0,0.06);-webkit-overflow-scrolling:touch">{svg}</div>', unsafe_allow_html=True)
 
