@@ -35,12 +35,14 @@ h1 {
 }
 h2 {
     font-weight: 300 !important;
-    letter-spacing: -0.02em !important;
+    font-size: 1.6rem !important;
+    letter-spacing: -0.03em !important;
     line-height: 1.2 !important;
 }
 h3 {
     font-weight: 400 !important;
-    letter-spacing: -0.01em !important;
+    font-size: 1.25rem !important;
+    letter-spacing: -0.02em !important;
 }
 h4 {
     font-weight: 500 !important;
@@ -49,8 +51,10 @@ h4 {
 /* Streamlit markdown headers */
 .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
     font-weight: 300 !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.03em !important;
 }
+.stMarkdown h2 { font-size: 1.6rem !important; }
+.stMarkdown h3 { font-size: 1.25rem !important; }
 /* Sidebar nav labels */
 [data-testid="stSidebar"] label {
     font-weight: 400 !important;
@@ -1646,6 +1650,63 @@ if not oura_df.empty:
 
     st.markdown(html_oura, unsafe_allow_html=True)
 
+    # 30-day HRV + RHR trend chart — modern rounded bars + smooth lines
+    chart_o = recent_30[["date","hrv_avg","resting_hr"]].copy()
+    chart_o = chart_o[chart_o["hrv_avg"].notna() | chart_o["resting_hr"].notna()]
+
+    if len(chart_o) > 3:
+        chart_o["hrv_roll"] = chart_o["hrv_avg"].rolling(7, min_periods=1).mean()
+        fig_o = go.Figure()
+
+        # HRV bars — rounded top via marker line trick, soft purple
+        fig_o.add_trace(go.Bar(
+            x=chart_o["date"], y=chart_o["hrv_avg"].round(1), name="HRV",
+            marker=dict(
+                color="rgba(167,139,250,0.25)",
+                line=dict(width=0),
+                cornerradius=6,
+            ),
+            hovertemplate="<b>%{x|%d %b}</b><br>HRV: <b>%{y:.0f} ms</b><extra></extra>",
+        ))
+
+        # HRV 7-day smooth line with gradient feel
+        fig_o.add_trace(go.Scatter(
+            x=chart_o["date"], y=chart_o["hrv_roll"].round(1), name="HRV 7d avg",
+            mode="lines",
+            line=dict(color="#a78bfa", width=3, shape="spline", smoothing=1.2),
+            fill="tozeroy",
+            fillcolor="rgba(167,139,250,0.06)",
+            hovertemplate="7d avg: <b>%{y:.0f} ms</b><extra></extra>",
+        ))
+
+        # Resting HR — smooth spline, bold orange
+        if chart_o["resting_hr"].notna().sum() > 3:
+            fig_o.add_trace(go.Scatter(
+                x=chart_o["date"], y=chart_o["resting_hr"].round(1), name="Resting HR",
+                mode="lines+markers", yaxis="y2",
+                line=dict(color="#fc4c02", width=2.5, shape="spline", smoothing=1.0),
+                marker=dict(
+                    size=5, color="#fc4c02",
+                    line=dict(color="#ffffff", width=1.5),
+                    symbol="circle",
+                ),
+                hovertemplate="<b>%{x|%d %b}</b><br>RHR: <b>%{y:.0f} bpm</b><extra></extra>",
+            ))
+
+        _oura_layout = {k:v for k,v in CHART_LAYOUT.items() if k != "legend"}
+        fig_o.update_layout(
+            **{**_oura_layout, "margin": dict(t=10,b=30,l=50,r=50)},
+            height=260, barmode="overlay",
+            yaxis=dict(**axis_style(), title="HRV (ms)"),
+            yaxis2=dict(**axis_style(), title="RHR (bpm)", overlaying="y",
+                        side="right", showgrid=False),
+            legend=dict(orientation="h", y=1.08, font=dict(color="#888",size=11),
+                        bgcolor="rgba(0,0,0,0)"),
+        )
+        fig_o.update_xaxes(**axis_style())
+        st.plotly_chart(fig_o, use_container_width=True)
+
+
     # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
     if fitbod_data:
         _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
@@ -1653,13 +1714,20 @@ if not oura_df.empty:
         if len(_fbw) > 0 and len(_fbs) > 0:
             _fbw["week"] = pd.to_datetime(_fbw["week"])
             _fbs["date"] = pd.to_datetime(_fbs["date"])
-            _w6c  = _fbw["week"].max() - pd.Timedelta(weeks=6)
+            # Use current week start so 'This Week' reflects actual current week
+            _now_wk = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
+            _w6c  = _now_wk - pd.Timedelta(weeks=6)
             _u6   = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]>=_w6c)].sort_values("week")
             _l6   = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]>=_w6c)].sort_values("week")
 
             def _sv(df, i): return int(df["volume"].iloc[i]) if len(df) > abs(i) else 0
-            _ul, _up = _sv(_u6,-1), _sv(_u6,-2)
-            _ll, _lp = _sv(_l6,-1), _sv(_l6,-2)
+            # Get current week's volume (may be 0 if not trained yet this week)
+            _u_cur = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]==_now_wk)]
+            _l_cur = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]==_now_wk)]
+            _ul = int(_u_cur["volume"].iloc[0]) if len(_u_cur) > 0 else 0
+            _ll = int(_l_cur["volume"].iloc[0]) if len(_l_cur) > 0 else 0
+            _up = _sv(_u6,-2) if _ul > 0 else _sv(_u6,-1)
+            _lp = _sv(_l6,-2) if _ll > 0 else _sv(_l6,-1)
             _ua6 = int(_u6["volume"].mean()) if len(_u6)>0 else 0
             _la6 = int(_l6["volume"].mean()) if len(_l6)>0 else 0
             _ud, _ld = _ul-_up, _ll-_lp
@@ -1823,61 +1891,100 @@ Write like a direct, knowledgeable coach. Use the numbers."""
         st.caption("Add ANTHROPIC_API_KEY to Streamlit secrets to enable strength insights.")
 
 
-    # 30-day HRV + RHR trend chart — modern rounded bars + smooth lines
-    chart_o = recent_30[["date","hrv_avg","resting_hr"]].copy()
-    chart_o = chart_o[chart_o["hrv_avg"].notna() | chart_o["resting_hr"].notna()]
+        # ── Progressive overload — volume per session, top exercises ─────────
+        st.markdown("### Progressive Overload")
+        st.caption("Volume trend (sets × reps × weight) across last 8 sessions · top exercises by frequency")
 
-    if len(chart_o) > 3:
-        chart_o["hrv_roll"] = chart_o["hrv_avg"].rolling(7, min_periods=1).mean()
-        fig_o = go.Figure()
+        top_ex = fitbod_data.get("top_exercises", fb_sets["exercise"].value_counts().head(15).index.tolist())
+        avail_ex = [e for e in top_ex if e in fb_sets["exercise"].values]
 
-        # HRV bars — rounded top via marker line trick, soft purple
-        fig_o.add_trace(go.Bar(
-            x=chart_o["date"], y=chart_o["hrv_avg"].round(1), name="HRV",
-            marker=dict(
-                color="rgba(167,139,250,0.25)",
-                line=dict(width=0),
-                cornerradius=6,
-            ),
-            hovertemplate="<b>%{x|%d %b}</b><br>HRV: <b>%{y:.0f} ms</b><extra></extra>",
-        ))
+        if avail_ex:
+            # Build per-exercise session volume for all top exercises
+            po_rows = []
+            for ex in avail_ex[:12]:
+                ex_data = fb_sets[fb_sets["exercise"] == ex].copy()
+                # Volume per session date
+                ex_sess = ex_data.groupby(ex_data["date"].dt.normalize()).agg(
+                    volume=("volume_kg", "sum"),
+                    max_weight=("weight_kg", "max"),
+                    total_sets=("sets", "sum"),
+                ).reset_index().sort_values("date")
+                if len(ex_sess) < 2:
+                    continue
+                last8 = ex_sess.tail(8)
+                vol_first = last8["volume"].iloc[0]
+                vol_latest = last8["volume"].iloc[-1]
+                change = vol_latest - vol_first
+                change_pct = (change / vol_first * 100) if vol_first > 0 else 0
+                po_rows.append({
+                    "exercise": ex,
+                    "sessions": last8,
+                    "vol_latest": vol_latest,
+                    "max_weight": last8["max_weight"].iloc[-1],
+                    "change": change,
+                    "change_pct": change_pct,
+                    "n_sessions": len(ex_sess),
+                })
 
-        # HRV 7-day smooth line with gradient feel
-        fig_o.add_trace(go.Scatter(
-            x=chart_o["date"], y=chart_o["hrv_roll"].round(1), name="HRV 7d avg",
-            mode="lines",
-            line=dict(color="#a78bfa", width=3, shape="spline", smoothing=1.2),
-            fill="tozeroy",
-            fillcolor="rgba(167,139,250,0.06)",
-            hovertemplate="7d avg: <b>%{y:.0f} ms</b><extra></extra>",
-        ))
+            if po_rows:
+                # Show as card grid — 2 per row
+                cols_per_row = 2
+                for row_i in range(0, len(po_rows), cols_per_row):
+                    row_cols = st.columns(cols_per_row)
+                    for col_i, col in enumerate(row_cols):
+                        if row_i + col_i >= len(po_rows):
+                            break
+                        p = po_rows[row_i + col_i]
+                        with col:
+                            arrow = "▲" if p["change"] >= 0 else "▼"
+                            col_accent = "#22c55e" if p["change"] >= 0 else "#ef4444"
+                            # Sparkline of session volumes
+                            vols = p["sessions"]["volume"].tolist()
+                            dates = p["sessions"]["date"].dt.strftime("%d %b").tolist()
+                            fig_ex = go.Figure()
+                            bar_colors = [
+                                col_accent if i==len(vols)-1
+                                else "rgba(252,76,2,0.5)" if i==len(vols)-2
+                                else "rgba(252,76,2,0.18)"
+                                for i in range(len(vols))
+                            ]
+                            fig_ex.add_trace(go.Bar(
+                                x=dates, y=[round(v,0) for v in vols],
+                                marker=dict(color=bar_colors, cornerradius=4,
+                                            line=dict(width=0)),
+                                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg<extra></extra>",
+                            ))
+                            _ex_layout = {**CHART_LAYOUT, 'height':110,
+                                'margin':dict(l=0,r=0,t=4,b=0), 'showlegend':False,
+                                'plot_bgcolor':'rgba(0,0,0,0)',
+                                'paper_bgcolor':'rgba(0,0,0,0)'}
+                            fig_ex.update_layout(**_ex_layout)
+                            fig_ex.update_xaxes(showgrid=False, showline=False,
+                                zeroline=False, showticklabels=True,
+                                tickfont=dict(size=8, color="#999"), tickangle=0)
+                            fig_ex.update_yaxes(showgrid=False, showline=False,
+                                zeroline=False, showticklabels=False)
+                            st.markdown(
+                                f'<div style="background:{_card_bg};border:1px solid {_card_border};'
+                                f'border-radius:12px;padding:14px 16px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:4px">'
+                                f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+                                f'<div style="color:{_card_text};font-size:0.88rem;font-weight:600;line-height:1.2">{p["exercise"]}</div>'
+                                f'<div style="text-align:right">'
+                                f'<div style="color:{col_accent};font-size:0.78rem;font-weight:700">{arrow} {abs(p["change_pct"]):.0f}%</div>'
+                                f'<div style="color:{_card_sub};font-size:0.65rem">{p["n_sessions"]} sessions</div>'
+                                f'</div></div>'
+                                f'<div style="display:flex;gap:16px;margin-bottom:8px">'
+                                f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["vol_latest"]/1000:.2f}t</div>'
+                                f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">vol this session</div></div>'
+                                f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["max_weight"]:.1f} kg</div>'
+                                f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">max weight</div></div>'
+                                f'</div>'
+                                f'</div>',
+                                unsafe_allow_html=True
+                            )
+                            st.plotly_chart(fig_ex, use_container_width=True)
 
-        # Resting HR — smooth spline, bold orange
-        if chart_o["resting_hr"].notna().sum() > 3:
-            fig_o.add_trace(go.Scatter(
-                x=chart_o["date"], y=chart_o["resting_hr"].round(1), name="Resting HR",
-                mode="lines+markers", yaxis="y2",
-                line=dict(color="#fc4c02", width=2.5, shape="spline", smoothing=1.0),
-                marker=dict(
-                    size=5, color="#fc4c02",
-                    line=dict(color="#ffffff", width=1.5),
-                    symbol="circle",
-                ),
-                hovertemplate="<b>%{x|%d %b}</b><br>RHR: <b>%{y:.0f} bpm</b><extra></extra>",
-            ))
 
-        _oura_layout = {k:v for k,v in CHART_LAYOUT.items() if k != "legend"}
-        fig_o.update_layout(
-            **{**_oura_layout, "margin": dict(t=10,b=30,l=50,r=50)},
-            height=260, barmode="overlay",
-            yaxis=dict(**axis_style(), title="HRV (ms)"),
-            yaxis2=dict(**axis_style(), title="RHR (bpm)", overlaying="y",
-                        side="right", showgrid=False),
-            legend=dict(orientation="h", y=1.08, font=dict(color="#888",size=11),
-                        bgcolor="rgba(0,0,0,0)"),
-        )
-        fig_o.update_xaxes(**axis_style())
-        st.plotly_chart(fig_o, use_container_width=True)
 
 st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
@@ -2631,90 +2738,6 @@ else:
             st.plotly_chart(fig_freq, use_container_width=True)
 
         del fb_col1, fb_col2
-
-        # ── Progressive overload — volume per session, top exercises ─────────
-        st.markdown("### Progressive Overload")
-        st.caption("Volume trend (sets × reps × weight) across last 8 sessions · top exercises by frequency")
-
-        top_ex = fitbod_data.get("top_exercises", fb_sets["exercise"].value_counts().head(15).index.tolist())
-        avail_ex = [e for e in top_ex if e in fb_sets["exercise"].values]
-
-        if avail_ex:
-            # Build per-exercise session volume for all top exercises
-            po_rows = []
-            for ex in avail_ex[:12]:
-                ex_data = fb_sets[fb_sets["exercise"] == ex].copy()
-                # Volume per session date
-                ex_sess = ex_data.groupby(ex_data["date"].dt.normalize()).agg(
-                    volume=("volume_kg", "sum"),
-                    max_weight=("weight_kg", "max"),
-                    total_sets=("sets", "sum"),
-                ).reset_index().sort_values("date")
-                if len(ex_sess) < 2:
-                    continue
-                last8 = ex_sess.tail(8)
-                vol_first = last8["volume"].iloc[0]
-                vol_latest = last8["volume"].iloc[-1]
-                change = vol_latest - vol_first
-                change_pct = (change / vol_first * 100) if vol_first > 0 else 0
-                po_rows.append({
-                    "exercise": ex,
-                    "sessions": last8,
-                    "vol_latest": vol_latest,
-                    "max_weight": last8["max_weight"].iloc[-1],
-                    "change": change,
-                    "change_pct": change_pct,
-                    "n_sessions": len(ex_sess),
-                })
-
-            if po_rows:
-                # Show as card grid — 2 per row
-                cols_per_row = 2
-                for row_i in range(0, len(po_rows), cols_per_row):
-                    row_cols = st.columns(cols_per_row)
-                    for col_i, col in enumerate(row_cols):
-                        if row_i + col_i >= len(po_rows):
-                            break
-                        p = po_rows[row_i + col_i]
-                        with col:
-                            arrow = "▲" if p["change"] >= 0 else "▼"
-                            col_accent = "#22c55e" if p["change"] >= 0 else "#ef4444"
-                            # Sparkline of session volumes
-                            vols = p["sessions"]["volume"].tolist()
-                            dates = p["sessions"]["date"].dt.strftime("%d %b").tolist()
-                            fig_ex = go.Figure()
-                            fig_ex.add_trace(go.Bar(
-                                x=dates, y=[round(v,0) for v in vols],
-                                marker_color=[col_accent if i==len(vols)-1
-                                              else "rgba(252,76,2,0.25)"
-                                              for i in range(len(vols))],
-                                hovertemplate="%{x}<br><b>%{y:.0f} kg</b><extra></extra>",
-                            ))
-                            _ex_layout = {**CHART_LAYOUT, 'height':140,
-                                'margin':dict(l=0,r=0,t=0,b=0), 'showlegend':False}
-                            fig_ex.update_layout(**_ex_layout)
-                            fig_ex.update_xaxes(showgrid=False, showticklabels=True,
-                                                tickfont=dict(size=9), tickangle=0)
-                            fig_ex.update_yaxes(showgrid=False, showticklabels=False)
-                            st.markdown(
-                                f'<div style="background:{_card_bg};border:1px solid {_card_border};'
-                                f'border-radius:12px;padding:14px 16px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:4px">'
-                                f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-                                f'<div style="color:{_card_text};font-size:0.88rem;font-weight:600;line-height:1.2">{p["exercise"]}</div>'
-                                f'<div style="text-align:right">'
-                                f'<div style="color:{col_accent};font-size:0.78rem;font-weight:700">{arrow} {abs(p["change_pct"]):.0f}%</div>'
-                                f'<div style="color:{_card_sub};font-size:0.65rem">{p["n_sessions"]} sessions</div>'
-                                f'</div></div>'
-                                f'<div style="display:flex;gap:16px;margin-bottom:8px">'
-                                f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["vol_latest"]/1000:.2f}t</div>'
-                                f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">vol this session</div></div>'
-                                f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["max_weight"]:.1f} kg</div>'
-                                f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">max weight</div></div>'
-                                f'</div>'
-                                f'</div>',
-                                unsafe_allow_html=True
-                            )
-                            st.plotly_chart(fig_ex, use_container_width=True)
 
         # ── Personal records table ────────────────────────────────────────────
         if len(fb_records) > 0:
