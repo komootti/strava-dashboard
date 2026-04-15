@@ -2673,8 +2673,8 @@ for _, r in recent_acts.iterrows():
         + f'<td style="color:{_card_text}">{r["Time"]}</td>'
         + f'<td style="color:{_card_text}">{r["Pace"]}</td>'
         + f'<td style="color:{_card_text}">{r["HR"]}</td>'
-        + f'<td style="color:{_card_text}">{r["Elev"]}</td>'
         + (f'<td><span style="background:{r["_eff_col"]}22;color:{r["_eff_col"]};font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:0.04em">{r["_eff_lbl"]}</span></td>' if r["_eff_lbl"] else '<td style="color:#aaa">—</td>')
+        + f'<td style="color:{_card_text};text-align:right">{r["Elev"]}</td>'
         + "</tr>"
     )
 st.markdown(
