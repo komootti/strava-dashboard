@@ -945,8 +945,8 @@ if _la_poly:
             _c1, _c2 = st.columns([1, 1])
             with _c1:
                 _effort_tag = (
-                    '<span style="background:#f0fdf0;border:1px solid #86efac;color:#16a34a;'
-                    'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">'
+                    f'<span style="background:{effort_col}22;border:1px solid {effort_col}55;color:{effort_col};'
+                    f'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">'
                     + effort_lbl + '</span>'
                 ) if effort_lbl else ""
                 st.markdown(
@@ -2659,6 +2659,15 @@ recent_acts["HR"]   = recent_acts["avg_hr"].apply(
     lambda h: f"{int(h)}" if not pd.isna(h) else "—")
 recent_acts["Elev"] = recent_acts["elev_gain_m"].apply(
     lambda e: f"{int(e)}m" if not pd.isna(e) else "—")
+
+def _eff_label(re_val):
+    if pd.isna(re_val) or re_val <= 0: return "", "#aaa"
+    elif re_val < 30:  return "Recovery", "#50c850"
+    elif re_val < 70:  return "Base",     "#ffa500"
+    elif re_val < 120: return "Quality",  "#ff6b35"
+    else:              return "Peak",     "#fc4c02"
+recent_acts["_eff_lbl"] = recent_acts["rel_effort"].apply(lambda v: _eff_label(v)[0])
+recent_acts["_eff_col"] = recent_acts["rel_effort"].apply(lambda v: _eff_label(v)[1])
 
 # Build HTML table — guaranteed light theme (st.dataframe uses canvas, ignores CSS)
 _trows = ""
