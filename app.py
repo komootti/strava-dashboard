@@ -789,10 +789,10 @@ avg_hr_30    = recent_same["avg_hr"].mean() if len(recent_same) > 0 else 0
 # Effort intensity label
 effort_lbl = ""
 if la_effort > 0:
-    if la_effort < 30:   effort_lbl, effort_col = "Easy", "#50c850"
-    elif la_effort < 70: effort_lbl, effort_col = "Moderate", "#ffa500"
-    elif la_effort < 120:effort_lbl, effort_col = "Hard", "#ff6b35"
-    else:                effort_lbl, effort_col = "Max effort", "#ff4444"
+    if la_effort < 30:   effort_lbl, effort_col = "Recovery", "#50c850"
+    elif la_effort < 70: effort_lbl, effort_col = "Base", "#ffa500"
+    elif la_effort < 120:effort_lbl, effort_col = "Quality", "#ff6b35"
+    else:                effort_lbl, effort_col = "Peak", "#ff4444"
 else:
     effort_lbl, effort_col = "", "#888"
 
