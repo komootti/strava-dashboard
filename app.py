@@ -2670,6 +2670,7 @@ recent_acts["_eff_lbl"] = recent_acts["rel_effort"].apply(lambda v: _eff_label(v
 recent_acts["_eff_col"] = recent_acts["rel_effort"].apply(lambda v: _eff_label(v)[1])
 
 # Build HTML table — guaranteed light theme (st.dataframe uses canvas, ignores CSS)
+TH = 'color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;'
 _trows = ""
 for _, r in recent_acts.iterrows():
     sport_color = SPORT_COLORS.get(r["sport"], "#888")
@@ -2678,27 +2679,27 @@ for _, r in recent_acts.iterrows():
         + f'<td style="color:#999;font-size:0.78rem">{r["Date"]}</td>'
         + f'<td><span style="background:{sport_color}18;color:{sport_color};font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:0.05em">{r["sport"]}</span></td>'
         + f'<td style="color:{_card_text};font-weight:500">{str(r["name"])[:35] if pd.notna(r["name"]) else r["sport"]}</td>'
-        + f'<td style="color:{_card_text}">{r["Km"] if r["Km"] > 0 else "—"}</td>'
-        + f'<td style="color:{_card_text}">{r["Time"]}</td>'
-        + f'<td style="color:{_card_text}">{r["Pace"]}</td>'
-        + f'<td style="color:{_card_text}">{r["HR"]}</td>'
-        + (f'<td><span style="background:{r["_eff_col"]}22;color:{r["_eff_col"]};font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:0.04em">{r["_eff_lbl"]}</span></td>' if r["_eff_lbl"] else '<td style="color:#aaa">—</td>')
-        + f'<td style="color:{_card_text};text-align:right">{r["Elev"]}</td>'
+        + f'<td style="color:{_card_text};text-align:right;padding:10px 8px">{r["Km"] if r["Km"] > 0 else "—"}</td>'
+        + f'<td style="color:{_card_text};padding:10px 8px">{r["Time"]}</td>'
+        + f'<td style="color:{_card_text};padding:10px 8px">{r["Pace"]}</td>'
+        + f'<td style="color:{_card_text};text-align:right;padding:10px 8px">{r["HR"]}</td>'
+        + (f'<td style="padding:10px 8px"><span style="background:{r["_eff_col"]}22;color:{r["_eff_col"]};font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:0.04em">{r["_eff_lbl"]}</span></td>' if r["_eff_lbl"] else '<td style="color:#aaa;padding:10px 8px">—</td>')
+        + f'<td style="color:{_card_text};text-align:right;padding:10px 8px">{r["Elev"]}</td>'
         + "</tr>"
     )
 st.markdown(
     '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
     '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.83rem">' +
-    '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Date</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:left">Sport</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Activity</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:right">km</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:left">Time</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:left">Pace</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:right">HR</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 8px;text-align:right">Elev</th>' +
-    '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Effort</th>' +
+    f'<thead><tr style="background:{_card_bg2};border-bottom:2px solid {_card_border}">' +
+    f'<th style="{TH}text-align:left;padding:10px 14px">Date</th>' +
+    f'<th style="{TH}text-align:left">Sport</th>' +
+    f'<th style="{TH}text-align:left;padding:10px 14px">Activity</th>' +
+    f'<th style="{TH}text-align:right">km</th>' +
+    f'<th style="{TH}text-align:left">Time</th>' +
+    f'<th style="{TH}text-align:left">Pace</th>' +
+    f'<th style="{TH}text-align:right">HR</th>' +
+    f'<th style="{TH}text-align:left">Effort</th>' +
+    f'<th style="{TH}text-align:right">Elev</th>' +
     '</tr></thead>' +
     f'<tbody>{_trows}</tbody>' +
     '</table></div>',
