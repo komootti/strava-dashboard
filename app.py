@@ -738,7 +738,9 @@ _last_h = _end_h_pre[(_end_h_pre["date"] >= _prev_start_p) &
 
 
 # ── Tab navigation ───────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["📊  Overview", "🏃  Training", "💪  Strength"])
+
+# ── Tab navigation ─────────────────────────────────────────────────────────
+tab1, tab2, tab3, tab4 = st.tabs(["📊  Overview", "🏃  Training", "💪  Strength", "📋  History"])
 
 with tab1:
     # ── Latest activity card + analysis ──────────────────────────────────────────
@@ -1805,277 +1807,8 @@ with tab1:
 
 
 
-        if fitbod_data:
-            fb_sets_local     = pd.DataFrame(fitbod_data.get("sets", []))
-            fb_records_local  = pd.DataFrame(fitbod_data.get("records", []))
-            fb_sessions_local = pd.DataFrame(fitbod_data.get("sessions", []))
-            if len(fb_sets_local) > 0:
-                fb_sets_local["date"] = pd.to_datetime(fb_sets_local["date"])
-                if "volume_kg" not in fb_sets_local.columns:
-                    fb_sets_local["volume_kg"] = fb_sets_local["sets"] * fb_sets_local["reps"] * fb_sets_local["weight_kg"]
-            if len(fb_sessions_local) > 0:
-                fb_sessions_local["date"] = pd.to_datetime(fb_sessions_local["date"])
-            fb_sets     = fb_sets_local
-            fb_records  = fb_records_local
-            fb_sessions = fb_sessions_local
-
-            # ── Personal records table ────────────────────────────────────────────
-            if len(fb_records) > 0:
-                with st.expander("📋 Personal Records — all exercises", expanded=False):
-                    top_r = fb_records[fb_records["max_weight_kg"] > 0].head(25)
-                    rows_r = ""
-                    for _, row in top_r.iterrows():
-                        grp = fb_sets[fb_sets["exercise"]==row["exercise"]]["muscle_group"].mode()
-                        grp = grp.iloc[0] if len(grp) > 0 else "Other"
-                        col = MUSCLE_COLORS.get(grp, "#888")
-                        last = pd.to_datetime(row["last_date"]).strftime("%d %b %Y") if row.get("last_date") else "—"
-                        rows_r += (
-                            "<tr>"
-                            + f'<td style="color:{_card_text};font-weight:500">{row["exercise"]}</td>'
-                            + f'<td><span style="background:{col}22;color:{col};font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px">{grp}</span></td>'
-                            + f'<td style="color:#fc4c02;font-weight:700;font-family:DM Mono,monospace">{row["max_weight_kg"]:.1f} kg</td>'
-                            + f'<td style="color:{_card_text}">{int(row["max_reps"])}</td>'
-                            + f'<td style="color:{_card_text}">{int(row["total_sets"]):,}</td>'
-                            + f'<td style="color:#999;font-size:0.78rem">{last}</td>'
-                            + "</tr>"
-                        )
-                    st.markdown(
-                        '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden">'
-                        '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.82rem">'
-                        '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">'
-                        '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Exercise</th>'
-                        '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Group</th>'
-                        '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">PR</th>'
-                        '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Max Reps</th>'
-                        '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Total Sets</th>'
-                        '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Last</th>'
-                        f'</tr></thead><tbody>{rows_r}</tbody></table></div>',
-                        unsafe_allow_html=True
-                    )
-
-            # ── Recent sessions ────────────────────────────────────────────────────
-            st.markdown("### Recent Strength Sessions")
-            recent_fb = fb_sessions.head(10)
-            if len(recent_fb) > 0:
-                rows_sess = ""
-                for _, row in recent_fb.iterrows():
-                    groups = ", ".join(row["muscle_groups"]) if isinstance(row["muscle_groups"], list) else str(row["muscle_groups"])
-                    rows_sess += (
-                        "<tr>"
-                        + f'<td style="color:#999;font-size:0.78rem">{row["date"].strftime("%d %b %Y")}</td>'
-                        + f'<td style="color:{_card_text};font-weight:500">{groups}</td>'
-                        + f'<td style="color:{_card_text}">{int(row["exercises"])} exercises · {int(row["total_sets"])} sets</td>'
-                        + f'<td style="color:#fc4c02;font-weight:600;font-family:DM Mono,monospace">{row["total_volume"]/1000:.2f}t</td>'
-                        + "</tr>"
-                    )
-                st.markdown(
-                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
-                    '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.83rem">'
-                    '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">'
-                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Date</th>'
-                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Muscle Groups</th>'
-                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Exercises</th>'
-                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Volume</th>'
-                    f'</tr></thead><tbody>{rows_sess}</tbody></table></div>',
-                    unsafe_allow_html=True
-                )
-
-            # ── Progressive overload — volume per session, top exercises ─────────
-            st.markdown("### Progressive Overload")
-            st.caption("Volume trend (sets × reps × weight) across last 8 sessions · top exercises by frequency")
-
-            top_ex = fitbod_data.get("top_exercises", fb_sets["exercise"].value_counts().head(15).index.tolist())
-            avail_ex = [e for e in top_ex if e in fb_sets["exercise"].values]
-
-            if avail_ex:
-                # Build per-exercise session volume for all top exercises
-                po_rows = []
-                for ex in avail_ex[:12]:
-                    ex_data = fb_sets[fb_sets["exercise"] == ex].copy()
-                    # Volume per session date
-                    ex_sess = ex_data.groupby(ex_data["date"].dt.normalize()).agg(
-                        volume=("volume_kg", "sum"),
-                        max_weight=("weight_kg", "max"),
-                        total_sets=("sets", "sum"),
-                    ).reset_index().sort_values("date")
-                    if len(ex_sess) < 2:
-                        continue
-                    last8 = ex_sess.tail(8)
-                    vol_first = last8["volume"].iloc[0]
-                    vol_latest = last8["volume"].iloc[-1]
-                    change = vol_latest - vol_first
-                    change_pct = (change / vol_first * 100) if vol_first > 0 else 0
-                    po_rows.append({
-                        "exercise": ex,
-                        "sessions": last8,
-                        "vol_latest": vol_latest,
-                        "max_weight": last8["max_weight"].iloc[-1],
-                        "change": change,
-                        "change_pct": change_pct,
-                        "n_sessions": len(ex_sess),
-                    })
-
-                if po_rows:
-                    # Show as card grid — 2 per row
-                    cols_per_row = 2
-                    for row_i in range(0, len(po_rows), cols_per_row):
-                        row_cols = st.columns(cols_per_row)
-                        for col_i, col in enumerate(row_cols):
-                            if row_i + col_i >= len(po_rows):
-                                break
-                            p = po_rows[row_i + col_i]
-                            with col:
-                                arrow = "▲" if p["change"] >= 0 else "▼"
-                                col_accent = "#22c55e" if p["change"] >= 0 else "#ef4444"
-                                # Sparkline of session volumes
-                                vols = p["sessions"]["volume"].tolist()
-                                dates = p["sessions"]["date"].dt.strftime("%d %b").tolist()
-                                fig_ex = go.Figure()
-                                bar_colors = [
-                                    col_accent if i==len(vols)-1
-                                    else "rgba(252,76,2,0.5)" if i==len(vols)-2
-                                    else "rgba(252,76,2,0.18)"
-                                    for i in range(len(vols))
-                                ]
-                                fig_ex.add_trace(go.Bar(
-                                    x=dates, y=[round(v,0) for v in vols],
-                                    marker=dict(color=bar_colors, cornerradius=4,
-                                                line=dict(width=0)),
-                                    hovertemplate="<b>%{x}</b><br>%{y:.0f} kg<extra></extra>",
-                                ))
-                                _ex_layout = {**CHART_LAYOUT, 'height':110,
-                                    'margin':dict(l=0,r=0,t=4,b=0), 'showlegend':False,
-                                    'plot_bgcolor':'rgba(0,0,0,0)',
-                                    'paper_bgcolor':'rgba(0,0,0,0)'}
-                                fig_ex.update_layout(**_ex_layout)
-                                fig_ex.update_xaxes(showgrid=False, showline=False,
-                                    zeroline=False, showticklabels=True,
-                                    tickfont=dict(size=8, color="#999"), tickangle=0)
-                                fig_ex.update_yaxes(showgrid=False, showline=False,
-                                    zeroline=False, showticklabels=False)
-                                st.markdown(
-                                    f'<div style="background:{_card_bg};border:1px solid {_card_border};'
-                                    f'border-radius:12px;padding:14px 16px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:4px">'
-                                    f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-                                    f'<div style="color:{_card_text};font-size:0.88rem;font-weight:600;line-height:1.2">{p["exercise"]}</div>'
-                                    f'<div style="text-align:right">'
-                                    f'<div style="color:{col_accent};font-size:0.78rem;font-weight:700">{arrow} {abs(p["change_pct"]):.0f}%</div>'
-                                    f'<div style="color:{_card_sub};font-size:0.65rem">{p["n_sessions"]} sessions</div>'
-                                    f'</div></div>'
-                                    f'<div style="display:flex;gap:16px;margin-bottom:8px">'
-                                    f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["vol_latest"]/1000:.2f}t</div>'
-                                    f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">vol this session</div></div>'
-                                    f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["max_weight"]:.1f} kg</div>'
-                                    f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">max weight</div></div>'
-                                    f'</div>'
-                                    f'</div>',
-                                    unsafe_allow_html=True
-                                )
-                                st.plotly_chart(fig_ex, use_container_width=True)
 
 
-
-
-
-            # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
-            if fitbod_data:
-                _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
-                _fbs = pd.DataFrame(fitbod_data.get("sets", []))
-                if len(_fbw) > 0 and len(_fbs) > 0:
-                    _fbw["week"] = pd.to_datetime(_fbw["week"])
-                    _fbs["date"] = pd.to_datetime(_fbs["date"])
-                    # Use current week start so 'This Week' reflects actual current week
-                    _now_wk = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
-                    _w6c  = _now_wk - pd.Timedelta(weeks=6)
-                    _u6   = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]>=_w6c)].sort_values("week")
-                    _l6   = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]>=_w6c)].sort_values("week")
-
-                    def _sv(df, i): return int(df["volume"].iloc[i]) if len(df) > abs(i) else 0
-                    # Get current week's volume (may be 0 if not trained yet this week)
-                    _u_cur = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]==_now_wk)]
-                    _l_cur = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]==_now_wk)]
-                    _ul = int(_u_cur["volume"].iloc[0]) if len(_u_cur) > 0 else 0
-                    _ll = int(_l_cur["volume"].iloc[0]) if len(_l_cur) > 0 else 0
-                    _up = _sv(_u6,-2) if _ul > 0 else _sv(_u6,-1)
-                    _lp = _sv(_l6,-2) if _ll > 0 else _sv(_l6,-1)
-                    _ua6 = int(_u6["volume"].mean()) if len(_u6)>0 else 0
-                    _la6 = int(_l6["volume"].mean()) if len(_l6)>0 else 0
-                    _ud, _ld = _ul-_up, _ll-_lp
-                    def _va(d): return ("▲","#50c850") if d>0 else ("▼","#ff5555") if d<0 else ("—","#aaa")
-                    _uarr,_ucol = _va(_ud); _larr,_lcol = _va(_ld)
-                    def _str_spark(w6, lc):
-                        if len(w6)<2: return ""
-                        vs = w6["volume"].round(0).tolist()
-                        ds = w6["week"].dt.strftime("%-d %b").tolist()
-                        W,H,pb,pt = 240,90,22,18
-
-                        def _fmt_k(v):
-                            return f"{v/1000:.1f}K" if v >= 1000 else str(int(v))
-
-                        mn,mx = min(vs),max(vs)
-                        rng = mx-mn if mx!=mn else 1
-                        pts = [(round(i/(len(vs)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v, d)
-                               for i,(v,d) in enumerate(zip(vs,ds))]
-                        path = " ".join(f"{x},{y}" for x,y,_,_ in pts)
-                        area = f"0,{H-pb} " + path + f" {W},{H-pb}"
-                        # Smooth curve using cubic bezier through points
-                        def _smooth(pts):
-                            if len(pts) < 2: return ""
-                            d = f"M {pts[0][0]},{pts[0][1]}"
-                            for i in range(1, len(pts)):
-                                x0,y0 = pts[i-1][0],pts[i-1][1]
-                                x1,y1 = pts[i][0],pts[i][1]
-                                cx = (x0+x1)/2
-                                d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
-                            return d
-                        smooth_path = _smooth(pts)
-                        smooth_area = f"M 0,{H-pb} L {pts[0][0]},{pts[0][1]} " + " ".join(
-                            f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
-                            for i in range(1,len(pts))
-                        ) + f" L {pts[-1][0]},{H-pb} Z"
-                        circ = "".join(f'<circle cx="{x}" cy="{y}" r="3.5" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
-                        vals = "".join(f'<text x="{x}" y="{max(y-8,pt-2)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="400" font-family="DM Mono,monospace">{_fmt_k(v)}</text>' for x,y,v,_ in pts)
-                        dats = "".join(f'<text x="{x}" y="{H-5}" text-anchor="middle" fill="#bbb" font-size="7.5" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
-                        lc_rgba = lc.replace("#","")
-                        r,g,b = int(lc_rgba[0:2],16),int(lc_rgba[2:4],16),int(lc_rgba[4:6],16)
-                        return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
-                                f'<path d="{smooth_area}" fill="rgba({r},{g},{b},0.08)"/>' +
-                                f'<path d="{smooth_path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                                circ + vals + dats + '</svg>')
-
-                    _su = _str_spark(_u6,"#fc4c02"); _sl = _str_spark(_l6,"#d97706")
-                    _usub = f'<span style="color:{_ucol};font-weight:600">{_uarr} {abs(_ud):,} kg</span> vs prev · 6w avg {_ua6:,} kg'
-                    _lsub = f'<span style="color:{_lcol};font-weight:600">{_larr} {abs(_ld):,} kg</span> vs prev · 6w avg {_la6:,} kg'
-
-                    st.markdown(
-                        f'<hr style="border:none;border-top:1px solid {_card_border};margin:24px 0">' +
-                        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">' +
-                        '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
-                        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-                        '<div>' +
-                    f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
-                        f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
-                        f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
-                        '</div>' +
-                        f'<div style="flex-shrink:0;margin-left:8px">{_su}</div>' +
-                        '</div></div>' +
-                        '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
-                        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-                        '<div>' +
-                        f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
-                        f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
-                        f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
-                        '</div>' +
-                        f'<div style="flex-shrink:0;margin-left:8px">{_sl}</div>' +
-                        '</div></div>' +
-                        '</div>',
-                        unsafe_allow_html=True
-                    )
-
-
-
-
-    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
 with tab2:
     # ── Headline metrics ──────────────────────────────────────────────────────────
@@ -2275,108 +2008,6 @@ with tab2:
 
     st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
-    # ── Personal records ──────────────────────────────────────────────────────────
-    st.markdown("## Personal Records")
-
-    runs_valid = df[(df["sport"]=="Run") & (df["dist_km"]>1)].copy()
-    runs_valid["pace_min_km"] = pd.to_numeric(runs_valid["pace_min_km"], errors="coerce")
-    runs_valid = runs_valid[runs_valid["pace_min_km"].between(3,15)]
-    rides_all  = df[df["sport"].isin(["Ride","Virtual Ride"])]
-
-    def fmt_pace(v):
-        if pd.isna(v): return "—"
-        return f"{int(v)}:{int((v%1)*60):02d}"
-
-    def activity_detail_html(row, extra_stat="", extra_label=""):
-        """Render a compact detail card for a record activity."""
-        if row is None: return ""
-        act_id   = int(row["activity_id"])
-        strava   = f"https://www.strava.com/activities/{act_id}"
-        date_str = row["date"].strftime("%d %b %Y")
-        name     = str(row["name"])[:40] if pd.notna(row["name"]) else row["sport"]
-        dist     = f"{row['dist_km']:.1f} km" if row["dist_km"] > 0 else ""
-        hrs      = int(row["moving_min"]//60)
-        mins     = int(row["moving_min"]%60)
-        time_s   = f"{hrs}h {mins:02d}m" if hrs > 0 else f"{mins}m"
-        elev     = f"{int(row['elev_gain_m'])} m↑" if pd.notna(row["elev_gain_m"]) and row["elev_gain_m"] > 0 else ""
-        hr_s     = f"{int(row['avg_hr'])} bpm avg" if pd.notna(row["avg_hr"]) and row["avg_hr"] > 0 else ""
-        cal_s    = f"{int(row['calories'])} kcal" if pd.notna(row["calories"]) and row["calories"] > 0 else ""
-        stats    = " · ".join(filter(None, [dist, time_s, elev, hr_s, cal_s]))
-        if extra_stat:
-            stats = f"<b style='color:#fc4c02'>{extra_label}: {extra_stat}</b> · " + stats
-        return f"""
-    <div style="background:#f7f5f2;border:1px solid #e2ddd8;border-radius:8px;
-                padding:0.75rem 1rem;margin-top:8px;font-size:0.78rem">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="color:#666;font-size:0.65rem;margin-bottom:2px">{date_str}</div>
-          <div style="color:{_card_text};font-weight:600;margin-bottom:4px">{name}</div>
-          <div style="color:#888">{stats}</div>
-        </div>
-        <a href="{strava}" target="_blank"
-           style="background:#fc4c02;color:#fff;font-size:0.65rem;font-weight:700;
-                  text-decoration:none;padding:4px 10px;border-radius:6px;
-                  text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;
-                  margin-left:12px;flex-shrink:0">
-          View on Strava ↗
-        </a>
-      </div>
-    </div>"""
-
-    # Compute record rows
-    lr_row  = runs_valid.loc[runs_valid["dist_km"].idxmax()]        if len(runs_valid) else None
-    bp_row  = runs_valid.loc[runs_valid["pace_min_km"].idxmin()]    if len(runs_valid) else None
-    mc_row  = runs_valid.loc[runs_valid["elev_gain_m"].idxmax()]    if len(runs_valid) else None
-    lride_r = rides_all.loc[rides_all["dist_km"].idxmax()]          if len(rides_all) else None
-
-    r1, r2, r3, r4, r5, r6 = st.columns(6)
-    with r1:
-        v = lr_row["dist_km"] if lr_row is not None else 0
-        st.markdown(f'<div class="record-card"><div class="record-label">Longest Run</div>'                f'<div class="record-value">{v:.1f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
-    with r2:
-        v = bp_row["pace_min_km"] if bp_row is not None else None
-        st.markdown(f'<div class="record-card"><div class="record-label">Best Pace</div>'                f'<div class="record-value">{fmt_pace(v)}</div>'                f'<div class="record-sub">min/km</div></div>', unsafe_allow_html=True)
-    with r3:
-        v = mc_row["elev_gain_m"] if mc_row is not None else 0
-        st.markdown(f'<div class="record-card"><div class="record-label">Most Climbing</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">metres</div></div>', unsafe_allow_html=True)
-    with r4:
-        v = lride_r["dist_km"] if lride_r is not None else 0
-        st.markdown(f'<div class="record-card"><div class="record-label">Longest Ride</div>'                f'<div class="record-value">{v:.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
-    with r5:
-        v = len(df[df["sport"]=="Run"])
-        st.markdown(f'<div class="record-card"><div class="record-label">Total Runs</div>'                f'<div class="record-value">{v:,}</div>'                f'<div class="record-sub">activities</div></div>', unsafe_allow_html=True)
-    with r6:
-        v = df[df["sport"].isin(["Ride","Virtual Ride"])]["dist_km"].sum()
-        st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
-
-    # ── Expandable record details ─────────────────────────────────────────────────
-    with st.expander("📋 View record activity details", expanded=False):
-        d1, d2 = st.columns(2)
-        with d1:
-            st.markdown("**🏃 Longest Run**")
-            if lr_row is not None:
-                p = lr_row["moving_min"] / lr_row["dist_km"]
-                st.markdown(activity_detail_html(lr_row,
-                    extra_stat=f"{lr_row['dist_km']:.1f} km",
-                    extra_label="Distance"), unsafe_allow_html=True)
-            st.markdown("**⚡ Best Pace**")
-            if bp_row is not None:
-                p = bp_row["moving_min"] / bp_row["dist_km"]
-                st.markdown(activity_detail_html(bp_row,
-                    extra_stat=f"{int(p)}:{int((p%1)*60):02d} /km",
-                    extra_label="Pace"), unsafe_allow_html=True)
-        with d2:
-            st.markdown("**⛰️ Most Climbing**")
-            if mc_row is not None:
-                st.markdown(activity_detail_html(mc_row,
-                    extra_stat=f"{int(mc_row['elev_gain_m'])} m",
-                    extra_label="Elevation"), unsafe_allow_html=True)
-            st.markdown("**🚴 Longest Ride**")
-            if lride_r is not None:
-                st.markdown(activity_detail_html(lride_r,
-                    extra_stat=f"{lride_r['dist_km']:.1f} km",
-                    extra_label="Distance"), unsafe_allow_html=True)
-    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
     st.markdown("## Weekly Volume")
 
@@ -2634,6 +2265,499 @@ with tab2:
     st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
 
     # ── Recent activities ─────────────────────────────────────────────────────────
+
+with tab3:
+    st.markdown("## Strength")
+
+    # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
+    if fitbod_data:
+        _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
+        _fbs = pd.DataFrame(fitbod_data.get("sets", []))
+        if len(_fbw) > 0 and len(_fbs) > 0:
+            _fbw["week"] = pd.to_datetime(_fbw["week"])
+            _fbs["date"] = pd.to_datetime(_fbs["date"])
+            # Use current week start so 'This Week' reflects actual current week
+            _now_wk = pd.Timestamp.now().normalize() - pd.Timedelta(days=pd.Timestamp.now().dayofweek)
+            _w6c  = _now_wk - pd.Timedelta(weeks=6)
+            _u6   = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]>=_w6c)].sort_values("week")
+            _l6   = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]>=_w6c)].sort_values("week")
+
+            def _sv(df, i): return int(df["volume"].iloc[i]) if len(df) > abs(i) else 0
+            # Get current week's volume (may be 0 if not trained yet this week)
+            _u_cur = _fbw[(_fbw["muscle_group"]=="Upper") & (_fbw["week"]==_now_wk)]
+            _l_cur = _fbw[(_fbw["muscle_group"]=="Lower") & (_fbw["week"]==_now_wk)]
+            _ul = int(_u_cur["volume"].iloc[0]) if len(_u_cur) > 0 else 0
+            _ll = int(_l_cur["volume"].iloc[0]) if len(_l_cur) > 0 else 0
+            _up = _sv(_u6,-2) if _ul > 0 else _sv(_u6,-1)
+            _lp = _sv(_l6,-2) if _ll > 0 else _sv(_l6,-1)
+            _ua6 = int(_u6["volume"].mean()) if len(_u6)>0 else 0
+            _la6 = int(_l6["volume"].mean()) if len(_l6)>0 else 0
+            _ud, _ld = _ul-_up, _ll-_lp
+            def _va(d): return ("▲","#50c850") if d>0 else ("▼","#ff5555") if d<0 else ("—","#aaa")
+            _uarr,_ucol = _va(_ud); _larr,_lcol = _va(_ld)
+            def _str_spark(w6, lc):
+                if len(w6)<2: return ""
+                vs = w6["volume"].round(0).tolist()
+                ds = w6["week"].dt.strftime("%-d %b").tolist()
+                W,H,pb,pt = 240,90,22,18
+
+                def _fmt_k(v):
+                    return f"{v/1000:.1f}K" if v >= 1000 else str(int(v))
+
+                mn,mx = min(vs),max(vs)
+                rng = mx-mn if mx!=mn else 1
+                pts = [(round(i/(len(vs)-1)*W,1), round(pt+(1-(v-mn)/rng)*(H-pt-pb),1), v, d)
+                       for i,(v,d) in enumerate(zip(vs,ds))]
+                path = " ".join(f"{x},{y}" for x,y,_,_ in pts)
+                area = f"0,{H-pb} " + path + f" {W},{H-pb}"
+                # Smooth curve using cubic bezier through points
+                def _smooth(pts):
+                    if len(pts) < 2: return ""
+                    d = f"M {pts[0][0]},{pts[0][1]}"
+                    for i in range(1, len(pts)):
+                        x0,y0 = pts[i-1][0],pts[i-1][1]
+                        x1,y1 = pts[i][0],pts[i][1]
+                        cx = (x0+x1)/2
+                        d += f" C {cx},{y0} {cx},{y1} {x1},{y1}"
+                    return d
+                smooth_path = _smooth(pts)
+                smooth_area = f"M 0,{H-pb} L {pts[0][0]},{pts[0][1]} " + " ".join(
+                    f"C {(pts[i-1][0]+pts[i][0])/2},{pts[i-1][1]} {(pts[i-1][0]+pts[i][0])/2},{pts[i][1]} {pts[i][0]},{pts[i][1]}"
+                    for i in range(1,len(pts))
+                ) + f" L {pts[-1][0]},{H-pb} Z"
+                circ = "".join(f'<circle cx="{x}" cy="{y}" r="3.5" fill="{lc}" stroke="#fff" stroke-width="1.5"/>' for x,y,_,_ in pts)
+                vals = "".join(f'<text x="{x}" y="{max(y-8,pt-2)}" text-anchor="middle" fill="{lc}" font-size="9" font-weight="400" font-family="DM Mono,monospace">{_fmt_k(v)}</text>' for x,y,v,_ in pts)
+                dats = "".join(f'<text x="{x}" y="{H-5}" text-anchor="middle" fill="#bbb" font-size="7.5" font-family="DM Sans">{d}</text>' for x,y,_,d in pts)
+                lc_rgba = lc.replace("#","")
+                r,g,b = int(lc_rgba[0:2],16),int(lc_rgba[2:4],16),int(lc_rgba[4:6],16)
+                return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg">' +
+                        f'<path d="{smooth_area}" fill="rgba({r},{g},{b},0.08)"/>' +
+                        f'<path d="{smooth_path}" fill="none" stroke="{lc}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        circ + vals + dats + '</svg>')
+
+            _su = _str_spark(_u6,"#fc4c02"); _sl = _str_spark(_l6,"#d97706")
+            _usub = f'<span style="color:{_ucol};font-weight:600">{_uarr} {abs(_ud):,} kg</span> vs prev · 6w avg {_ua6:,} kg'
+            _lsub = f'<span style="color:{_lcol};font-weight:600">{_larr} {abs(_ld):,} kg</span> vs prev · 6w avg {_la6:,} kg'
+
+            st.markdown(
+                f'<hr style="border:none;border-top:1px solid {_card_border};margin:24px 0">' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">' +
+                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                '<div>' +
+            f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Upper Body · This Week</div>' +
+                f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ul:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_usub}</div>' +
+                '</div>' +
+                f'<div style="flex-shrink:0;margin-left:8px">{_su}</div>' +
+                '</div></div>' +
+                '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                '<div>' +
+                f'<div style="color:{_card_sub};font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Lower Body · This Week</div>' +
+                f'<div style="color:{_card_text};font-size:2.4rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{_ll:,}<span style="color:#aaa;font-size:1rem;font-weight:400"> kg</span></div>' +
+                f'<div style="color:#888;font-size:0.72rem;margin-top:6px">{_lsub}</div>' +
+                '</div>' +
+                f'<div style="flex-shrink:0;margin-left:8px">{_sl}</div>' +
+                '</div></div>' +
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+
+
+
+
+    # ── Progressive overload — volume per session, top exercises ─────────
+    st.markdown("### Progressive Overload")
+    st.caption("Volume trend (sets × reps × weight) across last 8 sessions · top exercises by frequency")
+
+    top_ex = fitbod_data.get("top_exercises", fb_sets["exercise"].value_counts().head(15).index.tolist())
+    avail_ex = [e for e in top_ex if e in fb_sets["exercise"].values]
+
+    if avail_ex:
+        # Build per-exercise session volume for all top exercises
+        po_rows = []
+        for ex in avail_ex[:12]:
+            ex_data = fb_sets[fb_sets["exercise"] == ex].copy()
+            # Volume per session date
+            ex_sess = ex_data.groupby(ex_data["date"].dt.normalize()).agg(
+                volume=("volume_kg", "sum"),
+                max_weight=("weight_kg", "max"),
+                total_sets=("sets", "sum"),
+            ).reset_index().sort_values("date")
+            if len(ex_sess) < 2:
+                continue
+            last8 = ex_sess.tail(8)
+            vol_first = last8["volume"].iloc[0]
+            vol_latest = last8["volume"].iloc[-1]
+            change = vol_latest - vol_first
+            change_pct = (change / vol_first * 100) if vol_first > 0 else 0
+            po_rows.append({
+                "exercise": ex,
+                "sessions": last8,
+                "vol_latest": vol_latest,
+                "max_weight": last8["max_weight"].iloc[-1],
+                "change": change,
+                "change_pct": change_pct,
+                "n_sessions": len(ex_sess),
+            })
+
+        if po_rows:
+            # Show as card grid — 2 per row
+            cols_per_row = 2
+            for row_i in range(0, len(po_rows), cols_per_row):
+                row_cols = st.columns(cols_per_row)
+                for col_i, col in enumerate(row_cols):
+                    if row_i + col_i >= len(po_rows):
+                        break
+                    p = po_rows[row_i + col_i]
+                    with col:
+                        arrow = "▲" if p["change"] >= 0 else "▼"
+                        col_accent = "#22c55e" if p["change"] >= 0 else "#ef4444"
+                        # Sparkline of session volumes
+                        vols = p["sessions"]["volume"].tolist()
+                        dates = p["sessions"]["date"].dt.strftime("%d %b").tolist()
+                        fig_ex = go.Figure()
+                        bar_colors = []
+                        for _bi in range(len(vols)):
+                            if _bi == 0: bar_colors.append("rgba(156,163,175,0.4)")
+                            elif vols[_bi] > vols[_bi-1]*1.02: bar_colors.append("#22c55e")
+                            elif vols[_bi] < vols[_bi-1]*0.98: bar_colors.append("#ef4444")
+                            else: bar_colors.append("rgba(156,163,175,0.4)")
+                        fig_ex.add_trace(go.Bar(
+                            x=dates, y=[round(v,0) for v in vols],
+                            marker=dict(color=bar_colors, cornerradius=4,
+                                        line=dict(width=0)),
+                            hovertemplate="<b>%{x}</b><br>%{y:.0f} kg<extra></extra>",
+                        ))
+                        _ex_layout = {**CHART_LAYOUT, 'height':110,
+                            'margin':dict(l=0,r=0,t=4,b=0), 'showlegend':False,
+                            'plot_bgcolor':'rgba(0,0,0,0)',
+                            'paper_bgcolor':'rgba(0,0,0,0)'}
+                        fig_ex.update_layout(**_ex_layout)
+                        fig_ex.update_xaxes(showgrid=False, showline=False,
+                            zeroline=False, showticklabels=True,
+                            tickfont=dict(size=8, color="#999"), tickangle=0)
+                        fig_ex.update_yaxes(showgrid=False, showline=False,
+                            zeroline=False, showticklabels=False)
+                        st.markdown(
+                            f'<div style="background:{_card_bg};border:1px solid {_card_border};'
+                            f'border-radius:12px;padding:14px 16px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-bottom:4px">'
+                            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+                            f'<div style="color:{_card_text};font-size:0.88rem;font-weight:600;line-height:1.2">{p["exercise"]}</div>'
+                            f'<div style="text-align:right">'
+                            f'<div style="color:{col_accent};font-size:0.78rem;font-weight:700">{arrow} {abs(p["change_pct"]):.0f}%</div>'
+                            f'<div style="color:{_card_sub};font-size:0.65rem">{p["n_sessions"]} sessions</div>'
+                            f'</div></div>'
+                            f'<div style="display:flex;gap:16px;margin-bottom:8px">'
+                            f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["vol_latest"]/1000:.2f}t</div>'
+                            f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">vol this session</div></div>'
+                            f'<div><div style="color:{_card_text};font-size:1.3rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["max_weight"]:.1f} kg</div>'
+                            f'<div style="color:{_card_sub};font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em">max weight</div></div>'
+                            f'</div>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+                        st.plotly_chart(fig_ex, use_container_width=True)
+
+
+
+
+
+
+    st.markdown("## Strength Training")
+
+    if not fitbod_data:
+        st.markdown(
+            '<div style="background:#f7f5f2;border:1px solid #e2ddd8;border-radius:12px;padding:1.2rem 1.4rem;color:#999;font-size:0.85rem">'
+            '🏋️ <b>Fitbod data not connected yet.</b> Upload <code>WorkoutExport.csv</code> to your GitHub repo '
+            'and trigger the Fitbod sync to see your strength data here.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        # ── Parse Fitbod data ─────────────────────────────────────────────────────
+        fb_sets     = pd.DataFrame(fitbod_data.get("sets", []))
+        fb_weekly   = pd.DataFrame(fitbod_data.get("weekly_volume", []))
+        fb_records  = pd.DataFrame(fitbod_data.get("records", []))
+        fb_sessions = pd.DataFrame(fitbod_data.get("sessions", []))
+
+        if len(fb_sets) > 0:
+            fb_sets["date"]  = pd.to_datetime(fb_sets["date"])
+            fb_sets["week"]  = pd.to_datetime(fb_sets["week"])
+            fb_sessions["date"] = pd.to_datetime(fb_sessions["date"])
+
+            fb_date_min = pd.to_datetime(fitbod_data["date_min"]).strftime("%b %Y")
+            fb_date_max = pd.to_datetime(fitbod_data["date_max"]).strftime("%b %Y")
+
+            if len(fb_weekly) > 0:
+                fb_weekly["week"] = pd.to_datetime(fb_weekly["week"])
+
+            # ── Headline metrics ──────────────────────────────────────────────────
+            fb_c1, fb_c2, fb_c3, fb_c4, fb_c5 = st.columns(5)
+            fb_c1.metric("Sessions",      f"{fitbod_data['total_sessions']}")
+            fb_c2.metric("Total sets",    f"{fitbod_data['total_sets']:,}")
+            total_vol = fb_sets["volume_kg"].sum()
+            fb_c3.metric("Total volume",  f"{total_vol/1000:.1f}t kg")
+            fb_c4.metric("Exercises",     f"{fb_sets['exercise'].nunique()}")
+            last_session = fb_sessions["date"].max().strftime("%d %b") if len(fb_sessions) > 0 else "—"
+            fb_c5.metric("Last session",  last_session)
+
+            st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
+
+            # ── Weekly volume + Progressive overload side by side ──────────────────
+            fb_col1, fb_col2 = st.columns([3, 2])
+
+            # ── AI Strength Insights ──────────────────────────────────────────────
+
+            st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
+
+            # ── Muscle Group Balance (pie) ─────────────────────────────────────────
+            fb_col1, fb_col2 = st.columns([1, 1])
+            with fb_col1:
+                st.markdown("### All-time Balance")
+                vol_grp = fb_sets.groupby("muscle_group")["volume_kg"].sum().reset_index()
+                if len(vol_grp) > 0:
+                    fig_pie = go.Figure(go.Pie(
+                        labels=vol_grp["muscle_group"],
+                        values=vol_grp["volume_kg"].round(0),
+                        marker=dict(
+                            colors=[MUSCLE_COLORS.get(g,"#ccc") for g in vol_grp["muscle_group"]],
+                            line=dict(color="#ffffff", width=2)
+                        ),
+                        textinfo="label+percent",
+                        textfont=dict(size=11, color="#1a1a1a"),
+                        hole=0.45,
+                        hovertemplate="<b>%{label}</b><br>%{value:,.0f} kg · %{percent}<extra></extra>",
+                    ))
+                    fig_pie.update_layout(**CHART_LAYOUT, height=260,
+                        annotations=[dict(
+                            text=f"{total_vol/1000:.1f}t",
+                            x=0.5, y=0.5, showarrow=False,
+                            font=dict(size=14, color="#1a1a1a", family="DM Mono")
+                        )])
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+            with fb_col2:
+                st.markdown("### Weekly Sets by Group")
+                freq_data = fb_sets.copy()
+                freq_data["week"] = freq_data["date"].dt.to_period("W").dt.start_time
+                cutoff_freq = freq_data["week"].max() - pd.Timedelta(weeks=12)
+                freq_grp = freq_data[freq_data["week"] >= cutoff_freq].groupby(
+                    ["week","muscle_group"])["sets"].sum().reset_index()
+                fig_freq = go.Figure()
+                for group in ["Upper","Lower","Core"]:
+                    gd = freq_grp[freq_grp["muscle_group"]==group]
+                    if len(gd) == 0: continue
+                    fig_freq.add_trace(go.Bar(
+                        x=gd["week"], y=gd["sets"], name=group,
+                        marker=dict(color=MUSCLE_COLORS[group], line=dict(width=0)),
+                        hovertemplate=f"{group}: <b>%{{y}} sets</b><extra></extra>",
+                    ))
+                fig_freq.update_layout(**CHART_LAYOUT, barmode="group", height=260,
+                                       yaxis_title="Sets per week")
+                fig_freq.update_xaxes(**axis_style())
+                fig_freq.update_yaxes(**axis_style())
+                st.plotly_chart(fig_freq, use_container_width=True)
+
+            del fb_col1, fb_col2
+
+
+        else:
+            st.info("Fitbod data found but empty — re-run sync after uploading WorkoutExport.csv.")
+
+
+
+
+
+with tab4:
+    st.markdown("## History")
+
+    st.markdown("## Personal Records")
+
+    runs_valid = df[(df["sport"]=="Run") & (df["dist_km"]>1)].copy()
+    runs_valid["pace_min_km"] = pd.to_numeric(runs_valid["pace_min_km"], errors="coerce")
+    runs_valid = runs_valid[runs_valid["pace_min_km"].between(3,15)]
+    rides_all  = df[df["sport"].isin(["Ride","Virtual Ride"])]
+
+    def fmt_pace(v):
+        if pd.isna(v): return "—"
+        return f"{int(v)}:{int((v%1)*60):02d}"
+
+    def activity_detail_html(row, extra_stat="", extra_label=""):
+        """Render a compact detail card for a record activity."""
+        if row is None: return ""
+        act_id   = int(row["activity_id"])
+        strava   = f"https://www.strava.com/activities/{act_id}"
+        date_str = row["date"].strftime("%d %b %Y")
+        name     = str(row["name"])[:40] if pd.notna(row["name"]) else row["sport"]
+        dist     = f"{row['dist_km']:.1f} km" if row["dist_km"] > 0 else ""
+        hrs      = int(row["moving_min"]//60)
+        mins     = int(row["moving_min"]%60)
+        time_s   = f"{hrs}h {mins:02d}m" if hrs > 0 else f"{mins}m"
+        elev     = f"{int(row['elev_gain_m'])} m↑" if pd.notna(row["elev_gain_m"]) and row["elev_gain_m"] > 0 else ""
+        hr_s     = f"{int(row['avg_hr'])} bpm avg" if pd.notna(row["avg_hr"]) and row["avg_hr"] > 0 else ""
+        cal_s    = f"{int(row['calories'])} kcal" if pd.notna(row["calories"]) and row["calories"] > 0 else ""
+        stats    = " · ".join(filter(None, [dist, time_s, elev, hr_s, cal_s]))
+        if extra_stat:
+            stats = f"<b style='color:#fc4c02'>{extra_label}: {extra_stat}</b> · " + stats
+        return f"""
+    <div style="background:#f7f5f2;border:1px solid #e2ddd8;border-radius:8px;
+                padding:0.75rem 1rem;margin-top:8px;font-size:0.78rem">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="color:#666;font-size:0.65rem;margin-bottom:2px">{date_str}</div>
+          <div style="color:{_card_text};font-weight:600;margin-bottom:4px">{name}</div>
+          <div style="color:#888">{stats}</div>
+        </div>
+        <a href="{strava}" target="_blank"
+           style="background:#fc4c02;color:#fff;font-size:0.65rem;font-weight:700;
+                  text-decoration:none;padding:4px 10px;border-radius:6px;
+                  text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;
+                  margin-left:12px;flex-shrink:0">
+          View on Strava ↗
+        </a>
+      </div>
+    </div>"""
+
+    # Compute record rows
+    lr_row  = runs_valid.loc[runs_valid["dist_km"].idxmax()]        if len(runs_valid) else None
+    bp_row  = runs_valid.loc[runs_valid["pace_min_km"].idxmin()]    if len(runs_valid) else None
+    mc_row  = runs_valid.loc[runs_valid["elev_gain_m"].idxmax()]    if len(runs_valid) else None
+    lride_r = rides_all.loc[rides_all["dist_km"].idxmax()]          if len(rides_all) else None
+
+    r1, r2, r3, r4, r5, r6 = st.columns(6)
+    with r1:
+        v = lr_row["dist_km"] if lr_row is not None else 0
+        st.markdown(f'<div class="record-card"><div class="record-label">Longest Run</div>'                f'<div class="record-value">{v:.1f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    with r2:
+        v = bp_row["pace_min_km"] if bp_row is not None else None
+        st.markdown(f'<div class="record-card"><div class="record-label">Best Pace</div>'                f'<div class="record-value">{fmt_pace(v)}</div>'                f'<div class="record-sub">min/km</div></div>', unsafe_allow_html=True)
+    with r3:
+        v = mc_row["elev_gain_m"] if mc_row is not None else 0
+        st.markdown(f'<div class="record-card"><div class="record-label">Most Climbing</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">metres</div></div>', unsafe_allow_html=True)
+    with r4:
+        v = lride_r["dist_km"] if lride_r is not None else 0
+        st.markdown(f'<div class="record-card"><div class="record-label">Longest Ride</div>'                f'<div class="record-value">{v:.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+    with r5:
+        v = len(df[df["sport"]=="Run"])
+        st.markdown(f'<div class="record-card"><div class="record-label">Total Runs</div>'                f'<div class="record-value">{v:,}</div>'                f'<div class="record-sub">activities</div></div>', unsafe_allow_html=True)
+    with r6:
+        v = df[df["sport"].isin(["Ride","Virtual Ride"])]["dist_km"].sum()
+        st.markdown(f'<div class="record-card"><div class="record-label">Total Ride km</div>'                f'<div class="record-value">{v:,.0f}</div>'                f'<div class="record-sub">km</div></div>', unsafe_allow_html=True)
+
+    # ── Expandable record details ─────────────────────────────────────────────────
+    with st.expander("📋 View record activity details", expanded=False):
+        d1, d2 = st.columns(2)
+        with d1:
+            st.markdown("**🏃 Longest Run**")
+            if lr_row is not None:
+                p = lr_row["moving_min"] / lr_row["dist_km"]
+                st.markdown(activity_detail_html(lr_row,
+                    extra_stat=f"{lr_row['dist_km']:.1f} km",
+                    extra_label="Distance"), unsafe_allow_html=True)
+            st.markdown("**⚡ Best Pace**")
+            if bp_row is not None:
+                p = bp_row["moving_min"] / bp_row["dist_km"]
+                st.markdown(activity_detail_html(bp_row,
+                    extra_stat=f"{int(p)}:{int((p%1)*60):02d} /km",
+                    extra_label="Pace"), unsafe_allow_html=True)
+        with d2:
+            st.markdown("**⛰️ Most Climbing**")
+            if mc_row is not None:
+                st.markdown(activity_detail_html(mc_row,
+                    extra_stat=f"{int(mc_row['elev_gain_m'])} m",
+                    extra_label="Elevation"), unsafe_allow_html=True)
+            st.markdown("**🚴 Longest Ride**")
+            if lride_r is not None:
+                st.markdown(activity_detail_html(lride_r,
+                    extra_stat=f"{lride_r['dist_km']:.1f} km",
+                    extra_label="Distance"), unsafe_allow_html=True)
+    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.8rem 0">', unsafe_allow_html=True)
+
+
+    if fitbod_data:
+        fb_sets_local     = pd.DataFrame(fitbod_data.get("sets", []))
+        fb_records_local  = pd.DataFrame(fitbod_data.get("records", []))
+        fb_sessions_local = pd.DataFrame(fitbod_data.get("sessions", []))
+        if len(fb_sets_local) > 0:
+            fb_sets_local["date"] = pd.to_datetime(fb_sets_local["date"])
+            if "volume_kg" not in fb_sets_local.columns:
+                fb_sets_local["volume_kg"] = fb_sets_local["sets"] * fb_sets_local["reps"] * fb_sets_local["weight_kg"]
+        if len(fb_sessions_local) > 0:
+            fb_sessions_local["date"] = pd.to_datetime(fb_sessions_local["date"])
+        fb_sets     = fb_sets_local
+        fb_records  = fb_records_local
+        fb_sessions = fb_sessions_local
+
+        # ── Personal records table ────────────────────────────────────────────
+        if len(fb_records) > 0:
+            with st.expander("📋 Personal Records — all exercises", expanded=False):
+                top_r = fb_records[fb_records["max_weight_kg"] > 0].head(25)
+                rows_r = ""
+                for _, row in top_r.iterrows():
+                    grp = fb_sets[fb_sets["exercise"]==row["exercise"]]["muscle_group"].mode()
+                    grp = grp.iloc[0] if len(grp) > 0 else "Other"
+                    col = MUSCLE_COLORS.get(grp, "#888")
+                    last = pd.to_datetime(row["last_date"]).strftime("%d %b %Y") if row.get("last_date") else "—"
+                    rows_r += (
+                        "<tr>"
+                        + f'<td style="color:{_card_text};font-weight:500">{row["exercise"]}</td>'
+                        + f'<td><span style="background:{col}22;color:{col};font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px">{grp}</span></td>'
+                        + f'<td style="color:#fc4c02;font-weight:700;font-family:DM Mono,monospace">{row["max_weight_kg"]:.1f} kg</td>'
+                        + f'<td style="color:{_card_text}">{int(row["max_reps"])}</td>'
+                        + f'<td style="color:{_card_text}">{int(row["total_sets"]):,}</td>'
+                        + f'<td style="color:#999;font-size:0.78rem">{last}</td>'
+                        + "</tr>"
+                    )
+                st.markdown(
+                    '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden">'
+                    '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.82rem">'
+                    '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">'
+                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Exercise</th>'
+                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Group</th>'
+                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">PR</th>'
+                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Max Reps</th>'
+                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Total Sets</th>'
+                    '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Last</th>'
+                    f'</tr></thead><tbody>{rows_r}</tbody></table></div>',
+                    unsafe_allow_html=True
+                )
+
+
+    # ── Recent sessions ────────────────────────────────────────────────────
+
+
+
+
+    st.markdown("### Recent Strength Sessions")
+    recent_fb = fb_sessions.head(10)
+    if len(recent_fb) > 0:
+        rows_sess = ""
+        for _, row in recent_fb.iterrows():
+            groups = ", ".join(row["muscle_groups"]) if isinstance(row["muscle_groups"], list) else str(row["muscle_groups"])
+            rows_sess += (
+                "<tr>"
+                + f'<td style="color:#999;font-size:0.78rem">{row["date"].strftime("%d %b %Y")}</td>'
+                + f'<td style="color:{_card_text};font-weight:500">{groups}</td>'
+                + f'<td style="color:{_card_text}">{int(row["exercises"])} exercises · {int(row["total_sets"])} sets</td>'
+                + f'<td style="color:#fc4c02;font-weight:600;font-family:DM Mono,monospace">{row["total_volume"]/1000:.2f}t</td>'
+                + "</tr>"
+            )
+        st.markdown(
+            '<div style="background:{_card_bg};border:1px solid {_card_border};border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
+            '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:0.83rem">'
+            '<thead><tr style="background:#f7f5f2;border-bottom:2px solid #e8e4de">'
+            '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding:10px 14px;text-align:left">Date</th>'
+            '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Muscle Groups</th>'
+            '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Exercises</th>'
+            '<th style="color:#888;font-size:0.62rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Volume</th>'
+            f'</tr></thead><tbody>{rows_sess}</tbody></table></div>',
+            unsafe_allow_html=True
+        )
+
+
     st.markdown("## Recent Activities")
 
     n_rows = st.slider("Show", 10, 100, 20, step=10, key="recent_n")
@@ -2750,107 +2874,9 @@ with tab2:
     # STRENGTH TRAINING (Fitbod)
     # ══════════════════════════════════════════════════════════════════════════════
 
-with tab3:
-    st.markdown("## Strength Training")
-
-    if not fitbod_data:
-        st.markdown(
-            '<div style="background:#f7f5f2;border:1px solid #e2ddd8;border-radius:12px;padding:1.2rem 1.4rem;color:#999;font-size:0.85rem">'
-            '🏋️ <b>Fitbod data not connected yet.</b> Upload <code>WorkoutExport.csv</code> to your GitHub repo '
-            'and trigger the Fitbod sync to see your strength data here.'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    else:
-        # ── Parse Fitbod data ─────────────────────────────────────────────────────
-        fb_sets     = pd.DataFrame(fitbod_data.get("sets", []))
-        fb_weekly   = pd.DataFrame(fitbod_data.get("weekly_volume", []))
-        fb_records  = pd.DataFrame(fitbod_data.get("records", []))
-        fb_sessions = pd.DataFrame(fitbod_data.get("sessions", []))
-
-        if len(fb_sets) > 0:
-            fb_sets["date"]  = pd.to_datetime(fb_sets["date"])
-            fb_sets["week"]  = pd.to_datetime(fb_sets["week"])
-            fb_sessions["date"] = pd.to_datetime(fb_sessions["date"])
-
-            fb_date_min = pd.to_datetime(fitbod_data["date_min"]).strftime("%b %Y")
-            fb_date_max = pd.to_datetime(fitbod_data["date_max"]).strftime("%b %Y")
-
-            if len(fb_weekly) > 0:
-                fb_weekly["week"] = pd.to_datetime(fb_weekly["week"])
-
-            # ── Headline metrics ──────────────────────────────────────────────────
-            fb_c1, fb_c2, fb_c3, fb_c4, fb_c5 = st.columns(5)
-            fb_c1.metric("Sessions",      f"{fitbod_data['total_sessions']}")
-            fb_c2.metric("Total sets",    f"{fitbod_data['total_sets']:,}")
-            total_vol = fb_sets["volume_kg"].sum()
-            fb_c3.metric("Total volume",  f"{total_vol/1000:.1f}t kg")
-            fb_c4.metric("Exercises",     f"{fb_sets['exercise'].nunique()}")
-            last_session = fb_sessions["date"].max().strftime("%d %b") if len(fb_sessions) > 0 else "—"
-            fb_c5.metric("Last session",  last_session)
-
-            st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
-
-            # ── Weekly volume + Progressive overload side by side ──────────────────
-            fb_col1, fb_col2 = st.columns([3, 2])
-
-            # ── AI Strength Insights ──────────────────────────────────────────────
-
-            st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:0.6rem 0">', unsafe_allow_html=True)
-
-            # ── Muscle Group Balance (pie) ─────────────────────────────────────────
-            fb_col1, fb_col2 = st.columns([1, 1])
-            with fb_col1:
-                st.markdown("### All-time Balance")
-                vol_grp = fb_sets.groupby("muscle_group")["volume_kg"].sum().reset_index()
-                if len(vol_grp) > 0:
-                    fig_pie = go.Figure(go.Pie(
-                        labels=vol_grp["muscle_group"],
-                        values=vol_grp["volume_kg"].round(0),
-                        marker=dict(
-                            colors=[MUSCLE_COLORS.get(g,"#ccc") for g in vol_grp["muscle_group"]],
-                            line=dict(color="#ffffff", width=2)
-                        ),
-                        textinfo="label+percent",
-                        textfont=dict(size=11, color="#1a1a1a"),
-                        hole=0.45,
-                        hovertemplate="<b>%{label}</b><br>%{value:,.0f} kg · %{percent}<extra></extra>",
-                    ))
-                    fig_pie.update_layout(**CHART_LAYOUT, height=260,
-                        annotations=[dict(
-                            text=f"{total_vol/1000:.1f}t",
-                            x=0.5, y=0.5, showarrow=False,
-                            font=dict(size=14, color="#1a1a1a", family="DM Mono")
-                        )])
-                    st.plotly_chart(fig_pie, use_container_width=True)
-
-            with fb_col2:
-                st.markdown("### Weekly Sets by Group")
-                freq_data = fb_sets.copy()
-                freq_data["week"] = freq_data["date"].dt.to_period("W").dt.start_time
-                cutoff_freq = freq_data["week"].max() - pd.Timedelta(weeks=12)
-                freq_grp = freq_data[freq_data["week"] >= cutoff_freq].groupby(
-                    ["week","muscle_group"])["sets"].sum().reset_index()
-                fig_freq = go.Figure()
-                for group in ["Upper","Lower","Core"]:
-                    gd = freq_grp[freq_grp["muscle_group"]==group]
-                    if len(gd) == 0: continue
-                    fig_freq.add_trace(go.Bar(
-                        x=gd["week"], y=gd["sets"], name=group,
-                        marker=dict(color=MUSCLE_COLORS[group], line=dict(width=0)),
-                        hovertemplate=f"{group}: <b>%{{y}} sets</b><extra></extra>",
-                    ))
-                fig_freq.update_layout(**CHART_LAYOUT, barmode="group", height=260,
-                                       yaxis_title="Sets per week")
-                fig_freq.update_xaxes(**axis_style())
-                fig_freq.update_yaxes(**axis_style())
-                st.plotly_chart(fig_freq, use_container_width=True)
-
-            del fb_col1, fb_col2
 
 
-        else:
-            st.info("Fitbod data found but empty — re-run sync after uploading WorkoutExport.csv.")
+
 
 
     st.markdown("""
