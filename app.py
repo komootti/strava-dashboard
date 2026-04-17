@@ -2183,7 +2183,7 @@ day_df["week"]  = (day_df["date"] - year_start).dt.days // 7
 
 # Colours: dark bg → light orange gradient
 COLOURS = ["#f0ede8","#ffd4b8","#ffaa77","#ff6622","#fc4c02"]
-LABELS  = ["Rest","Easy","Moderate","Hard","Peak"]
+LABELS  = ["Rest","Recovery","Base","Quality","Peak"]
 DOW_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
 # Build SVG heatmap
