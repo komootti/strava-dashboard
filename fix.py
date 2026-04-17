@@ -1,63 +1,89 @@
-# Run once: python fix.py
-# Then delete this file
+# Run via GitHub Actions - patches app.py
 import re, sys
 
-try:
-    code = open('app.py', encoding='utf-8').read()
-except:
-    sys.exit("ERROR: app.py not found in current folder")
-
+code = open('app.py', encoding='utf-8').read()
+original = code
 n = 0
 
-# 1. Effort labels
+# 1. Fix any variation of effort labels
 for old, new in [
-    ('"Easy", "#50c850"',     '"Recovery", "#50c850"'),
-    ('"Moderate", "#ffa500"', '"Base",     "#ffa500"'),
-    ('"Hard", "#ff6b35"',     '"Quality",  "#ff6b35"'),
-    ('"Max effort", "#fc4c02"','"Peak",     "#fc4c02"'),
+    ('"Easy"',        '"Recovery"'),
+    ('"Moderate"',    '"Base"'),
+    ('"Hard"',        '"Quality"'),
+    ('"Max effort"',  '"Peak"'),
+    ('"Max Effort"',  '"Peak"'),
 ]:
-    if old in code: code = code.replace(old, new); n += 1; print(f"✓ {old[:20]}")
+    if old in code:
+        code = code.replace(old, new)
+        n += 1
+        print(f"✓ replaced {old} with {new}")
 
-# 2. Effort tag colour
-old = """'<span style="background:#f0fdf0;border:1px solid #86efac;color:#16a34a;'
-                    'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">'"""
-new = """f'<span style="background:{effort_col}22;border:1px solid {effort_col}55;color:{effort_col};'
-                    f'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px">'"""
-if old in code: code = code.replace(old, new); n += 1; print("✓ effort tag colour")
+# 2. Fix effort tag - hardcoded green → dynamic colour
+old2 = "'background:#f0fdf0;border:1px solid #86efac;color:#16a34a;"
+new2 = "f'background:{effort_col}22;border:1px solid {effort_col}55;color:{effort_col};"
+if old2 in code:
+    code = code.replace(old2, new2)
+    n += 1
+    print("✓ effort tag colour fixed")
 
-# 3. Effort column in table
-marker = '# Build HTML table'
-if '_eff_label' not in code and marker in code:
-    insert = '''def _eff_label(v):
-    if __import__('pandas').isna(v) or v<=0: return "","#aaa"
-    elif v<30:  return "Recovery","#50c850"
-    elif v<70:  return "Base","#ffa500"
-    elif v<120: return "Quality","#ff6b35"
-    else:       return "Peak","#fc4c02"
-recent_acts["_eff_lbl"]=recent_acts["rel_effort"].apply(lambda v:_eff_label(v)[0])
-recent_acts["_eff_col"]=recent_acts["rel_effort"].apply(lambda v:_eff_label(v)[1])
+# Also fix the next line of the tag (font-size line) to be f-string too
+old2b = "    'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px\">'\n                    + effort_lbl"
+new2b = "    f'font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:999px\">'\n                    + effort_lbl"
+if old2b in code:
+    code = code.replace(old2b, new2b)
+    n += 1
+    print("✓ effort tag f-string fixed")
 
-'''
-    code = code.replace(marker, insert + marker); n += 1; print("✓ effort column calc")
+# 3. Add effort column calculation before table build
+if '_eff_label' not in code:
+    marker = '# Build HTML table'
+    if marker in code:
+        insert = (
+            'def _eff_label(v):\n'
+            '    import pandas as _pd\n'
+            '    if _pd.isna(v) or v<=0: return "","#aaa"\n'
+            '    elif v<30:  return "Recovery","#50c850"\n'
+            '    elif v<70:  return "Base","#ffa500"\n'
+            '    elif v<120: return "Quality","#ff6b35"\n'
+            '    else:       return "Peak","#fc4c02"\n'
+            'recent_acts["_eff_lbl"]=recent_acts["rel_effort"].apply(lambda v:_eff_label(v)[0])\n'
+            'recent_acts["_eff_col"]=recent_acts["rel_effort"].apply(lambda v:_eff_label(v)[1])\n'
+            '\n'
+        )
+        code = code.replace(marker, insert + marker)
+        n += 1
+        print("✓ effort column calculation added")
 
-# 4. Effort header in table
-old_h = re.search(r"'<th [^>]*>Elev</th>'", code)
-if old_h and 'Effort</th>' not in code:
-    effort_h = '<th style="color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left">Effort</th>\' +\n    \''
-    code = code[:old_h.start()] + effort_h + code[old_h.start():]
-    n += 1; print("✓ effort table header")
+# 4. Add Effort header before Elev in table
+if 'Effort</th>' not in code:
+    m = re.search(r"'<th [^>]*text-align:right[^>]*>Elev</th>'", code)
+    if m:
+        effort_th = "'<th style=\"color:#888;font-size:0.68rem;font-weight:600;text-transform:uppercase;padding:10px 8px;text-align:left\">Effort</th>' +\n    "
+        code = code[:m.start()] + effort_th + code[m.start():]
+        n += 1
+        print("✓ Effort column header added")
 
-# 5. Effort cell in rows
-old_c = re.search(r'\+ f\'<td style="color:\{_card_text\}">\{r\["Elev"\]\}</td>\'', code)
-if old_c and '_eff_lbl' not in code[old_c.start()-500:old_c.start()]:
-    effort_c = ('+ (f\'<td style="padding:8px"><span style="background:{r[\\"_eff_col\\"]}22;'
-                'color:{r[\\"_eff_col\\"]};font-size:0.62rem;font-weight:700;padding:3px 8px;'
-                'border-radius:999px">{r[\\"_eff_lbl\\"]}</span></td>\' if r["_eff_lbl"] else \'<td>—</td>\')\n        ')
-    code = code[:old_c.start()] + effort_c + code[old_c.start():]
-    n += 1; print("✓ effort cell in rows")
+# 5. Add Effort cell before Elev cell in rows
+if '_eff_lbl' not in code:
+    m2 = re.search(r'\+ f\'<td style="color:\{_card_text\}">\{r\["Elev"\]\}</td>\'', code)
+    if m2:
+        effort_cell = (
+            '+ (f\'<td style="padding:8px"><span style="background:{r[\\"_eff_col\\"]}22;'
+            'color:{r[\\"_eff_col\\"]};font-size:0.62rem;font-weight:700;'
+            'padding:3px 8px;border-radius:999px">{r[\\"_eff_lbl\\"]}</span></td>\''
+            ' if r["_eff_lbl"] else \'<td>—</td>\')\n        '
+        )
+        code = code[:m2.start()] + effort_cell + code[m2.start():]
+        n += 1
+        print("✓ Effort cell added to table rows")
 
-if n == 0:
-    print("Nothing to patch - may already be applied or patterns not found")
-else:
+print(f"\nTotal changes: {n}")
+if code != original:
     open('app.py', 'w', encoding='utf-8').write(code)
-    print(f"\nDone: {n} changes. app.py saved.")
+    print("app.py saved successfully")
+else:
+    print("WARNING: No changes made - patterns may not match")
+    # Print context around effort labels to debug
+    for i, line in enumerate(code.split('\n')):
+        if 'effort_lbl' in line and ('Easy' in line or 'Recovery' in line or 'effort_col' in line):
+            print(f"  Line {i+1}: {line[:100]}")
