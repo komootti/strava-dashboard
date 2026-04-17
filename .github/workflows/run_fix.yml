@@ -1,0 +1,14 @@
+name: Apply fix
+on: workflow_dispatch
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: python fix.py
+      - run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add app.py
+          git commit -m "apply effort column fix" || echo "no changes"
+          git push
