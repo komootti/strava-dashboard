@@ -3,7 +3,7 @@
     "date": "2026-04-19",
     "readiness_score": 85,
     "readiness_contributors": {
-      "activity_balance": 84,
+      "activity_balance": 83,
       "body_temperature": 100,
       "hrv_balance": 92,
       "previous_day_activity": 93,
@@ -11,7 +11,7 @@
       "recovery_index": 90,
       "resting_heart_rate": 86,
       "sleep_balance": 76,
-      "sleep_regularity": 89
+      "sleep_regularity": 86
     },
     "temperature_deviation": -0.07,
     "temperature_trend_deviation": -0.07,
@@ -76,10 +76,10 @@
     "hrv_avg": 35.7,
     "hrv_min": 18.0,
     "hrv_max": 71.0,
-    "activity_score": 89,
-    "steps": 32,
-    "active_calories": 0,
-    "total_calories": 1831,
+    "activity_score": 96,
+    "steps": 7729,
+    "active_calories": 547,
+    "total_calories": 2729,
     "target_calories": 500
   },
   {
