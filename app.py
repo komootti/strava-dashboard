@@ -2267,8 +2267,6 @@ with tab2:
     # ── Recent activities ─────────────────────────────────────────────────────────
 
 with tab3:
-    st.markdown("## Strength")
-
     # ── Strength Volume Cards — Upper + Lower (shown right after Oura cards) ──
     if fitbod_data:
         _fbw = pd.DataFrame(fitbod_data.get("weekly_volume", []))
@@ -2372,8 +2370,6 @@ with tab3:
 
 
 
-
-    st.markdown("## Strength Training")
 
     if not fitbod_data:
         st.markdown(
@@ -2492,14 +2488,14 @@ with tab3:
                                 col_a = "#22c55e" if p["change"] >= 0 else "#ef4444"
                                 st.markdown(
                                     f'<div style="background:{_card_bg};border:1px solid {_card_border};'
-                                    f'border-radius:12px;padding:14px 16px 4px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">'
+                                    f'border-radius:12px;padding:10px 12px 0px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">'
                                     f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
                                     f'<div style="color:{_card_text};font-size:0.82rem;font-weight:600;line-height:1.3">{p["exercise"]}</div>'
                                     f'<div style="text-align:right;flex-shrink:0;margin-left:8px">'
                                     f'<div style="color:{col_a};font-size:0.75rem;font-weight:700">{arrow} {abs(p["change_pct"]):.0f}%</div>'
                                     f'<div style="color:{_card_sub};font-size:0.62rem">{p["n_sessions"]} sessions</div>'
                                     f'</div></div>'
-                                    f'<div style="display:flex;gap:14px;margin-bottom:4px">'
+                                    f'<div style="display:flex;gap:10px;margin-bottom:2px">'
                                     f'<div><div style="color:{_card_text};font-size:1.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["vol_latest"]/1000:.2f}t</div>'
                                     f'<div style="color:{_card_sub};font-size:0.58rem;text-transform:uppercase;letter-spacing:0.06em">this session</div></div>'
                                     f'<div><div style="color:{_card_text};font-size:1.2rem;font-weight:700;font-family:DM Mono,monospace;line-height:1">{p["max_weight"]:.1f} kg</div>'
@@ -2543,8 +2539,6 @@ with tab3:
 
 
 with tab4:
-    st.markdown("## History")
-
     st.markdown("## Personal Records")
 
     runs_valid = df[(df["sport"]=="Run") & (df["dist_km"]>1)].copy()
