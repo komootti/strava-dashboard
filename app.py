@@ -2545,56 +2545,58 @@ with tab4:
     # Compact bounding-box country lookup — no external API, no multiprocessing
     _COUNTRY_BOXES = {
         "Finland":         [(59.5,70.1,19.0,31.6)],
-        "United States":   [(24.4,49.4,-125.0,-66.9),(51.0,71.5,-168.0,-141.0)],
-        "Thailand":        [(5.5,20.5,97.5,105.7)],
-        "Italy":           [(36.5,47.1,6.6,18.5)],
-        "United Kingdom":  [(49.9,60.9,-8.2,1.8)],
-        "France":          [(41.3,51.1,-5.1,9.6)],
-        "Greece":          [(34.8,41.8,19.4,28.3)],
-        "UAE":             [(22.6,26.1,51.5,56.4)],
-        "Mauritius":       [(-20.5,-19.9,57.3,57.8)],
-        "Germany":         [(47.3,55.1,5.9,15.0)],
-        "Japan":           [(24.0,45.5,122.9,145.8)],
-        "Singapore":       [(1.1,1.5,103.6,104.0)],
-        "China":           [(18.0,53.5,73.5,135.1)],
-        "Brazil":          [(-33.8,5.3,-73.9,-34.8)],
-        "Myanmar":         [(9.5,28.5,92.2,101.2)],
-        "Saudi Arabia":    [(16.4,32.2,34.6,55.7)],
-        "Tanzania":        [(-11.7,-1.0,29.3,40.4)],
-        "India":           [(8.0,37.1,68.1,97.4)],
-        "Netherlands":     [(50.7,53.6,3.3,7.2)],
-        "Turkey":          [(35.8,42.1,25.7,44.8)],
-        "Colombia":        [(-4.2,12.5,-79.0,-66.9)],
-        "Kenya":           [(-4.7,4.6,33.9,41.9)],
-        "Canada":          [(41.7,83.1,-141.0,-52.6)],
-        "Sweden":          [(55.3,69.1,10.9,24.2)],
-        "Norway":          [(57.9,71.2,4.5,31.2)],
-        "Denmark":         [(54.5,57.8,8.0,15.2)],
-        "Estonia":         [(57.5,59.7,21.8,28.2)],
-        "Spain":           [(27.6,43.8,-18.2,4.3)],
-        "Portugal":        [(36.8,42.2,-9.5,-6.2)],
-        "Austria":         [(46.4,49.0,9.5,17.2)],
-        "Switzerland":     [(45.8,47.8,5.9,10.5)],
-        "Belgium":         [(49.5,51.5,2.5,6.4)],
-        "Poland":          [(49.0,54.9,14.1,24.2)],
-        "Czech Republic":  [(48.5,51.1,12.1,18.9)],
         "Iceland":         [(63.4,66.6,-24.5,-13.5)],
-        "Ireland":         [(51.4,55.4,-10.5,-6.0)],
+        "Norway":          [(57.9,71.2,4.5,14.9)],
+        "Denmark":         [(54.5,57.8,8.0,12.7)],
+        "Sweden":          [(55.3,69.1,11.0,24.2)],
+        "Estonia":         [(57.5,59.7,21.8,28.2)],
+        "Ireland":         [(51.4,55.4,-10.5,-5.9)],
+        "United Kingdom":  [(49.9,60.9,-5.7,1.8)],
+        "Scotland":        [(54.6,60.9,-7.6,-0.7)],
+        "Portugal":        [(36.8,42.2,-9.5,-6.1)],
+        "Morocco":         [(27.7,35.9,-13.2,-1.0)],
+        "Spain":           [(35.9,43.8,-9.4,4.3)],
+        "Belgium":         [(49.5,51.5,2.5,6.4)],
+        "Netherlands":     [(50.7,53.6,3.3,7.2)],
+        "Switzerland":     [(45.8,47.8,5.9,10.5)],
+        "France":          [(41.3,51.1,-5.1,9.6)],
+        "Czech Republic":  [(48.5,51.1,12.1,18.9)],
+        "Germany":         [(47.3,55.1,5.9,15.0)],
+        "Austria":         [(46.4,49.0,9.5,17.2)],
+        "Poland":          [(49.0,54.9,14.1,24.2)],
+        "Hungary":         [(45.7,48.6,16.1,22.9)],
+        "Italy":           [(36.5,47.1,6.6,18.5)],
+        "Greece":          [(34.8,41.8,19.4,28.3)],
+        "Turkey":          [(35.8,42.1,25.7,44.8)],
+        "Canada":          [(43.2,47.0,-80.0,-70.0),(43.0,47.5,-67.0,-52.6),
+                            (47.0,83.1,-95.0,-52.6),(48.9,83.1,-141.0,-95.0)],
+        "United States":   [(24.4,48.9,-125.0,-66.9),(51.0,71.5,-168.0,-141.0)],
+        "Mexico":          [(14.5,32.7,-117.1,-86.7)],
+        "Colombia":        [(-4.2,12.5,-79.0,-66.9)],
+        "Brazil":          [(-33.8,5.3,-73.9,-34.8)],
+        "Argentina":       [(-55.1,-21.8,-73.6,-53.6)],
+        "UAE":             [(22.6,26.1,51.5,56.4)],
+        "Qatar":           [(24.5,26.2,50.7,51.7)],
+        "Oman":            [(16.6,26.4,52.0,59.9)],
+        "Saudi Arabia":    [(16.4,32.2,34.6,55.7)],
+        "Singapore":       [(1.1,1.5,103.6,104.0)],
+        "Cambodia":        [(10.4,14.7,102.3,106.5)],
+        "Vietnam":         [(8.4,23.4,102.1,109.5)],
+        "Thailand":        [(5.5,20.5,97.5,105.6)],
+        "Malaysia":        [(0.8,7.4,99.6,119.3)],
+        "Indonesia":       [(-11.0,6.0,95.0,141.0)],
+        "Myanmar":         [(9.5,28.5,92.2,101.2)],
+        "Sri Lanka":       [(5.9,9.8,79.6,81.9)],
+        "India":           [(8.0,37.1,68.1,97.5)],
+        "Japan":           [(24.0,45.5,122.9,145.8)],
+        "China":           [(18.0,53.5,97.6,135.1)],
+        "Rwanda":          [(-2.9,-1.0,28.8,30.9)],
+        "Kenya":           [(-4.7,5.0,33.9,41.9)],
+        "Tanzania":        [(-11.7,-0.9,29.4,40.4)],
+        "South Africa":    [(-34.8,-22.1,16.5,32.9)],
+        "Mauritius":       [(-20.5,-19.9,57.3,57.8)],
         "Australia":       [(-43.6,-10.4,113.2,153.6)],
         "New Zealand":     [(-47.3,-34.4,166.5,178.6)],
-        "South Africa":    [(-34.8,-22.1,16.5,32.9)],
-        "Morocco":         [(27.7,35.9,-13.2,-1.0)],
-        "Mexico":          [(14.5,32.7,-117.1,-86.7)],
-        "Argentina":       [(-55.1,-21.8,-73.6,-53.6)],
-        "Indonesia":       [(-11.0,6.0,95.0,141.0)],
-        "Malaysia":        [(0.8,7.4,99.6,119.3)],
-        "Vietnam":         [(8.4,23.4,102.1,109.5)],
-        "Cambodia":        [(10.4,14.7,102.3,107.6)],
-        "Sri Lanka":       [(5.9,9.8,79.6,81.9)],
-        "Rwanda":          [(-2.8,-1.1,28.9,30.9)],
-        "Oman":            [(16.6,26.4,52.0,59.9)],
-        "Qatar":           [(24.5,26.2,50.7,51.7)],
-        "Scotland":        [(54.6,60.9,-7.6,-0.7)],
     }
 
     def _latlon_to_country(lat, lon):
@@ -2645,34 +2647,38 @@ with tab4:
         }
         _map_json = _json.dumps(_map_data)
 
-        # Color scale based on count
+        # Modern dark map with clean design
         _map_html = f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:{'#0d0d0d' if _dark else '#fafafa'};font-family:Inter,-apple-system,sans-serif;overflow:hidden}}
-.country-base{{fill:{'#1e1e1e' if _dark else '#e8e8e8'};stroke:{'#2a2a2a' if _dark else '#d0d0d0'};stroke-width:0.4}}
-.country-visited{{stroke:{'#0d0d0d' if _dark else '#ffffff'};stroke-width:0.6;cursor:pointer;transition:filter 0.15s}}
-.country-visited:hover{{filter:brightness(1.35)}}
-.sphere{{fill:{'#0a0a0a' if _dark else '#ddeeff'}}}
-.graticule{{fill:none;stroke:{'#161616' if _dark else '#dde8ee'};stroke-width:0.3}}
-#tt{{position:fixed;background:{'#1e1e1e' if _dark else '#ffffff'};border:1px solid {'#333' if _dark else '#e0e0e0'};
-    border-radius:10px;padding:10px 14px;pointer-events:none;opacity:0;transition:opacity 0.15s;
-    box-shadow:0 8px 24px rgba(0,0,0,{'0.5' if _dark else '0.12'});min-width:160px}}
-#tt-c{{font-size:13px;font-weight:500;color:{'#e2e2e2' if _dark else '#1a1a1a'};margin-bottom:3px}}
-#tt-n{{font-size:12px;color:{'#888' if _dark else '#666'}}}
-#tt-ci{{font-size:11px;color:{'#555' if _dark else '#999'};margin-top:2px}}
-.pulse{{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:pulse 2.5s ease-out infinite}}
-.pulse2{{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:pulse 2.5s ease-out 0.8s infinite}}
-@keyframes pulse{{0%{{r:3;opacity:0.9}}100%{{r:12;opacity:0}}}}
-</style></head><body>
-<div id="tt"><div id="tt-c"></div><div id="tt-n"></div><div id="tt-ci"></div></div>
+html,body{{width:100%;height:100%;overflow:hidden;background:{'#0a0a0a' if _dark else '#f0f0f0'}}}
+svg{{display:block;width:100%;height:100%}}
+.land-base{{fill:{'#1c1c1e' if _dark else '#d8d8d8'};stroke:{'#2a2a2a' if _dark else '#c0c0c0'};stroke-width:0.3}}
+.land-visited{{stroke:{'#111' if _dark else '#fff'};stroke-width:0.6;cursor:pointer}}
+.land-visited:hover{{opacity:0.8;stroke-width:1.2;stroke:rgba(255,255,255,0.4)}}
+.ocean{{fill:{'#050508' if _dark else '#ccdde8'}}}
+.graticule{{fill:none;stroke:{'#111' if _dark else '#d0dde8'};stroke-width:0.25}}
+.borders{{fill:none;stroke:{'#111' if _dark else '#fff'};stroke-width:0.3}}
+#tt{{position:fixed;pointer-events:none;opacity:0;transition:opacity 0.12s;
+     background:{'rgba(20,20,22,0.95)' if _dark else 'rgba(255,255,255,0.97)'};
+     border:1px solid {'#2a2a2a' if _dark else '#e0e0e0'};border-radius:10px;
+     padding:10px 14px;box-shadow:0 8px 32px rgba(0,0,0,{'0.6' if _dark else '0.15'})}}
+.tt-name{{font-size:13px;font-weight:500;color:{'#f0f0f0' if _dark else '#111'};
+          font-family:-apple-system,sans-serif;margin-bottom:3px}}
+.tt-count{{font-size:12px;color:{'#888' if _dark else '#555'};font-family:-apple-system,sans-serif}}
+.home-pulse{{fill:none;stroke:#fc4c02;stroke-width:1.8;opacity:0;
+             animation:pulse 2.8s ease-out infinite}}
+.home-pulse.d2{{animation-delay:1s}}
+.home-dot{{fill:#fc4c02;stroke:{'#0a0a0a' if _dark else '#f0f0f0'};stroke-width:1.5}}
+@keyframes pulse{{0%{{r:4;opacity:0.8}}100%{{r:16;opacity:0}}}}
+</style></head>
+<body><div id="tt"><div class="tt-name" id="tt-n"></div><div class="tt-count" id="tt-c"></div></div>
 <script>
 const DATA={_map_json};
-const NAME_MAP={{
-  840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"United Kingdom",
+const NM={{840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"United Kingdom",
   250:"France",300:"Greece",784:"United Arab Emirates",480:"Mauritius",276:"Germany",
   392:"Japan",702:"Singapore",156:"China",76:"Brazil",104:"Myanmar",682:"Saudi Arabia",
   834:"Tanzania",356:"India",528:"Netherlands",792:"Turkey",170:"Colombia",404:"Kenya",
@@ -2680,54 +2686,54 @@ const NAME_MAP={{
   620:"Portugal",40:"Austria",756:"Switzerland",56:"Belgium",616:"Poland",203:"Czech Republic",
   348:"Hungary",191:"Croatia",36:"Australia",554:"New Zealand",710:"South Africa",
   504:"Morocco",484:"Mexico",32:"Argentina",604:"Peru",352:"Iceland",372:"Ireland",
-  360:"Indonesia",458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda"
-}};
-function getColor(name){{
+  360:"Indonesia",458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda",
+  800:"Uganda",706:"Somalia",604:"Peru",218:"Ecuador",858:"Uruguay"}};
+
+function color(name){{
   const d=DATA[name];
   if(!d) return null;
+  const n=d.count;
   if(name==="Finland") return "#fc4c02";
-  if(d.count>=50)  return "#ff6b35";
-  if(d.count>=10)  return "#e8854a";
-  if(d.count>=3)   return "#b8714a";
-  return "#7a5040";
+  if(n>=100) return {"'#ff5520'" if _dark else "'#e8380a'"};
+  if(n>=20)  return {"'#e8753a'" if _dark else "'#d4652e'"};
+  if(n>=5)   return {"'#b8673a'" if _dark else "'#a8562a'"};
+  return {"'#7a4a38'" if _dark else "'#8a5040'"};
 }}
-const W=document.body.clientWidth||960, H=Math.round(W*0.5);
-const svg=d3.select("body").append("svg").attr("width","100%").attr("viewBox",`0 0 ${{W}} ${{H}}`);
-const proj=d3.geoNaturalEarth1().scale(W/6.3).translate([W/2,H/2]);
-const path=d3.geoPath().projection(proj);
-svg.append("path").datum({{type:"Sphere"}}).attr("class","sphere").attr("d",path);
-svg.append("path").datum(d3.geoGraticule().step([30,30])()).attr("class","graticule").attr("d",path);
+
+const W=window.innerWidth||960, H=window.innerHeight||480;
+const svg=d3.select("body").append("svg").attr("viewBox",`0 0 ${{W}} ${{H}}`);
+const proj=d3.geoNaturalEarth1().scale(W/6.2).translate([W/2,H/2]);
+const gpath=d3.geoPath().projection(proj);
+
+svg.append("path").datum({{type:"Sphere"}}).attr("class","ocean").attr("d",gpath);
+svg.append("path").datum(d3.geoGraticule().step([30,30])()).attr("class","graticule").attr("d",gpath);
+
 const tt=document.getElementById("tt");
 fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
   .then(r=>r.json()).then(world=>{{
-    const features=topojson.feature(world,world.objects.countries).features;
-    const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
-    svg.append("g").selectAll("path").data(features).join("path")
-      .attr("d",path)
-      .attr("class",d=>getColor(NAME_MAP[+d.id])?"country-visited":"country-base")
-      .attr("fill",d=>getColor(NAME_MAP[+d.id])||"{'#1e1e1e' if _dark else '#e8e8e8'}")
-      .on("mousemove",function(evt,d){{
-        const name=NAME_MAP[+d.id], cd=DATA[name];
+    const feats=topojson.feature(world,world.objects.countries).features;
+    const mesh=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
+    svg.append("g").selectAll("path").data(feats).join("path")
+      .attr("class",d=>color(NM[+d.id])?"land-visited":"land-base")
+      .attr("fill",d=>color(NM[+d.id])||{"'#1c1c1e'" if _dark else "'#d8d8d8'"})
+      .on("mousemove",(evt,d)=>{{
+        const nm=NM[+d.id],cd=DATA[nm];
         if(!cd) return;
-        document.getElementById("tt-c").textContent=name;
-        document.getElementById("tt-n").textContent=cd.count.toLocaleString()+" GPS activities";
-        document.getElementById("tt-ci").textContent="";
+        document.getElementById("tt-n").textContent=nm;
+        document.getElementById("tt-c").textContent=`${{cd.count.toLocaleString()}} GPS activities`;
         tt.style.opacity=1;
-        tt.style.left=(evt.clientX+14)+"px";
-        tt.style.top=(evt.clientY-10)+"px";
+        tt.style.left=(evt.clientX+16)+"px";
+        tt.style.top=(evt.clientY-12)+"px";
       }}).on("mouseleave",()=>tt.style.opacity=0);
-    svg.append("path").datum(borders).attr("fill","none")
-      .attr("stroke","{'#0d0d0d' if _dark else '#ffffff'}").attr("stroke-width",0.3).attr("d",path);
-    // Pulse on Finland
+    svg.append("path").datum(mesh).attr("class","borders").attr("d",gpath);
     const fin=proj([25.0,62.0]);
     const g=svg.append("g").attr("transform",`translate(${{fin[0]}},${{fin[1]}})`);
-    g.append("circle").attr("class","pulse").attr("r",3);
-    g.append("circle").attr("class","pulse2").attr("r",3);
-    g.append("circle").attr("fill","#fc4c02").attr("r",3.5);
+    g.append("circle").attr("class","home-pulse").attr("r",4);
+    g.append("circle").attr("class","home-pulse d2").attr("r",4);
+    g.append("circle").attr("class","home-dot").attr("r",4);
   }});
 </script></body></html>"""
-
-        st.components.v1.html(_map_html, height=520, scrolling=False)
+        st.components.v1.html(_map_html, height=500, scrolling=False)
 
         # Country breakdown table
         with st.expander("📍 All countries", expanded=False):
