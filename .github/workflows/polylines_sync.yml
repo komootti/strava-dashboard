@@ -8,6 +8,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
@@ -23,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run polyline sync
+      - name: Run polyline sync (full history)
         env:
           GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO:           ${{ github.repository }}
