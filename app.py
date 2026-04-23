@@ -2640,10 +2640,7 @@ with tab4:
         # Build D3 world map as HTML component
         import json as _json
         _map_data = {
-            k: {
-                "count": v["count"],
-                "cities": list(v["cities"])[:5],
-            }
+            k: {"count": v["count"]}
             for k, v in _country_map.items()
         }
         _map_json = _json.dumps(_map_data)
