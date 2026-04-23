@@ -2542,65 +2542,87 @@ with tab4:
     # ── Activity World Map ────────────────────────────────────────────────────────
     st.markdown("## Where I've Trained")
 
+    # Compact bounding-box country lookup — no external API, no multiprocessing
+    _COUNTRY_BOXES = {
+        "Finland":         [(59.5,70.1,19.0,31.6)],
+        "United States":   [(24.4,49.4,-125.0,-66.9),(51.0,71.5,-168.0,-141.0)],
+        "Thailand":        [(5.5,20.5,97.5,105.7)],
+        "Italy":           [(36.5,47.1,6.6,18.5)],
+        "United Kingdom":  [(49.9,60.9,-8.2,1.8)],
+        "France":          [(41.3,51.1,-5.1,9.6)],
+        "Greece":          [(34.8,41.8,19.4,28.3)],
+        "UAE":             [(22.6,26.1,51.5,56.4)],
+        "Mauritius":       [(-20.5,-19.9,57.3,57.8)],
+        "Germany":         [(47.3,55.1,5.9,15.0)],
+        "Japan":           [(24.0,45.5,122.9,145.8)],
+        "Singapore":       [(1.1,1.5,103.6,104.0)],
+        "China":           [(18.0,53.5,73.5,135.1)],
+        "Brazil":          [(-33.8,5.3,-73.9,-34.8)],
+        "Myanmar":         [(9.5,28.5,92.2,101.2)],
+        "Saudi Arabia":    [(16.4,32.2,34.6,55.7)],
+        "Tanzania":        [(-11.7,-1.0,29.3,40.4)],
+        "India":           [(8.0,37.1,68.1,97.4)],
+        "Netherlands":     [(50.7,53.6,3.3,7.2)],
+        "Turkey":          [(35.8,42.1,25.7,44.8)],
+        "Colombia":        [(-4.2,12.5,-79.0,-66.9)],
+        "Kenya":           [(-4.7,4.6,33.9,41.9)],
+        "Canada":          [(41.7,83.1,-141.0,-52.6)],
+        "Sweden":          [(55.3,69.1,10.9,24.2)],
+        "Norway":          [(57.9,71.2,4.5,31.2)],
+        "Denmark":         [(54.5,57.8,8.0,15.2)],
+        "Estonia":         [(57.5,59.7,21.8,28.2)],
+        "Spain":           [(27.6,43.8,-18.2,4.3)],
+        "Portugal":        [(36.8,42.2,-9.5,-6.2)],
+        "Austria":         [(46.4,49.0,9.5,17.2)],
+        "Switzerland":     [(45.8,47.8,5.9,10.5)],
+        "Belgium":         [(49.5,51.5,2.5,6.4)],
+        "Poland":          [(49.0,54.9,14.1,24.2)],
+        "Czech Republic":  [(48.5,51.1,12.1,18.9)],
+        "Iceland":         [(63.4,66.6,-24.5,-13.5)],
+        "Ireland":         [(51.4,55.4,-10.5,-6.0)],
+        "Australia":       [(-43.6,-10.4,113.2,153.6)],
+        "New Zealand":     [(-47.3,-34.4,166.5,178.6)],
+        "South Africa":    [(-34.8,-22.1,16.5,32.9)],
+        "Morocco":         [(27.7,35.9,-13.2,-1.0)],
+        "Mexico":          [(14.5,32.7,-117.1,-86.7)],
+        "Argentina":       [(-55.1,-21.8,-73.6,-53.6)],
+        "Indonesia":       [(-11.0,6.0,95.0,141.0)],
+        "Malaysia":        [(0.8,7.4,99.6,119.3)],
+        "Vietnam":         [(8.4,23.4,102.1,109.5)],
+        "Cambodia":        [(10.4,14.7,102.3,107.6)],
+        "Sri Lanka":       [(5.9,9.8,79.6,81.9)],
+        "Rwanda":          [(-2.8,-1.1,28.9,30.9)],
+        "Oman":            [(16.6,26.4,52.0,59.9)],
+        "Qatar":           [(24.5,26.2,50.7,51.7)],
+        "Scotland":        [(54.6,60.9,-7.6,-0.7)],
+    }
+
+    def _latlon_to_country(lat, lon):
+        for country, boxes in _COUNTRY_BOXES.items():
+            for la, lb, lo, lob in boxes:
+                if la <= lat <= lb and lo <= lon <= lob:
+                    return country
+        return "Other"
+
     @st.cache_data(ttl=3600, show_spinner=False)
     def build_country_map(_polylines_data):
-        """Decode polylines, reverse-geocode start coords → country counts."""
+        """Decode polylines, get start coord, lookup country via bounding boxes."""
         if not _polylines_data:
             return {}
-        try:
-            import reverse_geocoder as _rg
-        except ImportError:
-            return {}
-
-        coords = []
-        act_ids = []
+        from collections import defaultdict
+        country_data = defaultdict(lambda: {"count": 0})
         for act_id, poly in _polylines_data.items():
             if not poly:
                 continue
-            # Decode polyline — get first coordinate (start of activity)
             try:
                 decoded = decode_polyline(poly)
                 if decoded:
-                    coords.append(decoded[0])   # (lat, lng)
-                    act_ids.append(act_id)
+                    lat, lon = decoded[0]
+                    country = _latlon_to_country(lat, lon)
+                    country_data[country]["count"] += 1
             except Exception:
                 continue
-
-        if not coords:
-            return {}
-
-        results = _rg.search(coords, verbose=False)
-
-        from collections import defaultdict
-        country_data = defaultdict(lambda: {"count": 0, "cities": set(), "act_ids": []})
-        CC_TO_NAME = {
-            "FI": "Finland", "US": "United States", "TH": "Thailand",
-            "IT": "Italy", "GB": "United Kingdom", "FR": "France",
-            "GR": "Greece", "AE": "United Arab Emirates", "MU": "Mauritius",
-            "DE": "Germany", "JP": "Japan", "SG": "Singapore", "CN": "China",
-            "BR": "Brazil", "MM": "Myanmar", "SA": "Saudi Arabia",
-            "TZ": "Tanzania", "IN": "India", "NL": "Netherlands",
-            "TR": "Turkey", "CO": "Colombia", "KE": "Kenya",
-            "CA": "Canada", "SE": "Sweden", "NO": "Norway",
-            "DK": "Denmark", "EE": "Estonia", "ES": "Spain",
-            "PT": "Portugal", "AT": "Austria", "CH": "Switzerland",
-            "BE": "Belgium", "PL": "Poland", "CZ": "Czech Republic",
-            "HU": "Hungary", "HR": "Croatia", "AU": "Australia",
-            "NZ": "New Zealand", "ZA": "South Africa", "MA": "Morocco",
-            "MX": "Mexico", "AR": "Argentina", "PE": "Peru",
-            "IS": "Iceland", "IE": "Ireland", "ID": "Indonesia",
-            "MY": "Malaysia", "VN": "Vietnam", "KH": "Cambodia",
-            "LK": "Sri Lanka", "RW": "Rwanda", "TZ": "Tanzania",
-            "OM": "Oman", "QA": "Qatar", "KW": "Kuwait",
-        }
-        for r, act_id in zip(results, act_ids):
-            cc = r.get("cc", "??")
-            name = CC_TO_NAME.get(cc, cc)
-            country_data[name]["count"] += 1
-            country_data[name]["cities"].add(r.get("name", ""))
-            country_data[name]["act_ids"].append(act_id)
-
-        return dict(country_data)
+        return {k: v for k, v in country_data.items() if k != "Other"}
 
     _country_map = build_country_map(_polylines)
 
@@ -2691,8 +2713,8 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
         const name=NAME_MAP[+d.id], cd=DATA[name];
         if(!cd) return;
         document.getElementById("tt-c").textContent=name;
-        document.getElementById("tt-n").textContent=cd.count.toLocaleString()+" activities with GPS";
-        document.getElementById("tt-ci").textContent=(cd.cities||[]).filter(Boolean).slice(0,4).join(" · ");
+        document.getElementById("tt-n").textContent=cd.count.toLocaleString()+" GPS activities";
+        document.getElementById("tt-ci").textContent="";
         tt.style.opacity=1;
         tt.style.left=(evt.clientX+14)+"px";
         tt.style.top=(evt.clientY-10)+"px";
@@ -2718,7 +2740,6 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
             for _col, _items in [(_col_a, _sorted_countries[:mid]), (_col_b, _sorted_countries[mid:])]:
                 with _col:
                     for _name, _cdata in _items:
-                        top_cities = ", ".join(list(_cdata["cities"])[:3])
                         st.markdown(
                             f'<div style="display:flex;justify-content:space-between;'
                             f'padding:5px 0;border-bottom:1px solid {_card_border};">'
