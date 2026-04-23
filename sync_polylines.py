@@ -45,11 +45,12 @@ else:
     existing = {}
     print("No existing polylines.json — creating fresh")
 
-# ── Step 3: Fetch recent activities and extract polylines ─────────────────────
-print("Fetching activities from Strava...")
+# ── Step 3: Fetch ALL activities and extract polylines ────────────────────────
+print("Fetching activities from Strava (full history)...")
 new_count = 0
+page = 1
 
-for page in range(1, 4):  # fetch up to 3 pages = 300 activities
+while True:
     acts = requests.get(
         "https://www.strava.com/api/v3/athlete/activities",
         headers=strava_headers,
@@ -57,18 +58,27 @@ for page in range(1, 4):  # fetch up to 3 pages = 300 activities
     ).json()
 
     if not acts:
+        print(f"  Done at page {page}")
         break
 
     for act in acts:
         act_id   = str(act["id"])
         polyline = act.get("map", {}).get("summary_polyline", "")
-        if act_id not in existing and polyline:
-            existing[act_id] = polyline
-            new_count += 1
+        if act_id not in existing:
+            if polyline:
+                existing[act_id] = polyline
+                new_count += 1
+            # Store empty string for activities without GPS so we don't re-fetch them
+            # (weight training, treadmill etc)
+            else:
+                existing[act_id] = ""
 
-    print(f"  Page {page}: {len(acts)} activities")
+    print(f"  Page {page}: {len(acts)} activities, {new_count} new polylines so far")
+    page += 1
+    if len(acts) < 100:
+        break
 
-print(f"Added {new_count} new polylines. Total: {len(existing)}")
+print(f"Added {new_count} new polylines. Total with GPS: {sum(1 for v in existing.values() if v)}, Total entries: {len(existing)}")
 
 if new_count == 0:
     print("Nothing to update.")
