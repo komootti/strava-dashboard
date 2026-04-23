@@ -2539,6 +2539,199 @@ with tab3:
 
 
 with tab4:
+    # ── Activity World Map ────────────────────────────────────────────────────────
+    st.markdown("## Where I've Trained")
+
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def build_country_map(_polylines_data):
+        """Decode polylines, reverse-geocode start coords → country counts."""
+        if not _polylines_data:
+            return {}
+        try:
+            import reverse_geocoder as _rg
+        except ImportError:
+            return {}
+
+        coords = []
+        act_ids = []
+        for act_id, poly in _polylines_data.items():
+            if not poly:
+                continue
+            # Decode polyline — get first coordinate (start of activity)
+            try:
+                decoded = decode_polyline(poly)
+                if decoded:
+                    coords.append(decoded[0])   # (lat, lng)
+                    act_ids.append(act_id)
+            except Exception:
+                continue
+
+        if not coords:
+            return {}
+
+        results = _rg.search(coords, verbose=False)
+
+        from collections import defaultdict
+        country_data = defaultdict(lambda: {"count": 0, "cities": set(), "act_ids": []})
+        CC_TO_NAME = {
+            "FI": "Finland", "US": "United States", "TH": "Thailand",
+            "IT": "Italy", "GB": "United Kingdom", "FR": "France",
+            "GR": "Greece", "AE": "United Arab Emirates", "MU": "Mauritius",
+            "DE": "Germany", "JP": "Japan", "SG": "Singapore", "CN": "China",
+            "BR": "Brazil", "MM": "Myanmar", "SA": "Saudi Arabia",
+            "TZ": "Tanzania", "IN": "India", "NL": "Netherlands",
+            "TR": "Turkey", "CO": "Colombia", "KE": "Kenya",
+            "CA": "Canada", "SE": "Sweden", "NO": "Norway",
+            "DK": "Denmark", "EE": "Estonia", "ES": "Spain",
+            "PT": "Portugal", "AT": "Austria", "CH": "Switzerland",
+            "BE": "Belgium", "PL": "Poland", "CZ": "Czech Republic",
+            "HU": "Hungary", "HR": "Croatia", "AU": "Australia",
+            "NZ": "New Zealand", "ZA": "South Africa", "MA": "Morocco",
+            "MX": "Mexico", "AR": "Argentina", "PE": "Peru",
+            "IS": "Iceland", "IE": "Ireland", "ID": "Indonesia",
+            "MY": "Malaysia", "VN": "Vietnam", "KH": "Cambodia",
+            "LK": "Sri Lanka", "RW": "Rwanda", "TZ": "Tanzania",
+            "OM": "Oman", "QA": "Qatar", "KW": "Kuwait",
+        }
+        for r, act_id in zip(results, act_ids):
+            cc = r.get("cc", "??")
+            name = CC_TO_NAME.get(cc, cc)
+            country_data[name]["count"] += 1
+            country_data[name]["cities"].add(r.get("name", ""))
+            country_data[name]["act_ids"].append(act_id)
+
+        return dict(country_data)
+
+    _country_map = build_country_map(_polylines)
+
+    if _country_map:
+        _total_countries = len(_country_map)
+        _total_poly_acts = sum(v["count"] for v in _country_map.values())
+
+        # Stats row
+        _cm1, _cm2, _cm3, _cm4 = st.columns(4)
+        _cm1.metric("Countries visited", _total_countries)
+        _cm2.metric("Activities with GPS", f"{_total_poly_acts:,}")
+        _cm3.metric("Top country", max(_country_map, key=lambda k: _country_map[k]["count"]))
+        _cm4.metric("Years active", f"{df['date'].dt.year.min()}–{df['date'].dt.year.max()}")
+
+        # Build D3 world map as HTML component
+        import json as _json
+        _map_data = {
+            k: {
+                "count": v["count"],
+                "cities": list(v["cities"])[:5],
+            }
+            for k, v in _country_map.items()
+        }
+        _map_json = _json.dumps(_map_data)
+
+        # Color scale based on count
+        _map_html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{background:{'#0d0d0d' if _dark else '#fafafa'};font-family:Inter,-apple-system,sans-serif;overflow:hidden}}
+.country-base{{fill:{'#1e1e1e' if _dark else '#e8e8e8'};stroke:{'#2a2a2a' if _dark else '#d0d0d0'};stroke-width:0.4}}
+.country-visited{{stroke:{'#0d0d0d' if _dark else '#ffffff'};stroke-width:0.6;cursor:pointer;transition:filter 0.15s}}
+.country-visited:hover{{filter:brightness(1.35)}}
+.sphere{{fill:{'#0a0a0a' if _dark else '#ddeeff'}}}
+.graticule{{fill:none;stroke:{'#161616' if _dark else '#dde8ee'};stroke-width:0.3}}
+#tt{{position:fixed;background:{'#1e1e1e' if _dark else '#ffffff'};border:1px solid {'#333' if _dark else '#e0e0e0'};
+    border-radius:10px;padding:10px 14px;pointer-events:none;opacity:0;transition:opacity 0.15s;
+    box-shadow:0 8px 24px rgba(0,0,0,{'0.5' if _dark else '0.12'});min-width:160px}}
+#tt-c{{font-size:13px;font-weight:500;color:{'#e2e2e2' if _dark else '#1a1a1a'};margin-bottom:3px}}
+#tt-n{{font-size:12px;color:{'#888' if _dark else '#666'}}}
+#tt-ci{{font-size:11px;color:{'#555' if _dark else '#999'};margin-top:2px}}
+.pulse{{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:pulse 2.5s ease-out infinite}}
+.pulse2{{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:pulse 2.5s ease-out 0.8s infinite}}
+@keyframes pulse{{0%{{r:3;opacity:0.9}}100%{{r:12;opacity:0}}}}
+</style></head><body>
+<div id="tt"><div id="tt-c"></div><div id="tt-n"></div><div id="tt-ci"></div></div>
+<script>
+const DATA={_map_json};
+const NAME_MAP={{
+  840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"United Kingdom",
+  250:"France",300:"Greece",784:"United Arab Emirates",480:"Mauritius",276:"Germany",
+  392:"Japan",702:"Singapore",156:"China",76:"Brazil",104:"Myanmar",682:"Saudi Arabia",
+  834:"Tanzania",356:"India",528:"Netherlands",792:"Turkey",170:"Colombia",404:"Kenya",
+  124:"Canada",752:"Sweden",578:"Norway",208:"Denmark",233:"Estonia",724:"Spain",
+  620:"Portugal",40:"Austria",756:"Switzerland",56:"Belgium",616:"Poland",203:"Czech Republic",
+  348:"Hungary",191:"Croatia",36:"Australia",554:"New Zealand",710:"South Africa",
+  504:"Morocco",484:"Mexico",32:"Argentina",604:"Peru",352:"Iceland",372:"Ireland",
+  360:"Indonesia",458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda"
+}};
+function getColor(name){{
+  const d=DATA[name];
+  if(!d) return null;
+  if(name==="Finland") return "#fc4c02";
+  if(d.count>=50)  return "#ff6b35";
+  if(d.count>=10)  return "#e8854a";
+  if(d.count>=3)   return "#b8714a";
+  return "#7a5040";
+}}
+const W=document.body.clientWidth||960, H=Math.round(W*0.5);
+const svg=d3.select("body").append("svg").attr("width","100%").attr("viewBox",`0 0 ${{W}} ${{H}}`);
+const proj=d3.geoNaturalEarth1().scale(W/6.3).translate([W/2,H/2]);
+const path=d3.geoPath().projection(proj);
+svg.append("path").datum({{type:"Sphere"}}).attr("class","sphere").attr("d",path);
+svg.append("path").datum(d3.geoGraticule().step([30,30])()).attr("class","graticule").attr("d",path);
+const tt=document.getElementById("tt");
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+  .then(r=>r.json()).then(world=>{{
+    const features=topojson.feature(world,world.objects.countries).features;
+    const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
+    svg.append("g").selectAll("path").data(features).join("path")
+      .attr("d",path)
+      .attr("class",d=>getColor(NAME_MAP[+d.id])?"country-visited":"country-base")
+      .attr("fill",d=>getColor(NAME_MAP[+d.id])||"{'#1e1e1e' if _dark else '#e8e8e8'}")
+      .on("mousemove",function(evt,d){{
+        const name=NAME_MAP[+d.id], cd=DATA[name];
+        if(!cd) return;
+        document.getElementById("tt-c").textContent=name;
+        document.getElementById("tt-n").textContent=cd.count.toLocaleString()+" activities with GPS";
+        document.getElementById("tt-ci").textContent=(cd.cities||[]).filter(Boolean).slice(0,4).join(" · ");
+        tt.style.opacity=1;
+        tt.style.left=(evt.clientX+14)+"px";
+        tt.style.top=(evt.clientY-10)+"px";
+      }}).on("mouseleave",()=>tt.style.opacity=0);
+    svg.append("path").datum(borders).attr("fill","none")
+      .attr("stroke","{'#0d0d0d' if _dark else '#ffffff'}").attr("stroke-width",0.3).attr("d",path);
+    // Pulse on Finland
+    const fin=proj([25.0,62.0]);
+    const g=svg.append("g").attr("transform",`translate(${{fin[0]}},${{fin[1]}})`);
+    g.append("circle").attr("class","pulse").attr("r",3);
+    g.append("circle").attr("class","pulse2").attr("r",3);
+    g.append("circle").attr("fill","#fc4c02").attr("r",3.5);
+  }});
+</script></body></html>"""
+
+        st.components.v1.html(_map_html, height=520, scrolling=False)
+
+        # Country breakdown table
+        with st.expander("📍 All countries", expanded=False):
+            _sorted_countries = sorted(_country_map.items(), key=lambda x: -x[1]["count"])
+            _col_a, _col_b = st.columns(2)
+            mid = len(_sorted_countries) // 2
+            for _col, _items in [(_col_a, _sorted_countries[:mid]), (_col_b, _sorted_countries[mid:])]:
+                with _col:
+                    for _name, _cdata in _items:
+                        top_cities = ", ".join(list(_cdata["cities"])[:3])
+                        st.markdown(
+                            f'<div style="display:flex;justify-content:space-between;'
+                            f'padding:5px 0;border-bottom:1px solid {_card_border};">'
+                            f'<span style="color:{_card_text};font-size:0.82rem">{_name}</span>'
+                            f'<span style="color:#fc4c02;font-size:0.82rem;font-family:DM Mono,monospace;font-weight:600">{_cdata["count"]:,}</span>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+    else:
+        st.info("No GPS polyline data found. Run the Strava sync to populate polylines.json.")
+
+    st.markdown('<hr style="border:none;border-top:1px solid #e8e4de;margin:1rem 0">', unsafe_allow_html=True)
+
     st.markdown("## Personal Records")
 
     runs_valid = df[(df["sport"]=="Run") & (df["dist_km"]>1)].copy()
