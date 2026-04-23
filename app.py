@@ -2647,35 +2647,44 @@ with tab4:
         }
         _map_json = _json.dumps(_map_data)
 
-        # Modern dark map with clean design
+        # Modern minimal world map
+        _bg      = "#0a0a0a" if _dark else "#f8f8f6"
+        _ocean   = "#050a12" if _dark else "#c8dce8"
+        _land    = "#222226" if _dark else "#d4d4d0"
+        _border  = "#0a0a0a" if _dark else "#ffffff"
+        _grid    = "#151518" if _dark else "#dde8ee"
+        _tt_bg   = "rgba(18,18,20,0.96)" if _dark else "rgba(255,255,255,0.97)"
+        _tt_bdr  = "#2a2a2a" if _dark else "#e0e0e0"
+        _tt_col  = "#f0f0f0" if _dark else "#111111"
+        _tt_sub  = "#888888" if _dark else "#555555"
+        _dot_str = "#0a0a0a" if _dark else "#f8f8f6"
+
         _map_html = f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-html,body{{width:100%;height:100%;overflow:hidden;background:{'#0a0a0a' if _dark else '#f0f0f0'}}}
-svg{{display:block;width:100%;height:100%}}
-.land-base{{fill:{'#1c1c1e' if _dark else '#d8d8d8'};stroke:{'#2a2a2a' if _dark else '#c0c0c0'};stroke-width:0.3}}
-.land-visited{{stroke:{'#111' if _dark else '#fff'};stroke-width:0.6;cursor:pointer}}
-.land-visited:hover{{opacity:0.8;stroke-width:1.2;stroke:rgba(255,255,255,0.4)}}
-.ocean{{fill:{'#050508' if _dark else '#ccdde8'}}}
-.graticule{{fill:none;stroke:{'#111' if _dark else '#d0dde8'};stroke-width:0.25}}
-.borders{{fill:none;stroke:{'#111' if _dark else '#fff'};stroke-width:0.3}}
+html,body{{width:100%;background:{_bg};overflow:hidden}}
+#map-svg{{display:block;width:100%}}
+.land-base{{fill:{_land};stroke:{_border};stroke-width:0.3}}
+.land-visited{{stroke:{_border};stroke-width:0.5;cursor:pointer;transition:opacity 0.15s}}
+.land-visited:hover{{opacity:0.75}}
+.ocean{{fill:{_ocean}}}
+.grid{{fill:none;stroke:{_grid};stroke-width:0.25}}
+.borders{{fill:none;stroke:{_border};stroke-width:0.25}}
 #tt{{position:fixed;pointer-events:none;opacity:0;transition:opacity 0.12s;
-     background:{'rgba(20,20,22,0.95)' if _dark else 'rgba(255,255,255,0.97)'};
-     border:1px solid {'#2a2a2a' if _dark else '#e0e0e0'};border-radius:10px;
-     padding:10px 14px;box-shadow:0 8px 32px rgba(0,0,0,{'0.6' if _dark else '0.15'})}}
-.tt-name{{font-size:13px;font-weight:500;color:{'#f0f0f0' if _dark else '#111'};
-          font-family:-apple-system,sans-serif;margin-bottom:3px}}
-.tt-count{{font-size:12px;color:{'#888' if _dark else '#555'};font-family:-apple-system,sans-serif}}
-.home-pulse{{fill:none;stroke:#fc4c02;stroke-width:1.8;opacity:0;
-             animation:pulse 2.8s ease-out infinite}}
-.home-pulse.d2{{animation-delay:1s}}
-.home-dot{{fill:#fc4c02;stroke:{'#0a0a0a' if _dark else '#f0f0f0'};stroke-width:1.5}}
-@keyframes pulse{{0%{{r:4;opacity:0.8}}100%{{r:16;opacity:0}}}}
+     background:{_tt_bg};border:1px solid {_tt_bdr};border-radius:10px;
+     padding:10px 14px;box-shadow:0 8px 32px rgba(0,0,0,0.4);min-width:150px}}
+.tt-name{{font-size:13px;font-weight:500;color:{_tt_col};font-family:-apple-system,sans-serif;margin-bottom:2px}}
+.tt-count{{font-size:12px;color:{_tt_sub};font-family:-apple-system,sans-serif}}
+.hp{{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:p 2.8s ease-out infinite}}
+.hp2{{animation-delay:1.2s}}
+.hd{{fill:#fc4c02;stroke:{_dot_str};stroke-width:1.5}}
+@keyframes p{{0%{{r:4;opacity:0.8}}100%{{r:18;opacity:0}}}}
 </style></head>
-<body><div id="tt"><div class="tt-name" id="tt-n"></div><div class="tt-count" id="tt-c"></div></div>
+<body>
+<div id="tt"><div class="tt-name" id="tt-n"></div><div class="tt-count" id="tt-c"></div></div>
 <script>
 const DATA={_map_json};
 const NM={{840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"United Kingdom",
@@ -2685,28 +2694,31 @@ const NM={{840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"Uni
   124:"Canada",752:"Sweden",578:"Norway",208:"Denmark",233:"Estonia",724:"Spain",
   620:"Portugal",40:"Austria",756:"Switzerland",56:"Belgium",616:"Poland",203:"Czech Republic",
   348:"Hungary",191:"Croatia",36:"Australia",554:"New Zealand",710:"South Africa",
-  504:"Morocco",484:"Mexico",32:"Argentina",604:"Peru",352:"Iceland",372:"Ireland",
-  360:"Indonesia",458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda",
-  800:"Uganda",706:"Somalia",604:"Peru",218:"Ecuador",858:"Uruguay"}};
+  504:"Morocco",484:"Mexico",32:"Argentina",352:"Iceland",372:"Ireland",360:"Indonesia",
+  458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda",800:"Uganda"}};
 
-function color(name){{
+function clr(name){{
   const d=DATA[name];
   if(!d) return null;
-  const n=d.count;
   if(name==="Finland") return "#fc4c02";
-  if(n>=100) return {"'#ff5520'" if _dark else "'#e8380a'"};
-  if(n>=20)  return {"'#e8753a'" if _dark else "'#d4652e'"};
-  if(n>=5)   return {"'#b8673a'" if _dark else "'#a8562a'"};
-  return {"'#7a4a38'" if _dark else "'#8a5040'"};
+  const n=d.count;
+  if(n>=100) return "#ff5a28";
+  if(n>=20)  return "#e07038";
+  if(n>=5)   return "#b86038";
+  return "#805040";
 }}
 
-const W=window.innerWidth||960, H=window.innerHeight||480;
-const svg=d3.select("body").append("svg").attr("viewBox",`0 0 ${{W}} ${{H}}`);
-const proj=d3.geoNaturalEarth1().scale(W/6.2).translate([W/2,H/2]);
-const gpath=d3.geoPath().projection(proj);
+const W=960, H=500;
+const svg=d3.select("body").append("svg")
+  .attr("id","map-svg")
+  .attr("viewBox",`0 0 ${{W}} ${{H}}`)
+  .attr("preserveAspectRatio","xMidYMid meet");
 
-svg.append("path").datum({{type:"Sphere"}}).attr("class","ocean").attr("d",gpath);
-svg.append("path").datum(d3.geoGraticule().step([30,30])()).attr("class","graticule").attr("d",gpath);
+const proj=d3.geoNaturalEarth1().scale(153).translate([W/2,H/2]);
+const gp=d3.geoPath().projection(proj);
+
+svg.append("path").datum({{type:"Sphere"}}).attr("class","ocean").attr("d",gp);
+svg.append("path").datum(d3.geoGraticule().step([30,30])()).attr("class","grid").attr("d",gp);
 
 const tt=document.getElementById("tt");
 fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
@@ -2714,23 +2726,25 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
     const feats=topojson.feature(world,world.objects.countries).features;
     const mesh=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
     svg.append("g").selectAll("path").data(feats).join("path")
-      .attr("class",d=>color(NM[+d.id])?"land-visited":"land-base")
-      .attr("fill",d=>color(NM[+d.id])||{"'#1c1c1e'" if _dark else "'#d8d8d8'"})
+      .attr("class",d=>clr(NM[+d.id])?"land-visited":"land-base")
+      .attr("fill",d=>clr(NM[+d.id])||"{_land}")
       .on("mousemove",(evt,d)=>{{
         const nm=NM[+d.id],cd=DATA[nm];
-        if(!cd) return;
+        if(!cd)return;
         document.getElementById("tt-n").textContent=nm;
-        document.getElementById("tt-c").textContent=`${{cd.count.toLocaleString()}} GPS activities`;
+        document.getElementById("tt-c").textContent=cd.count.toLocaleString()+" GPS activities";
         tt.style.opacity=1;
-        tt.style.left=(evt.clientX+16)+"px";
-        tt.style.top=(evt.clientY-12)+"px";
-      }}).on("mouseleave",()=>tt.style.opacity=0);
-    svg.append("path").datum(mesh).attr("class","borders").attr("d",gpath);
+        const r=document.body.getBoundingClientRect();
+        let x=evt.clientX+14, y=evt.clientY-10;
+        if(x+170>r.width) x-=190;
+        tt.style.left=x+"px"; tt.style.top=y+"px";
+      }}).on("mouseleave",()=>{{tt.style.opacity=0}});
+    svg.append("path").datum(mesh).attr("class","borders").attr("d",gp);
     const fin=proj([25.0,62.0]);
     const g=svg.append("g").attr("transform",`translate(${{fin[0]}},${{fin[1]}})`);
-    g.append("circle").attr("class","home-pulse").attr("r",4);
-    g.append("circle").attr("class","home-pulse d2").attr("r",4);
-    g.append("circle").attr("class","home-dot").attr("r",4);
+    g.append("circle").attr("class","hp").attr("r",4);
+    g.append("circle").attr("class","hp hp2").attr("r",4);
+    g.append("circle").attr("class","hd").attr("r",4);
   }});
 </script></body></html>"""
         st.components.v1.html(_map_html, height=500, scrolling=False)
