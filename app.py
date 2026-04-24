@@ -2719,10 +2719,10 @@ function clr(name) {
   if (!d) return null;
   if (name === "Finland") return "#fc4c02";
   const n = d.count;
-  if (n >= 100) return "#ff5a28";
-  if (n >= 20)  return "#d86830";
-  if (n >= 5)   return "#a85830";
-  return "#784838";
+  if (n >= 100) return "#ff6a1a";
+  if (n >= 20)  return "#ff8c42";
+  if (n >= 5)   return "#ffb07a";
+  return "#ffd4b0";
 }
 
 const W = 960, H = 500;
@@ -2750,6 +2750,7 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .attr("stroke-width", "0.4")
       .style("cursor", d => clr(NM[+d.id]) ? "pointer" : "default")
       .on("mousemove", function(event, d) {
+        if (tt._pinned) return;
         const nm = NM[+d.id];
         const cd = DATA[nm];
         if (!cd) return;
@@ -2764,7 +2765,29 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
         tt.style.top     = y + "px";
         tt.style.opacity = "1";
       })
-      .on("mouseleave", () => { tt.style.opacity = "0"; });
+      .on("mouseleave", () => { if (!tt._pinned) tt.style.opacity = "0"; })
+      .on("click", function(event, d) {
+        const nm = NM[+d.id];
+        const cd = DATA[nm];
+        if (!cd) { tt._pinned = false; tt.style.opacity = "0"; return; }
+        document.getElementById("tt-n").textContent = nm;
+        document.getElementById("tt-c").textContent = cd.count.toLocaleString() + " GPS activities";
+        const rect = document.getElementById("wrap").getBoundingClientRect();
+        let x = event.clientX - rect.left + 14;
+        let y = event.clientY - rect.top  - 10;
+        if (x + 180 > rect.width)  x -= 200;
+        if (y + 60  > rect.height) y -= 70;
+        tt.style.left    = x + "px";
+        tt.style.top     = y + "px";
+        tt.style.opacity = "1";
+        tt._pinned = true;
+        event.stopPropagation();
+      });
+    // Click anywhere else unpins the tooltip
+    document.addEventListener("click", () => {
+      tt._pinned = false;
+      tt.style.opacity = "0";
+    });
 
     svg.append("path").datum(mesh)
        .attr("fill","none").attr("stroke", CFG.bdr).attr("stroke-width","0.25").attr("d", gp);
