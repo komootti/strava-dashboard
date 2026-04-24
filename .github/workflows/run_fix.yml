@@ -7,12 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: python fix.py
+      - run: python fix_map.py
       - run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add app.py
-          git diff --staged --quiet && echo "no changes" || git commit -m "apply effort column fix"
+          git diff --staged --quiet && echo "no changes" || git commit -m "fix world map"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
