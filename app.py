@@ -2659,7 +2659,8 @@ with tab4:
         _ts   = "#888888" if _dark else "#555555"
         _ds   = "#0a0a0a" if _dark else "#f4f4f2"
 
-        _map_html = """<!DOCTYPE html>
+        _map_html = (
+            """<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
@@ -2668,7 +2669,7 @@ with tab4:
 html,body{width:100%;overflow:hidden;font-family:-apple-system,sans-serif}
 #wrap{position:relative;width:100%}
 svg{display:block;width:100%;height:auto}
-#tt{position:absolute;pointer-events:none;opacity:0;transition:opacity 0.12s;
+#tt{position:absolute;pointer-events:none;opacity:0;transition:opacity 0.15s;
     padding:10px 14px;border-radius:10px;min-width:160px;
     box-shadow:0 8px 32px rgba(0,0,0,0.4)}
 .tt-n{font-size:13px;font-weight:600;margin-bottom:2px}
@@ -2693,26 +2694,39 @@ const NM={840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"Unit
   484:"Mexico",32:"Argentina",352:"Iceland",372:"Ireland",360:"Indonesia",
   458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda"};
 
-// Apply theme colors from Python
 const CFG = {
-  bg:    """" + _bg    + """",
-  ocean: """" + _ocean + """",
-  land:  """" + _land  + """",
-  bdr:   """" + _bdr   + """",
-  grid:  """" + _grid  + """",
-  tbg:   """" + _tbg   + """",
-  tbrd:  """" + _tbrd  + """",
-  tc:    """" + _tc    + """",
-  ts:    """" + _ts    + """",
-  ds:    """" + _ds    + """"
+  bg:    "BG_PH",
+  ocean: "OCEAN_PH",
+  land:  "LAND_PH",
+  bdr:   "BDR_PH",
+  grid:  "GRID_PH",
+  tbg:   "TBG_PH",
+  tbrd:  "TBRD_PH",
+  tc:    "TC_PH",
+  ts:    "TS_PH",
+  ds:    "DS_PH"
 };
 
 document.getElementById("body").style.background = CFG.bg;
 const tt = document.getElementById("tt");
+tt._pinned = false;
 tt.style.background = CFG.tbg;
 tt.style.border = "1px solid " + CFG.tbrd;
 document.querySelector(".tt-n").style.color = CFG.tc;
 document.querySelector(".tt-c").style.color = CFG.ts;
+
+function showTip(nm, cd, ex, ey) {
+  document.getElementById("tt-n").textContent = nm;
+  document.getElementById("tt-c").textContent = cd.count.toLocaleString() + " GPS activities";
+  const rect = document.getElementById("wrap").getBoundingClientRect();
+  let x = ex - rect.left + 14;
+  let y = ey - rect.top  - 10;
+  if (x + 180 > rect.width)  x -= 200;
+  if (y + 60  > rect.height) y -= 70;
+  tt.style.left    = x + "px";
+  tt.style.top     = y + "px";
+  tt.style.opacity = "1";
+}
 
 function clr(name) {
   const d = DATA[name];
@@ -2751,48 +2765,22 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .style("cursor", d => clr(NM[+d.id]) ? "pointer" : "default")
       .on("mousemove", function(event, d) {
         if (tt._pinned) return;
-        const nm = NM[+d.id];
-        const cd = DATA[nm];
+        const nm = NM[+d.id]; const cd = DATA[nm];
         if (!cd) return;
-        document.getElementById("tt-n").textContent = nm;
-        document.getElementById("tt-c").textContent = cd.count.toLocaleString() + " GPS activities";
-        const rect = document.getElementById("wrap").getBoundingClientRect();
-        let x = event.clientX - rect.left + 14;
-        let y = event.clientY - rect.top  - 10;
-        if (x + 180 > rect.width)  x -= 200;
-        if (y + 60  > rect.height) y -= 70;
-        tt.style.left    = x + "px";
-        tt.style.top     = y + "px";
-        tt.style.opacity = "1";
+        showTip(nm, cd, event.clientX, event.clientY);
       })
       .on("mouseleave", () => { if (!tt._pinned) tt.style.opacity = "0"; })
       .on("click", function(event, d) {
-        const nm = NM[+d.id];
-        const cd = DATA[nm];
-        if (!cd) { tt._pinned = false; tt.style.opacity = "0"; return; }
-        document.getElementById("tt-n").textContent = nm;
-        document.getElementById("tt-c").textContent = cd.count.toLocaleString() + " GPS activities";
-        const rect = document.getElementById("wrap").getBoundingClientRect();
-        let x = event.clientX - rect.left + 14;
-        let y = event.clientY - rect.top  - 10;
-        if (x + 180 > rect.width)  x -= 200;
-        if (y + 60  > rect.height) y -= 70;
-        tt.style.left    = x + "px";
-        tt.style.top     = y + "px";
-        tt.style.opacity = "1";
-        tt._pinned = true;
         event.stopPropagation();
+        const nm = NM[+d.id]; const cd = DATA[nm];
+        if (!cd) { tt._pinned = false; tt.style.opacity = "0"; return; }
+        showTip(nm, cd, event.clientX, event.clientY);
+        tt._pinned = true;
       });
-    // Click anywhere else unpins the tooltip
-    document.addEventListener("click", () => {
-      tt._pinned = false;
-      tt.style.opacity = "0";
-    });
 
     svg.append("path").datum(mesh)
        .attr("fill","none").attr("stroke", CFG.bdr).attr("stroke-width","0.25").attr("d", gp);
 
-    // Home base pulse — Finland
     const fin = proj([25.0, 62.0]);
     const g = svg.append("g").attr("transform", `translate(${fin[0]},${fin[1]})`);
     g.append("circle").attr("class","hp").attr("r","4");
@@ -2800,7 +2788,23 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
     g.append("circle").attr("fill","#fc4c02").attr("stroke", CFG.ds)
      .attr("stroke-width","1.5").attr("r","4");
   });
+
+document.addEventListener("click", () => { tt._pinned = false; tt.style.opacity = "0"; });
 </script></body></html>"""
+        )
+        _map_html = (
+            _map_html
+            .replace("BG_PH",    _bg)
+            .replace("OCEAN_PH", _ocean)
+            .replace("LAND_PH",  _land)
+            .replace("BDR_PH",   _bdr)
+            .replace("GRID_PH",  _grid)
+            .replace("TBG_PH",   _tbg)
+            .replace("TBRD_PH",  _tbrd)
+            .replace("TC_PH",    _tc)
+            .replace("TS_PH",    _ts)
+            .replace("DS_PH",    _ds)
+        )
         st.components.v1.html(_map_html, height=500, scrolling=False)
 
         # Country breakdown table
