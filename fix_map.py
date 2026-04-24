@@ -1,38 +1,71 @@
 """
 fix_map.py — fixes the Activity World Map in app.py
 
-Root cause: the CFG color block used broken triple-quote string concatenation
-  bg:    """" + _bg + """",
-which Python parses as ending the string literal immediately — so _bg, _ocean,
-_land etc. are NEVER interpolated. The JS receives empty strings for all colors,
-rendering the map completely white.
-
-Fix: replace the entire _map_html assignment with a version that uses
-.format() to inject all Python color variables safely, and also adds
-click-to-pin tooltip behaviour.
+Problems fixed:
+  1. Light-mode colors had near-zero contrast (land #d0d0cc, border #ffffff,
+     bg #f4f4f2) — map was invisible white-on-white.
+  2. CFG color injection was broken (triple-quote bug) — now uses .replace().
+  3. Tooltip was hover-only — now click-to-pin works too.
 """
 
 import sys
-
 PATH = "app.py"
 
 with open(PATH, "r", encoding="utf-8") as fh:
     code = fh.read()
 
+# ── Fix 1: replace the broken light-mode color values ────────────────────────
+OLD_COLORS = '''\
+        _bg   = "#0a0a0a" if _dark else "#f4f4f2"
+        _ocean= "#050a14" if _dark else "#c0d8e8"
+        _land = "#222226" if _dark else "#d0d0cc"
+        _bdr  = "#0a0a0a" if _dark else "#ffffff"
+        _grid = "#141418" if _dark else "#dde8f0"
+        _tbg  = "rgba(16,16,18,0.97)" if _dark else "rgba(255,255,255,0.97)"
+        _tbrd = "#2a2a2a" if _dark else "#e0e0e0"
+        _tc   = "#f0f0f0" if _dark else "#111111"
+        _ts   = "#888888" if _dark else "#555555"
+        _ds   = "#0a0a0a" if _dark else "#f4f4f2"'''
+
+NEW_COLORS = '''\
+        _bg   = "#0a0a0a" if _dark else "#e8edf2"
+        _ocean= "#050a14" if _dark else "#a8c8e0"
+        _land = "#222226" if _dark else "#b8c4b0"
+        _bdr  = "#3a3a3a" if _dark else "#7a9070"
+        _grid = "#1e1e24" if _dark else "#c8d8e8"
+        _tbg  = "rgba(16,16,18,0.97)" if _dark else "rgba(255,255,255,0.97)"
+        _tbrd = "#2a2a2a" if _dark else "#cccccc"
+        _tc   = "#f0f0f0" if _dark else "#111111"
+        _ts   = "#888888" if _dark else "#444444"
+        _ds   = "#0a0a0a" if _dark else "#e8edf2"'''
+
+if OLD_COLORS not in code:
+    print("ERROR: could not find map color definitions")
+    sys.exit(1)
+
+code = code.replace(OLD_COLORS, NEW_COLORS, 1)
+print("✅ Fix 1: light-mode colors now have proper contrast")
+
+# ── Fix 2: replace broken _map_html block ────────────────────────────────────
 START = '        _map_html = """<!DOCTYPE html>'
 END   = '</script></body></html>"""\n        st.components.v1.html(_map_html, height=500, scrolling=False)'
 
-if START not in code:
-    print("ERROR: could not find map section start")
-    sys.exit(1)
-if END not in code:
-    print("ERROR: could not find map section end")
-    sys.exit(1)
+# Already patched from previous run? Check for new-style block
+NEW_START = '        _map_html = (\n            """<!DOCTYPE html>'
+ALREADY_PATCHED = NEW_START in code
 
-i_start = code.index(START)
-i_end   = code.index(END) + len(END)
+if not ALREADY_PATCHED:
+    if START not in code:
+        print("ERROR: could not find map section start")
+        sys.exit(1)
+    if END not in code:
+        print("ERROR: could not find map section end")
+        sys.exit(1)
 
-NEW_BLOCK = r'''        _map_html = (
+    i_start = code.index(START)
+    i_end   = code.index(END) + len(END)
+
+    NEW_BLOCK = r'''        _map_html = (
             """<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
@@ -180,10 +213,15 @@ document.addEventListener("click", () => { tt._pinned = false; tt.style.opacity 
         )
         st.components.v1.html(_map_html, height=500, scrolling=False)'''
 
-code = code[:i_start] + NEW_BLOCK + code[i_end:]
+    code = code[:i_start] + NEW_BLOCK + code[i_end:]
+    print("✅ Fix 2: _map_html block replaced (CFG injection fixed)")
+else:
+    # Already have new-style block — just need to update BDR_PH replace target
+    # to use the new bdr color (already done via Fix 1 above)
+    print("✅ Fix 2: _map_html already uses .replace() injection — skipped")
 
+# ── Write back ────────────────────────────────────────────────────────────────
 with open(PATH, "w", encoding="utf-8") as fh:
     fh.write(code)
 
-print("✅ Map HTML block replaced — CFG colors now injected via .replace()")
-print("✅ Click-to-pin tooltip included")
+print("✅ app.py written successfully")
