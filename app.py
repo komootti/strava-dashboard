@@ -2648,16 +2648,16 @@ with tab4:
         _map_json = _json.dumps(_map_data)
 
         # ── World map — modern minimal style ─────────────────────────────────
-        _bg   = "#0a0a0a" if _dark else "#f4f4f2"
-        _ocean= "#050a14" if _dark else "#c0d8e8"
-        _land = "#222226" if _dark else "#d0d0cc"
-        _bdr  = "#0a0a0a" if _dark else "#ffffff"
-        _grid = "#141418" if _dark else "#dde8f0"
+        _bg   = "#0a0a0a" if _dark else "#e8edf2"
+        _ocean= "#050a14" if _dark else "#a8c8e0"
+        _land = "#222226" if _dark else "#b8c4b0"
+        _bdr  = "#3a3a3a" if _dark else "#7a9070"
+        _grid = "#1e1e24" if _dark else "#c8d8e8"
         _tbg  = "rgba(16,16,18,0.97)" if _dark else "rgba(255,255,255,0.97)"
-        _tbrd = "#2a2a2a" if _dark else "#e0e0e0"
+        _tbrd = "#2a2a2a" if _dark else "#cccccc"
         _tc   = "#f0f0f0" if _dark else "#111111"
-        _ts   = "#888888" if _dark else "#555555"
-        _ds   = "#0a0a0a" if _dark else "#f4f4f2"
+        _ts   = "#888888" if _dark else "#444444"
+        _ds   = "#0a0a0a" if _dark else "#e8edf2"
 
         _map_html = (
             """<!DOCTYPE html>
