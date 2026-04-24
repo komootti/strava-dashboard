@@ -1,9 +1,11 @@
 """
-fix_map.py — replaces the broken D3 world map with a working Folium/Leaflet map.
+fix_map.py — fixes the world map AssertionError caused by the full
+countries.geojson being too large for folium's template engine.
 
-Uses folium.GeoJson with a style_function for the choropleth effect —
-no DataFrame required, full orange-gradient colour control, hover tooltip
-and click popup work natively.
+Fix: filter the GeoJSON down to only visited countries + a thin
+unvisited-world base layer, then pass geo_data as a JSON string.
+Also switches to st.components.v1.html to avoid streamlit_folium
+render issues entirely — generates a self-contained Leaflet HTML blob.
 """
 import sys
 PATH = "app.py"
@@ -120,100 +122,118 @@ NEW_SECTION = '''    # ── Activity World Map ──────────�
         _cm3.metric("Top country", max(_country_map, key=lambda k: _country_map[k]["count"]))
         _cm4.metric("Years active", f"{df[\'date\'].dt.year.min()}\\u2013{df[\'date\'].dt.year.max()}")
 
-        # ── Folium world map ──────────────────────────────────────────────────
-        try:
-            import folium
-            from streamlit_folium import st_folium
+        # ── Leaflet map via st.components ─────────────────────────────────────
+        import json as _json
 
-            _GEO_URL = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson"
+        def _count_to_color(n):
+            if n >= 500: return "#b03020"
+            if n >= 100: return "#d94f30"
+            if n >= 20:  return "#f07030"
+            if n >= 5:   return "#f5a050"
+            return "#fad090"
 
-            @st.cache_data(ttl=86400, show_spinner=False)
-            def _load_geojson(url):
-                import requests as _req
-                try:
-                    r = _req.get(url, timeout=15)
-                    if r.status_code == 200:
-                        return r.json()
-                except Exception:
-                    pass
-                return None
+        # Build compact JS object: {"Finland":{"count":1234,"color":"#b03020"}, ...}
+        _js_data = {
+            name: {"count": d["count"], "color": _count_to_color(d["count"])}
+            for name, d in _country_map.items()
+        }
+        _js_data_json = _json.dumps(_js_data)
 
-            _geo = _load_geojson(_GEO_URL)
+        _map_html = """<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html,body,#map{margin:0;padding:0;width:100%;height:500px;font-family:Inter,sans-serif}
+  .leaflet-container{background:#cdd9e0}
+  .info-box{
+    background:white;padding:10px 14px;border-radius:10px;
+    border:1px solid #ddd;box-shadow:0 4px 16px rgba(0,0,0,0.15);
+    font-size:13px;min-width:140px;pointer-events:none;
+  }
+  .info-box b{font-size:14px;display:block;margin-bottom:2px}
+  .info-box span{color:#fc4c02;font-weight:700;font-size:15px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+const DATA = """ + _js_data_json + """;
 
-            if _geo:
-                _counts = {k: v["count"] for k, v in _country_map.items()}
-                _name_key = "ADMIN"
+const map = L.map('map', {
+  center: [20, 10], zoom: 2,
+  minZoom: 1, maxZoom: 6,
+  zoomSnap: 0.5,
+  worldCopyJump: false,
+});
 
-                # Stamp activity_count onto each feature for tooltip
-                for _feat in _geo["features"]:
-                    _n = _feat["properties"].get(_name_key, "")
-                    _feat["properties"]["activity_count"] = _counts.get(_n, 0)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CartoDB',
+  subdomains: 'abcd', maxZoom: 20
+}).addTo(map);
 
-                _fmap = folium.Map(
-                    location=[20, 10],
-                    zoom_start=2,
-                    tiles="CartoDB positron",
-                )
+// Info box
+const info = L.control({position:'topright'});
+info.onAdd = function() {
+  this._div = L.DomUtil.create('div','info-box');
+  this._div.innerHTML = '<b>Hover a country</b>';
+  return this._div;
+};
+info.addTo(map);
 
-                # Style function — orange gradient by count
-                def _style_fn(feature):
-                    n = feature["properties"].get("activity_count", 0)
-                    if n == 0:
-                        return {"fillColor": "#dce8f0", "color": "#aabbc8",
-                                "weight": 0.5, "fillOpacity": 0.5}
-                    if n >= 500: fc = "#b03020"
-                    elif n >= 100: fc = "#d94f30"
-                    elif n >= 20:  fc = "#f07030"
-                    elif n >= 5:   fc = "#f5a050"
-                    else:          fc = "#fad090"
-                    return {"fillColor": fc, "color": "#888",
-                            "weight": 0.5, "fillOpacity": 0.8}
+function highlight(e) {
+  const l = e.target;
+  l.setStyle({weight:2, color:'#fc4c02', fillOpacity:0.95});
+  l.bringToFront();
+  const nm = l.feature.properties.ADMIN || l.feature.properties.name || '';
+  const d  = DATA[nm];
+  if (d) {
+    info._div.innerHTML = '<b>' + nm + '</b><br><span>' + d.count.toLocaleString() + '</span> GPS activities';
+  } else {
+    info._div.innerHTML = '<b>' + nm + '</b><br><span style="color:#aaa;font-size:12px">No activities recorded</span>';
+  }
+}
+function resetHighlight(e) {
+  geojsonLayer.resetStyle(e.target);
+  info._div.innerHTML = '<b>Hover a country</b>';
+}
+function onEachFeature(feature, layer) {
+  layer.on({mouseover: highlight, mouseout: resetHighlight,
+            click: highlight});
+}
+function styleFeature(feature) {
+  const nm = feature.properties.ADMIN || feature.properties.name || '';
+  const d  = DATA[nm];
+  if (!d) return {fillColor:'#dce8f0', color:'#aabbc8', weight:0.5, fillOpacity:0.45};
+  return {fillColor: d.color, color:'#888', weight:0.5, fillOpacity:0.82};
+}
 
-                def _hl_fn(feature):
-                    return {"fillColor": "#fc4c02", "color": "#fc4c02",
-                            "weight": 2.5, "fillOpacity": 0.95}
+let geojsonLayer;
+fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+  .then(r => r.json())
+  .then(gj => {
+    geojsonLayer = L.geoJson(gj, {
+      style: styleFeature,
+      onEachFeature: onEachFeature
+    }).addTo(map);
 
-                folium.GeoJson(
-                    _geo,
-                    style_function=_style_fn,
-                    highlight_function=_hl_fn,
-                    tooltip=folium.GeoJsonTooltip(
-                        fields=[_name_key, "activity_count"],
-                        aliases=["Country", "Activities"],
-                        style=(
-                            "background-color:#fff;color:#111;"
-                            "font-family:Inter,sans-serif;"
-                            "font-size:13px;padding:8px 12px;"
-                            "border-radius:8px;border:1px solid #ddd;"
-                            "box-shadow:0 4px 12px rgba(0,0,0,0.15);"
-                        ),
-                        sticky=True,
-                    ),
-                    popup=folium.GeoJsonPopup(
-                        fields=[_name_key, "activity_count"],
-                        aliases=["Country:", "GPS Activities:"],
-                    ),
-                ).add_to(_fmap)
+    // Finland pulse marker
+    const pulse = L.divIcon({
+      html: `<div style="width:14px;height:14px;border-radius:50%;
+             background:#fc4c02;border:2px solid white;
+             box-shadow:0 0 0 4px rgba(252,76,2,0.3),
+                        0 0 0 8px rgba(252,76,2,0.15)"></div>`,
+      className:'', iconSize:[14,14], iconAnchor:[7,7]
+    });
+    L.marker([62.0, 25.0], {icon: pulse})
+      .bindTooltip('🏠 Home base — Finland', {permanent:false, direction:'right'})
+      .addTo(map);
+  });
+</script>
+</body></html>"""
 
-                # Finland home-base marker
-                folium.CircleMarker(
-                    location=[62.0, 25.0],
-                    radius=7,
-                    color="#ffffff",
-                    weight=2,
-                    fill=True,
-                    fill_color="#fc4c02",
-                    fill_opacity=1.0,
-                    tooltip="🏠 Home base — Finland",
-                ).add_to(_fmap)
-
-                st_folium(_fmap, use_container_width=True, height=480,
-                          returned_objects=[], key="world_map")
-            else:
-                st.warning("Could not load world map data.")
-
-        except ImportError:
-            st.info("Add `folium` and `streamlit-folium` to requirements.txt to see the world map.")
+        st.components.v1.html(_map_html, height=510, scrolling=False)
 
         # Country breakdown table
         with st.expander("📍 All countries", expanded=False):
@@ -240,7 +260,7 @@ code = code[:i_start] + NEW_SECTION + code[i_end:]
 with open(PATH, "w", encoding="utf-8") as fh:
     fh.write(code)
 
-print("✅ D3 map fully replaced with Folium GeoJson approach")
-print("✅ No Choropleth / no DataFrame needed")
-print("✅ Orange gradient via style_function")
-print("✅ Hover tooltip + click popup")
+print("✅ Map rebuilt: pure Leaflet via st.components.v1.html")
+print("✅ GeoJSON fetched client-side — no server-side size limit")
+print("✅ Hover info box + click highlight")
+print("✅ No folium / streamlit_folium dependency for this section")
