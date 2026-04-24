@@ -2542,7 +2542,7 @@ with tab4:
     # ── Activity World Map ────────────────────────────────────────────────────────
     st.markdown("## Where I've Trained")
 
-    # Compact bounding-box country lookup — no external API, no multiprocessing
+    # Compact bounding-box country lookup
     _COUNTRY_BOXES = {
         "Finland":         [(59.5,70.1,19.0,31.6)],
         "Iceland":         [(63.4,66.6,-24.5,-13.5)],
@@ -2552,7 +2552,6 @@ with tab4:
         "Estonia":         [(57.5,59.7,21.8,28.2)],
         "Ireland":         [(51.4,55.4,-10.5,-5.9)],
         "United Kingdom":  [(49.9,60.9,-5.7,1.8)],
-        "Scotland":        [(54.6,60.9,-7.6,-0.7)],
         "Portugal":        [(36.8,42.2,-9.5,-6.1)],
         "Morocco":         [(27.7,35.9,-13.2,-1.0)],
         "Spain":           [(35.9,43.8,-9.4,4.3)],
@@ -2608,7 +2607,6 @@ with tab4:
 
     @st.cache_data(ttl=3600, show_spinner=False)
     def build_country_map(_polylines_data):
-        """Decode polylines, get start coord, lookup country via bounding boxes."""
         if not _polylines_data:
             return {}
         from collections import defaultdict
@@ -2632,180 +2630,113 @@ with tab4:
         _total_countries = len(_country_map)
         _total_poly_acts = sum(v["count"] for v in _country_map.values())
 
-        # Stats row
         _cm1, _cm2, _cm3, _cm4 = st.columns(4)
         _cm1.metric("Countries visited", _total_countries)
         _cm2.metric("Activities with GPS", f"{_total_poly_acts:,}")
         _cm3.metric("Top country", max(_country_map, key=lambda k: _country_map[k]["count"]))
-        _cm4.metric("Years active", f"{df['date'].dt.year.min()}–{df['date'].dt.year.max()}")
+        _cm4.metric("Years active", f"{df['date'].dt.year.min()}\u2013{df['date'].dt.year.max()}")
 
-        # Build D3 world map as HTML component
-        import json as _json
-        _map_data = {
-            k: {"count": v["count"]}
-            for k, v in _country_map.items()
-        }
-        _map_json = _json.dumps(_map_data)
+        # ── Folium world map ──────────────────────────────────────────────────
+        try:
+            import folium
+            import json as _json
+            from streamlit_folium import st_folium
 
-        # ── World map — modern minimal style ─────────────────────────────────
-        _bg   = "#0a0a0a" if _dark else "#e8edf2"
-        _ocean= "#050a14" if _dark else "#a8c8e0"
-        _land = "#222226" if _dark else "#b8c4b0"
-        _bdr  = "#3a3a3a" if _dark else "#7a9070"
-        _grid = "#1e1e24" if _dark else "#c8d8e8"
-        _tbg  = "rgba(16,16,18,0.97)" if _dark else "rgba(255,255,255,0.97)"
-        _tbrd = "#2a2a2a" if _dark else "#cccccc"
-        _tc   = "#f0f0f0" if _dark else "#111111"
-        _ts   = "#888888" if _dark else "#444444"
-        _ds   = "#0a0a0a" if _dark else "#e8edf2"
+            # Fetch world GeoJSON (country polygons with "name" property)
+            _GEO_URL = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson"
+            @st.cache_data(ttl=86400, show_spinner=False)
+            def _load_geojson(url):
+                import requests as _req
+                r = _req.get(url, timeout=15)
+                if r.status_code == 200:
+                    return r.json()
+                return None
 
-        _map_html = (
-            """<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;overflow:hidden;font-family:-apple-system,sans-serif}
-#wrap{position:relative;width:100%}
-svg{display:block;width:100%;height:auto}
-#tt{position:absolute;pointer-events:none;opacity:0;transition:opacity 0.15s;
-    padding:10px 14px;border-radius:10px;min-width:160px;
-    box-shadow:0 8px 32px rgba(0,0,0,0.4)}
-.tt-n{font-size:13px;font-weight:600;margin-bottom:2px}
-.tt-c{font-size:12px}
-.hp{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:p 2.8s ease-out infinite}
-.hp2{animation-delay:1.2s}
-@keyframes p{0%{r:4;opacity:0.8}100%{r:18;opacity:0}}
-</style></head>
-<body id="body">
-<div id="wrap">
-  <div id="tt"><div class="tt-n" id="tt-n"></div><div class="tt-c" id="tt-c"></div></div>
-</div>
-<script>
-const DATA=""" + _map_json + """;
-const NM={840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"United Kingdom",
-  250:"France",300:"Greece",784:"United Arab Emirates",480:"Mauritius",276:"Germany",
-  392:"Japan",702:"Singapore",156:"China",76:"Brazil",104:"Myanmar",682:"Saudi Arabia",
-  834:"Tanzania",356:"India",528:"Netherlands",792:"Turkey",170:"Colombia",404:"Kenya",
-  124:"Canada",752:"Sweden",578:"Norway",208:"Denmark",233:"Estonia",724:"Spain",
-  620:"Portugal",40:"Austria",756:"Switzerland",56:"Belgium",616:"Poland",203:"Czech Republic",
-  348:"Hungary",36:"Australia",554:"New Zealand",710:"South Africa",504:"Morocco",
-  484:"Mexico",32:"Argentina",352:"Iceland",372:"Ireland",360:"Indonesia",
-  458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda"};
+            _geo = _load_geojson(_GEO_URL)
 
-const CFG = {
-  bg:    "BG_PH",
-  ocean: "OCEAN_PH",
-  land:  "LAND_PH",
-  bdr:   "BDR_PH",
-  grid:  "GRID_PH",
-  tbg:   "TBG_PH",
-  tbrd:  "TBRD_PH",
-  tc:    "TC_PH",
-  ts:    "TS_PH",
-  ds:    "DS_PH"
-};
+            if _geo:
+                # Build a name→count dict for choropleth
+                _counts = {k: v["count"] for k, v in _country_map.items()}
 
-document.getElementById("body").style.background = CFG.bg;
-const tt = document.getElementById("tt");
-tt._pinned = false;
-tt.style.background = CFG.tbg;
-tt.style.border = "1px solid " + CFG.tbrd;
-document.querySelector(".tt-n").style.color = CFG.tc;
-document.querySelector(".tt-c").style.color = CFG.ts;
+                # Add count property to each GeoJSON feature for tooltip
+                _name_key = "ADMIN"   # property name in this GeoJSON
+                for _feat in _geo["features"]:
+                    _n = _feat["properties"].get(_name_key, "")
+                    _feat["properties"]["activity_count"] = _counts.get(_n, 0)
 
-function showTip(nm, cd, ex, ey) {
-  document.getElementById("tt-n").textContent = nm;
-  document.getElementById("tt-c").textContent = cd.count.toLocaleString() + " GPS activities";
-  const rect = document.getElementById("wrap").getBoundingClientRect();
-  let x = ex - rect.left + 14;
-  let y = ey - rect.top  - 10;
-  if (x + 180 > rect.width)  x -= 200;
-  if (y + 60  > rect.height) y -= 70;
-  tt.style.left    = x + "px";
-  tt.style.top     = y + "px";
-  tt.style.opacity = "1";
-}
+                # Create folium map — no tiles initially, we pick a clean style
+                _fmap = folium.Map(
+                    location=[20, 10],
+                    zoom_start=2,
+                    tiles="CartoDB positron",
+                    width="100%",
+                )
 
-function clr(name) {
-  const d = DATA[name];
-  if (!d) return null;
-  if (name === "Finland") return "#fc4c02";
-  const n = d.count;
-  if (n >= 100) return "#ff6a1a";
-  if (n >= 20)  return "#ff8c42";
-  if (n >= 5)   return "#ffb07a";
-  return "#ffd4b0";
-}
+                # Choropleth layer — visited countries in orange gradient
+                folium.Choropleth(
+                    geo_data=_geo,
+                    data=_counts,
+                    columns=None,          # we pass a dict directly
+                    key_on=f"feature.properties.{_name_key}",
+                    fill_color="YlOrRd",
+                    fill_opacity=0.75,
+                    line_opacity=0.4,
+                    nan_fill_color="#e8edf2",
+                    nan_fill_opacity=0.4,
+                    legend_name="GPS Activities",
+                    highlight=True,
+                    name="Activities",
+                ).add_to(_fmap)
 
-const W = 960, H = 500;
-const svg = d3.select("#wrap").append("svg")
-  .attr("viewBox", `0 0 ${W} ${H}`)
-  .attr("preserveAspectRatio", "xMidYMid meet");
+                # Transparent overlay for hover tooltip
+                folium.GeoJson(
+                    _geo,
+                    style_function=lambda f: {
+                        "fillColor": "transparent",
+                        "color": "transparent",
+                        "weight": 0,
+                    },
+                    highlight_function=lambda f: {
+                        "fillColor": "#fc4c02",
+                        "color": "#fc4c02",
+                        "weight": 2,
+                        "fillOpacity": 0.3,
+                    },
+                    tooltip=folium.GeoJsonTooltip(
+                        fields=[_name_key, "activity_count"],
+                        aliases=["Country", "GPS Activities"],
+                        style=(
+                            "background-color: white; color: #111; "
+                            "font-family: Inter, sans-serif; "
+                            "font-size: 13px; padding: 8px 12px; "
+                            "border-radius: 8px; border: 1px solid #ddd;"
+                        ),
+                        sticky=True,
+                    ),
+                    popup=folium.GeoJsonPopup(
+                        fields=[_name_key, "activity_count"],
+                        aliases=["Country", "GPS Activities"],
+                    ),
+                ).add_to(_fmap)
 
-const proj = d3.geoNaturalEarth1().scale(153).translate([W/2, H/2]);
-const gp   = d3.geoPath().projection(proj);
+                # Finland home-base marker
+                folium.CircleMarker(
+                    location=[62.0, 25.0],
+                    radius=7,
+                    color="#fc4c02",
+                    fill=True,
+                    fill_color="#fc4c02",
+                    fill_opacity=1.0,
+                    tooltip="🏠 Home base — Finland",
+                ).add_to(_fmap)
 
-svg.append("path").datum({type:"Sphere"})
-   .attr("fill", CFG.ocean).attr("d", gp);
-svg.append("path").datum(d3.geoGraticule().step([30,30])())
-   .attr("fill","none").attr("stroke", CFG.grid).attr("stroke-width","0.25").attr("d", gp);
+                st_folium(_fmap, use_container_width=True, height=480,
+                          returned_objects=[], key="world_map")
+            else:
+                st.warning("Could not load world map GeoJSON. Check internet connectivity.")
 
-fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
-  .then(r => r.json())
-  .then(world => {
-    const feats = topojson.feature(world, world.objects.countries).features;
-    const mesh  = topojson.mesh(world, world.objects.countries, (a,b) => a !== b);
-
-    svg.append("g").selectAll("path").data(feats).join("path")
-      .attr("fill",   d => clr(NM[+d.id]) || CFG.land)
-      .attr("stroke", CFG.bdr)
-      .attr("stroke-width", "0.4")
-      .style("cursor", d => clr(NM[+d.id]) ? "pointer" : "default")
-      .on("mousemove", function(event, d) {
-        if (tt._pinned) return;
-        const nm = NM[+d.id]; const cd = DATA[nm];
-        if (!cd) return;
-        showTip(nm, cd, event.clientX, event.clientY);
-      })
-      .on("mouseleave", () => { if (!tt._pinned) tt.style.opacity = "0"; })
-      .on("click", function(event, d) {
-        event.stopPropagation();
-        const nm = NM[+d.id]; const cd = DATA[nm];
-        if (!cd) { tt._pinned = false; tt.style.opacity = "0"; return; }
-        showTip(nm, cd, event.clientX, event.clientY);
-        tt._pinned = true;
-      });
-
-    svg.append("path").datum(mesh)
-       .attr("fill","none").attr("stroke", CFG.bdr).attr("stroke-width","0.25").attr("d", gp);
-
-    const fin = proj([25.0, 62.0]);
-    const g = svg.append("g").attr("transform", `translate(${fin[0]},${fin[1]})`);
-    g.append("circle").attr("class","hp").attr("r","4");
-    g.append("circle").attr("class","hp hp2").attr("r","4");
-    g.append("circle").attr("fill","#fc4c02").attr("stroke", CFG.ds)
-     .attr("stroke-width","1.5").attr("r","4");
-  });
-
-document.addEventListener("click", () => { tt._pinned = false; tt.style.opacity = "0"; });
-</script></body></html>"""
-        )
-        _map_html = (
-            _map_html
-            .replace("BG_PH",    _bg)
-            .replace("OCEAN_PH", _ocean)
-            .replace("LAND_PH",  _land)
-            .replace("BDR_PH",   _bdr)
-            .replace("GRID_PH",  _grid)
-            .replace("TBG_PH",   _tbg)
-            .replace("TBRD_PH",  _tbrd)
-            .replace("TC_PH",    _tc)
-            .replace("TS_PH",    _ts)
-            .replace("DS_PH",    _ds)
-        )
-        st.components.v1.html(_map_html, height=500, scrolling=False)
+        except ImportError:
+            st.info("Add `folium` and `streamlit-folium` to requirements.txt to see the world map.")
 
         # Country breakdown table
         with st.expander("📍 All countries", expanded=False):
