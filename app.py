@@ -2542,7 +2542,6 @@ with tab4:
     # ── Activity World Map ────────────────────────────────────────────────────────
     st.markdown("## Where I've Trained")
 
-    # Compact bounding-box country lookup
     _COUNTRY_BOXES = {
         "Finland":         [(59.5,70.1,19.0,31.6)],
         "Iceland":         [(63.4,66.6,-24.5,-13.5)],
@@ -2639,83 +2638,75 @@ with tab4:
         # ── Folium world map ──────────────────────────────────────────────────
         try:
             import folium
-            import json as _json
             from streamlit_folium import st_folium
 
-            # Fetch world GeoJSON (country polygons with "name" property)
             _GEO_URL = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson"
+
             @st.cache_data(ttl=86400, show_spinner=False)
             def _load_geojson(url):
                 import requests as _req
-                r = _req.get(url, timeout=15)
-                if r.status_code == 200:
-                    return r.json()
+                try:
+                    r = _req.get(url, timeout=15)
+                    if r.status_code == 200:
+                        return r.json()
+                except Exception:
+                    pass
                 return None
 
             _geo = _load_geojson(_GEO_URL)
 
             if _geo:
-                # Build a name→count dict for choropleth
                 _counts = {k: v["count"] for k, v in _country_map.items()}
+                _name_key = "ADMIN"
 
-                # Add count property to each GeoJSON feature for tooltip
-                _name_key = "ADMIN"   # property name in this GeoJSON
+                # Stamp activity_count onto each feature for tooltip
                 for _feat in _geo["features"]:
                     _n = _feat["properties"].get(_name_key, "")
                     _feat["properties"]["activity_count"] = _counts.get(_n, 0)
 
-                # Create folium map — no tiles initially, we pick a clean style
                 _fmap = folium.Map(
                     location=[20, 10],
                     zoom_start=2,
                     tiles="CartoDB positron",
-                    width="100%",
                 )
 
-                # Choropleth layer — visited countries in orange gradient
-                folium.Choropleth(
-                    geo_data=_geo,
-                    data=_counts,
-                    columns=None,          # we pass a dict directly
-                    key_on=f"feature.properties.{_name_key}",
-                    fill_color="YlOrRd",
-                    fill_opacity=0.75,
-                    line_opacity=0.4,
-                    nan_fill_color="#e8edf2",
-                    nan_fill_opacity=0.4,
-                    legend_name="GPS Activities",
-                    highlight=True,
-                    name="Activities",
-                ).add_to(_fmap)
+                # Style function — orange gradient by count
+                def _style_fn(feature):
+                    n = feature["properties"].get("activity_count", 0)
+                    if n == 0:
+                        return {"fillColor": "#dce8f0", "color": "#aabbc8",
+                                "weight": 0.5, "fillOpacity": 0.5}
+                    if n >= 500: fc = "#b03020"
+                    elif n >= 100: fc = "#d94f30"
+                    elif n >= 20:  fc = "#f07030"
+                    elif n >= 5:   fc = "#f5a050"
+                    else:          fc = "#fad090"
+                    return {"fillColor": fc, "color": "#888",
+                            "weight": 0.5, "fillOpacity": 0.8}
 
-                # Transparent overlay for hover tooltip
+                def _hl_fn(feature):
+                    return {"fillColor": "#fc4c02", "color": "#fc4c02",
+                            "weight": 2.5, "fillOpacity": 0.95}
+
                 folium.GeoJson(
                     _geo,
-                    style_function=lambda f: {
-                        "fillColor": "transparent",
-                        "color": "transparent",
-                        "weight": 0,
-                    },
-                    highlight_function=lambda f: {
-                        "fillColor": "#fc4c02",
-                        "color": "#fc4c02",
-                        "weight": 2,
-                        "fillOpacity": 0.3,
-                    },
+                    style_function=_style_fn,
+                    highlight_function=_hl_fn,
                     tooltip=folium.GeoJsonTooltip(
                         fields=[_name_key, "activity_count"],
-                        aliases=["Country", "GPS Activities"],
+                        aliases=["Country", "Activities"],
                         style=(
-                            "background-color: white; color: #111; "
-                            "font-family: Inter, sans-serif; "
-                            "font-size: 13px; padding: 8px 12px; "
-                            "border-radius: 8px; border: 1px solid #ddd;"
+                            "background-color:#fff;color:#111;"
+                            "font-family:Inter,sans-serif;"
+                            "font-size:13px;padding:8px 12px;"
+                            "border-radius:8px;border:1px solid #ddd;"
+                            "box-shadow:0 4px 12px rgba(0,0,0,0.15);"
                         ),
                         sticky=True,
                     ),
                     popup=folium.GeoJsonPopup(
                         fields=[_name_key, "activity_count"],
-                        aliases=["Country", "GPS Activities"],
+                        aliases=["Country:", "GPS Activities:"],
                     ),
                 ).add_to(_fmap)
 
@@ -2723,7 +2714,8 @@ with tab4:
                 folium.CircleMarker(
                     location=[62.0, 25.0],
                     radius=7,
-                    color="#fc4c02",
+                    color="#ffffff",
+                    weight=2,
                     fill=True,
                     fill_color="#fc4c02",
                     fill_opacity=1.0,
@@ -2733,7 +2725,7 @@ with tab4:
                 st_folium(_fmap, use_container_width=True, height=480,
                           returned_objects=[], key="world_map")
             else:
-                st.warning("Could not load world map GeoJSON. Check internet connectivity.")
+                st.warning("Could not load world map data.")
 
         except ImportError:
             st.info("Add `folium` and `streamlit-folium` to requirements.txt to see the world map.")
