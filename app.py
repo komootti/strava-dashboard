@@ -2542,61 +2542,115 @@ with tab4:
     # ── Activity World Map ────────────────────────────────────────────────────────
     st.markdown("## Where I've Trained")
 
-    # Compact bounding-box country lookup — no external API, no multiprocessing
+    # Bounding-box country lookup — keys match display names used in JS centroids
     _COUNTRY_BOXES = {
-        "Finland":         [(59.5,70.1,19.0,31.6)],
-        "Iceland":         [(63.4,66.6,-24.5,-13.5)],
-        "Norway":          [(57.9,71.2,4.5,14.9)],
-        "Denmark":         [(54.5,57.8,8.0,12.7)],
-        "Sweden":          [(55.3,69.1,11.0,24.2)],
-        "Estonia":         [(57.5,59.7,21.8,28.2)],
-        "Ireland":         [(51.4,55.4,-10.5,-5.9)],
-        "United Kingdom":  [(49.9,60.9,-5.7,1.8)],
-        "Scotland":        [(54.6,60.9,-7.6,-0.7)],
-        "Portugal":        [(36.8,42.2,-9.5,-6.1)],
-        "Morocco":         [(27.7,35.9,-13.2,-1.0)],
-        "Spain":           [(35.9,43.8,-9.4,4.3)],
-        "Belgium":         [(49.5,51.5,2.5,6.4)],
-        "Netherlands":     [(50.7,53.6,3.3,7.2)],
-        "Switzerland":     [(45.8,47.8,5.9,10.5)],
-        "France":          [(41.3,51.1,-5.1,9.6)],
-        "Czech Republic":  [(48.5,51.1,12.1,18.9)],
-        "Germany":         [(47.3,55.1,5.9,15.0)],
-        "Austria":         [(46.4,49.0,9.5,17.2)],
-        "Poland":          [(49.0,54.9,14.1,24.2)],
-        "Hungary":         [(45.7,48.6,16.1,22.9)],
-        "Italy":           [(36.5,47.1,6.6,18.5)],
-        "Greece":          [(34.8,41.8,19.4,28.3)],
-        "Turkey":          [(35.8,42.1,25.7,44.8)],
-        "Canada":          [(43.2,47.0,-80.0,-70.0),(43.0,47.5,-67.0,-52.6),
-                            (47.0,83.1,-95.0,-52.6),(48.9,83.1,-141.0,-95.0)],
-        "United States":   [(24.4,48.9,-125.0,-66.9),(51.0,71.5,-168.0,-141.0)],
-        "Mexico":          [(14.5,32.7,-117.1,-86.7)],
-        "Colombia":        [(-4.2,12.5,-79.0,-66.9)],
-        "Brazil":          [(-33.8,5.3,-73.9,-34.8)],
-        "Argentina":       [(-55.1,-21.8,-73.6,-53.6)],
-        "UAE":             [(22.6,26.1,51.5,56.4)],
-        "Qatar":           [(24.5,26.2,50.7,51.7)],
-        "Oman":            [(16.6,26.4,52.0,59.9)],
-        "Saudi Arabia":    [(16.4,32.2,34.6,55.7)],
-        "Singapore":       [(1.1,1.5,103.6,104.0)],
-        "Cambodia":        [(10.4,14.7,102.3,106.5)],
-        "Vietnam":         [(8.4,23.4,102.1,109.5)],
-        "Thailand":        [(5.5,20.5,97.5,105.6)],
-        "Malaysia":        [(0.8,7.4,99.6,119.3)],
-        "Indonesia":       [(-11.0,6.0,95.0,141.0)],
-        "Myanmar":         [(9.5,28.5,92.2,101.2)],
-        "Sri Lanka":       [(5.9,9.8,79.6,81.9)],
-        "India":           [(8.0,37.1,68.1,97.5)],
-        "Japan":           [(24.0,45.5,122.9,145.8)],
-        "China":           [(18.0,53.5,97.6,135.1)],
-        "Rwanda":          [(-2.9,-1.0,28.8,30.9)],
-        "Kenya":           [(-4.7,5.0,33.9,41.9)],
-        "Tanzania":        [(-11.7,-0.9,29.4,40.4)],
-        "South Africa":    [(-34.8,-22.1,16.5,32.9)],
-        "Mauritius":       [(-20.5,-19.9,57.3,57.8)],
-        "Australia":       [(-43.6,-10.4,113.2,153.6)],
-        "New Zealand":     [(-47.3,-34.4,166.5,178.6)],
+        "Finland":          [(59.5, 70.1, 19.0, 31.6)],
+        "Iceland":          [(63.4, 66.6, -24.5, -13.5)],
+        "Norway":           [(57.9, 71.2, 4.5, 31.0)],
+        "Denmark":          [(54.5, 57.8, 8.0, 12.7)],
+        "Sweden":           [(55.3, 69.1, 11.0, 24.2)],
+        "Estonia":          [(57.5, 59.7, 21.8, 28.2)],
+        "Ireland":          [(51.4, 55.4, -10.5, -5.9)],
+        "United Kingdom":   [(49.9, 60.9, -8.0, 2.0)],
+        "Portugal":         [(36.8, 42.2, -9.5, -6.1)],
+        "Morocco":          [(27.7, 35.9, -13.2, -1.0)],
+        "Spain":            [(35.9, 43.8, -9.4, 4.3)],
+        "Belgium":          [(49.5, 51.5, 2.5, 6.4)],
+        "Netherlands":      [(50.7, 53.6, 3.3, 7.2)],
+        "Switzerland":      [(45.8, 47.8, 5.9, 10.5)],
+        "France":           [(41.3, 51.1, -5.1, 9.6)],
+        "Czech Republic":   [(48.5, 51.1, 12.1, 18.9)],
+        "Germany":          [(47.3, 55.1, 5.9, 15.0)],
+        "Austria":          [(46.4, 49.0, 9.5, 17.2)],
+        "Poland":           [(49.0, 54.9, 14.1, 24.2)],
+        "Hungary":          [(45.7, 48.6, 16.1, 22.9)],
+        "Italy":            [(36.5, 47.1, 6.6, 18.5)],
+        "Greece":           [(34.8, 41.8, 19.4, 29.7)],
+        "Turkey":           [(35.8, 42.1, 25.7, 44.8)],
+        "Canada":           [(42.0, 83.1, -141.0, -52.6)],
+        "United States":    [(24.4, 49.4, -125.0, -66.9),
+                             (51.0, 71.5, -168.0, -141.0)],
+        "Mexico":           [(14.5, 32.7, -117.1, -86.7)],
+        "Colombia":         [(-4.2, 12.5, -79.0, -66.9)],
+        "Brazil":           [(-33.8, 5.3, -73.9, -34.8)],
+        "Argentina":        [(-55.1, -21.8, -73.6, -53.6)],
+        "UAE":              [(22.6, 26.1, 51.5, 56.4)],
+        "Qatar":            [(24.5, 26.2, 50.7, 51.7)],
+        "Oman":             [(16.6, 26.4, 52.0, 59.9)],
+        "Saudi Arabia":     [(16.4, 32.2, 34.6, 55.7)],
+        "Singapore":        [(1.1, 1.5, 103.6, 104.0)],
+        "Cambodia":         [(10.4, 14.7, 102.3, 107.6)],
+        "Vietnam":          [(8.4, 23.4, 102.1, 109.5)],
+        "Thailand":         [(5.5, 20.5, 97.5, 105.6)],
+        "Malaysia":         [(0.8, 7.4, 99.6, 119.3)],
+        "Indonesia":        [(-11.0, 6.0, 95.0, 141.0)],
+        "Myanmar":          [(9.5, 28.5, 92.2, 101.2)],
+        "Sri Lanka":        [(5.9, 9.8, 79.6, 81.9)],
+        "India":            [(6.0, 37.1, 68.1, 97.5)],
+        "Japan":            [(24.0, 45.5, 122.9, 145.8)],
+        "China":            [(18.0, 53.5, 73.5, 135.1)],
+        "Rwanda":           [(-2.9, -1.0, 28.8, 30.9)],
+        "Kenya":            [(-4.7, 5.0, 33.9, 41.9)],
+        "Tanzania":         [(-11.7, -0.9, 29.4, 40.4)],
+        "South Africa":     [(-34.8, -22.1, 16.5, 32.9)],
+        "Mauritius":        [(-20.5, -19.9, 57.3, 57.8)],
+        "Australia":        [(-43.6, -10.4, 113.2, 153.6)],
+        "New Zealand":      [(-47.3, -34.4, 166.5, 178.6)],
+    }
+
+    # Country centroids for marker placement
+    _CENTROIDS = {
+        "Finland":          (64.0,  26.0),
+        "Iceland":          (65.0, -18.0),
+        "Norway":           (65.0,  14.0),
+        "Denmark":          (56.0,  10.0),
+        "Sweden":           (62.0,  15.0),
+        "Estonia":          (58.7,  25.5),
+        "Ireland":          (53.2,  -8.0),
+        "United Kingdom":   (54.0,  -2.0),
+        "Portugal":         (39.5,  -8.0),
+        "Morocco":          (32.0,  -5.0),
+        "Spain":            (40.0,  -3.5),
+        "Belgium":          (50.8,   4.5),
+        "Netherlands":      (52.3,   5.3),
+        "Switzerland":      (47.0,   8.2),
+        "France":           (46.0,   2.0),
+        "Czech Republic":   (49.8,  15.5),
+        "Germany":          (51.2,  10.4),
+        "Austria":          (47.5,  14.5),
+        "Poland":           (52.0,  20.0),
+        "Hungary":          (47.2,  19.4),
+        "Italy":            (42.5,  12.5),
+        "Greece":           (39.0,  22.0),
+        "Turkey":           (39.0,  35.0),
+        "Canada":           (56.0, -96.0),
+        "United States":    (38.0, -97.0),
+        "Mexico":           (23.0,-102.0),
+        "Colombia":         ( 4.0, -72.0),
+        "Brazil":           (-10.0,-53.0),
+        "Argentina":        (-34.0,-64.0),
+        "UAE":              (24.0,  54.0),
+        "Qatar":            (25.3,  51.2),
+        "Oman":             (21.0,  57.0),
+        "Saudi Arabia":     (25.0,  45.0),
+        "Singapore":        ( 1.35,103.8),
+        "Cambodia":         (12.5, 105.0),
+        "Vietnam":          (16.0, 108.0),
+        "Thailand":         (15.0, 101.0),
+        "Malaysia":         ( 4.0, 109.5),
+        "Indonesia":        (-5.0, 120.0),
+        "Myanmar":          (17.0,  96.0),
+        "Sri Lanka":        ( 7.5,  80.7),
+        "India":            (20.0,  77.0),
+        "Japan":            (36.0, 138.0),
+        "China":            (35.0, 105.0),
+        "Rwanda":           (-2.0,  30.0),
+        "Kenya":            ( 1.0,  38.0),
+        "Tanzania":         (-6.0,  35.0),
+        "South Africa":     (-29.0, 25.0),
+        "Mauritius":        (-20.2, 57.5),
+        "Australia":        (-25.0,133.0),
+        "New Zealand":      (-41.0,174.0),
     }
 
     def _latlon_to_country(lat, lon):
@@ -2608,7 +2662,6 @@ with tab4:
 
     @st.cache_data(ttl=3600, show_spinner=False)
     def build_country_map(_polylines_data):
-        """Decode polylines, get start coord, lookup country via bounding boxes."""
         if not _polylines_data:
             return {}
         from collections import defaultdict
@@ -2632,155 +2685,147 @@ with tab4:
         _total_countries = len(_country_map)
         _total_poly_acts = sum(v["count"] for v in _country_map.values())
 
-        # Stats row
         _cm1, _cm2, _cm3, _cm4 = st.columns(4)
         _cm1.metric("Countries visited", _total_countries)
         _cm2.metric("Activities with GPS", f"{_total_poly_acts:,}")
         _cm3.metric("Top country", max(_country_map, key=lambda k: _country_map[k]["count"]))
-        _cm4.metric("Years active", f"{df['date'].dt.year.min()}–{df['date'].dt.year.max()}")
+        _cm4.metric("Years active", f"{df['date'].dt.year.min()}\u2013{df['date'].dt.year.max()}")
 
-        # Build D3 world map as HTML component
         import json as _json
-        _map_data = {
-            k: {"count": v["count"]}
-            for k, v in _country_map.items()
-        }
-        _map_json = _json.dumps(_map_data)
 
-        # ── World map — modern minimal style ─────────────────────────────────
-        _bg   = "#0a0a0a" if _dark else "#f4f4f2"
-        _ocean= "#050a14" if _dark else "#c0d8e8"
-        _land = "#222226" if _dark else "#d0d0cc"
-        _bdr  = "#0a0a0a" if _dark else "#ffffff"
-        _grid = "#141418" if _dark else "#dde8f0"
-        _tbg  = "rgba(16,16,18,0.97)" if _dark else "rgba(255,255,255,0.97)"
-        _tbrd = "#2a2a2a" if _dark else "#e0e0e0"
-        _tc   = "#f0f0f0" if _dark else "#111111"
-        _ts   = "#888888" if _dark else "#555555"
-        _ds   = "#0a0a0a" if _dark else "#f4f4f2"
+        # Build marker data: [{name, lat, lon, count, color, radius}]
+        def _mk_color(n):
+            if n >= 500: return "#b03020"
+            if n >= 100: return "#d94f30"
+            if n >= 20:  return "#f07030"
+            if n >= 5:   return "#f5a050"
+            return "#fad090"
+
+        def _mk_radius(n):
+            # 8px minimum, scale with sqrt up to ~40px
+            import math
+            return max(8, min(40, 8 + 10 * math.log10(n + 1)))
+
+        _markers = []
+        for name, d in _country_map.items():
+            if name in _CENTROIDS:
+                lat, lon = _CENTROIDS[name]
+                _markers.append({
+                    "name": name,
+                    "lat": lat,
+                    "lon": lon,
+                    "count": d["count"],
+                    "color": _mk_color(d["count"]),
+                    "radius": round(_mk_radius(d["count"]), 1),
+                })
+
+        _markers_json = _json.dumps(_markers)
 
         _map_html = """<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<html><head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;overflow:hidden;font-family:-apple-system,sans-serif}
-#wrap{position:relative;width:100%}
-svg{display:block;width:100%;height:auto}
-#tt{position:absolute;pointer-events:none;opacity:0;transition:opacity 0.12s;
-    padding:10px 14px;border-radius:10px;min-width:160px;
-    box-shadow:0 8px 32px rgba(0,0,0,0.4)}
-.tt-n{font-size:13px;font-weight:600;margin-bottom:2px}
-.tt-c{font-size:12px}
-.hp{fill:none;stroke:#fc4c02;stroke-width:1.5;opacity:0;animation:p 2.8s ease-out infinite}
-.hp2{animation-delay:1.2s}
-@keyframes p{0%{r:4;opacity:0.8}100%{r:18;opacity:0}}
-</style></head>
-<body id="body">
-<div id="wrap">
-  <div id="tt"><div class="tt-n" id="tt-n"></div><div class="tt-c" id="tt-c"></div></div>
-</div>
+  html,body,#map { margin:0; padding:0; width:100%; height:500px; font-family:Inter,sans-serif; }
+  .tip {
+    background:white; padding:10px 14px; border-radius:10px;
+    border:1px solid #e0e0e0; box-shadow:0 4px 16px rgba(0,0,0,0.12);
+    font-size:13px; pointer-events:none; min-width:150px;
+  }
+  .tip-name { font-weight:700; font-size:14px; color:#111; margin-bottom:4px; }
+  .tip-count { color:#fc4c02; font-weight:700; font-size:18px; font-family:monospace; }
+  .tip-label { color:#888; font-size:11px; margin-top:1px; }
+</style>
+</head><body>
+<div id="map"></div>
 <script>
-const DATA=""" + _map_json + """;
-const NM={840:"United States",246:"Finland",764:"Thailand",380:"Italy",826:"United Kingdom",
-  250:"France",300:"Greece",784:"United Arab Emirates",480:"Mauritius",276:"Germany",
-  392:"Japan",702:"Singapore",156:"China",76:"Brazil",104:"Myanmar",682:"Saudi Arabia",
-  834:"Tanzania",356:"India",528:"Netherlands",792:"Turkey",170:"Colombia",404:"Kenya",
-  124:"Canada",752:"Sweden",578:"Norway",208:"Denmark",233:"Estonia",724:"Spain",
-  620:"Portugal",40:"Austria",756:"Switzerland",56:"Belgium",616:"Poland",203:"Czech Republic",
-  348:"Hungary",36:"Australia",554:"New Zealand",710:"South Africa",504:"Morocco",
-  484:"Mexico",32:"Argentina",352:"Iceland",372:"Ireland",360:"Indonesia",
-  458:"Malaysia",704:"Vietnam",116:"Cambodia",144:"Sri Lanka",646:"Rwanda"};
+const MARKERS = """ + _markers_json + """;
 
-// Apply theme colors from Python
-const CFG = {
-  bg:    """" + _bg    + """",
-  ocean: """" + _ocean + """",
-  land:  """" + _land  + """",
-  bdr:   """" + _bdr   + """",
-  grid:  """" + _grid  + """",
-  tbg:   """" + _tbg   + """",
-  tbrd:  """" + _tbrd  + """",
-  tc:    """" + _tc    + """",
-  ts:    """" + _ts    + """",
-  ds:    """" + _ds    + """"
+const map = L.map('map', {
+  center: [25, 15], zoom: 2,
+  minZoom: 1, maxZoom: 8,
+});
+
+// CartoDB Positron — clean, no distracting labels
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 20
+}).addTo(map);
+
+// Info box
+const info = L.control({position: 'topright'});
+info.onAdd = function() {
+  this._div = L.DomUtil.create('div', 'tip');
+  this._div.innerHTML = '<div class="tip-name" style="color:#aaa">Hover a marker</div>';
+  return this._div;
 };
+info.addTo(map);
 
-document.getElementById("body").style.background = CFG.bg;
-const tt = document.getElementById("tt");
-tt.style.background = CFG.tbg;
-tt.style.border = "1px solid " + CFG.tbrd;
-document.querySelector(".tt-n").style.color = CFG.tc;
-document.querySelector(".tt-c").style.color = CFG.ts;
+// Legend
+const legend = L.control({position: 'bottomright'});
+legend.onAdd = function() {
+  const d = L.DomUtil.create('div', 'tip');
+  d.style.minWidth = '130px';
+  d.innerHTML =
+    '<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Activities</div>' +
+    ['500+','100–499','20–99','5–19','1–4'].map((lbl,i) => {
+      const c = ['#b03020','#d94f30','#f07030','#f5a050','#fad090'][i];
+      return `<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${c};flex-shrink:0"></div>
+        <span style="font-size:12px;color:#444">${lbl}</span></div>`;
+    }).join('');
+  return d;
+};
+legend.addTo(map);
 
-function clr(name) {
-  const d = DATA[name];
-  if (!d) return null;
-  if (name === "Finland") return "#fc4c02";
-  const n = d.count;
-  if (n >= 100) return "#ff5a28";
-  if (n >= 20)  return "#d86830";
-  if (n >= 5)   return "#a85830";
-  return "#784838";
-}
+// Draw markers
+MARKERS.forEach(m => {
+  const circle = L.circleMarker([m.lat, m.lon], {
+    radius: m.radius,
+    fillColor: m.color,
+    color: 'white',
+    weight: 2,
+    opacity: 1,
+    fillOpacity: 0.88,
+  }).addTo(map);
 
-const W = 960, H = 500;
-const svg = d3.select("#wrap").append("svg")
-  .attr("viewBox", `0 0 ${W} ${H}`)
-  .attr("preserveAspectRatio", "xMidYMid meet");
-
-const proj = d3.geoNaturalEarth1().scale(153).translate([W/2, H/2]);
-const gp   = d3.geoPath().projection(proj);
-
-svg.append("path").datum({type:"Sphere"})
-   .attr("fill", CFG.ocean).attr("d", gp);
-svg.append("path").datum(d3.geoGraticule().step([30,30])())
-   .attr("fill","none").attr("stroke", CFG.grid).attr("stroke-width","0.25").attr("d", gp);
-
-fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
-  .then(r => r.json())
-  .then(world => {
-    const feats = topojson.feature(world, world.objects.countries).features;
-    const mesh  = topojson.mesh(world, world.objects.countries, (a,b) => a !== b);
-
-    svg.append("g").selectAll("path").data(feats).join("path")
-      .attr("fill",   d => clr(NM[+d.id]) || CFG.land)
-      .attr("stroke", CFG.bdr)
-      .attr("stroke-width", "0.4")
-      .style("cursor", d => clr(NM[+d.id]) ? "pointer" : "default")
-      .on("mousemove", function(event, d) {
-        const nm = NM[+d.id];
-        const cd = DATA[nm];
-        if (!cd) return;
-        document.getElementById("tt-n").textContent = nm;
-        document.getElementById("tt-c").textContent = cd.count.toLocaleString() + " GPS activities";
-        const rect = document.getElementById("wrap").getBoundingClientRect();
-        let x = event.clientX - rect.left + 14;
-        let y = event.clientY - rect.top  - 10;
-        if (x + 180 > rect.width)  x -= 200;
-        if (y + 60  > rect.height) y -= 70;
-        tt.style.left    = x + "px";
-        tt.style.top     = y + "px";
-        tt.style.opacity = "1";
-      })
-      .on("mouseleave", () => { tt.style.opacity = "0"; });
-
-    svg.append("path").datum(mesh)
-       .attr("fill","none").attr("stroke", CFG.bdr).attr("stroke-width","0.25").attr("d", gp);
-
-    // Home base pulse — Finland
-    const fin = proj([25.0, 62.0]);
-    const g = svg.append("g").attr("transform", `translate(${fin[0]},${fin[1]})`);
-    g.append("circle").attr("class","hp").attr("r","4");
-    g.append("circle").attr("class","hp hp2").attr("r","4");
-    g.append("circle").attr("fill","#fc4c02").attr("stroke", CFG.ds)
-     .attr("stroke-width","1.5").attr("r","4");
+  circle.on('mouseover', function() {
+    this.setStyle({weight: 3, color: '#fc4c02'});
+    info._div.innerHTML =
+      '<div class="tip-name">' + m.name + '</div>' +
+      '<div class="tip-count">' + m.count.toLocaleString() + '</div>' +
+      '<div class="tip-label">GPS activities</div>';
   });
-</script></body></html>"""
-        st.components.v1.html(_map_html, height=500, scrolling=False)
+  circle.on('mouseout', function() {
+    this.setStyle({weight: 2, color: 'white'});
+    info._div.innerHTML = '<div class="tip-name" style="color:#aaa">Hover a marker</div>';
+  });
+  circle.on('click', function() {
+    info._div.innerHTML =
+      '<div class="tip-name">' + m.name + '</div>' +
+      '<div class="tip-count">' + m.count.toLocaleString() + '</div>' +
+      '<div class="tip-label">GPS activities</div>';
+  });
+});
 
-        # Country breakdown table
+// Finland home pulse
+const homeIcon = L.divIcon({
+  html: `<div style="position:relative;width:20px;height:20px">
+    <div style="position:absolute;inset:0;border-radius:50%;background:rgba(252,76,2,0.2);animation:pulse 2s infinite"></div>
+    <div style="position:absolute;inset:4px;border-radius:50%;background:#fc4c02;border:2px solid white"></div>
+    <style>@keyframes pulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.8);opacity:0}}</style>
+  </div>`,
+  className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+});
+L.marker([62.0, 25.0], {icon: homeIcon, zIndexOffset: 1000})
+  .bindTooltip('🏠 Home base — Finland', {direction: 'right', offset: [12, 0]})
+  .addTo(map);
+</script>
+</body></html>"""
+
+        st.components.v1.html(_map_html, height=510, scrolling=False)
+
         with st.expander("📍 All countries", expanded=False):
             _sorted_countries = sorted(_country_map.items(), key=lambda x: -x[1]["count"])
             _col_a, _col_b = st.columns(2)
